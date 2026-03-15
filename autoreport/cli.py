@@ -1,25 +1,22 @@
-"""Command-line interface for the autoreport package.
-
-The CLI remains intentionally small in v0.1. It validates YAML report inputs
-for the weekly report schema without generating output files yet.
-"""
+"""Command-line interface for the autoreport package."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 import yaml
 
-from autoreport.loader import load_yaml
-from autoreport.validator import ValidationError, validate_report
-
-
-SUCCESS_LINES = (
-    "Report input validated successfully.",
-    "Generation not implemented yet.",
+from autoreport.engine.generator import generate_report
+from autoreport.models import ReportRequest
+from autoreport.outputs.pptx_writer import (
+    OutputWriteError,
+    TemplateLoadError,
+    TemplateNotFoundError,
 )
+from autoreport.validator import ValidationError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,6 +35,17 @@ def build_parser() -> argparse.ArgumentParser:
         "report_path",
         help="Path to the YAML report definition.",
     )
+    generate_parser.add_argument(
+        "-o",
+        "--output",
+        dest="output_path",
+        help="Path to the generated PowerPoint file.",
+    )
+    generate_parser.add_argument(
+        "--template",
+        dest="template_path",
+        help="Optional PowerPoint template path.",
+    )
 
     return parser
 
@@ -51,10 +59,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         report_path = args.report_path
 
         try:
-            raw_data = load_yaml(report_path)
-            validate_report(raw_data)
+            output_path = generate_report(
+                ReportRequest(
+                    source_path=Path(report_path),
+                    output_path=(
+                        Path(args.output_path) if args.output_path else None
+                    ),
+                    template_path=(
+                        Path(args.template_path) if args.template_path else None
+                    ),
+                )
+            )
+        except TemplateNotFoundError as exc:
+            print(f"Template file not found: {exc.template_path}", file=sys.stderr)
+            return 1
         except FileNotFoundError:
             print(f"Report file not found: {report_path}", file=sys.stderr)
+            return 1
+        except TemplateLoadError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        except OutputWriteError as exc:
+            print(f"Could not write report file: {exc.output_path}", file=sys.stderr)
             return 1
         except OSError:
             print(f"Could not read report file: {report_path}", file=sys.stderr)
@@ -71,8 +97,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("An unexpected internal error occurred.", file=sys.stderr)
             return 2
 
-        for line in SUCCESS_LINES:
-            print(line)
+        print(f"Report generated successfully: {output_path}")
         return 0
 
     parser.print_help()

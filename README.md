@@ -2,8 +2,8 @@
 
 Autoreport is a structured report automation project for turning well-defined
 input files into presentation-ready outputs. The long-term direction includes
-AI-assisted workflows, but v0.1 is intentionally deterministic and focused on a
-clean CLI foundation for generating weekly report slides from YAML.
+AI-assisted workflows, but the current v0.1 implementation is deterministic and
+focused on generating weekly report slide decks from YAML.
 
 ## Why this project exists
 
@@ -14,15 +14,15 @@ aims to make those reports reproducible, template-driven, and easy to automate.
 ## Planned CLI usage
 
 ```bash
-autoreport generate examples/weekly_report.yaml
+autoreport generate examples/weekly_report.yaml --output output/weekly_report.pptx
 ```
 
-The command shape is in place now; report loading and PowerPoint generation
-will be implemented incrementally in later tasks.
+The CLI validates the YAML input, shapes it into a fixed weekly slide template,
+and writes a `.pptx` presentation.
 
 ## Roadmap
 
-- v0.1: Project scaffold, CLI shape, report models, and module boundaries.
-- v0.2: YAML loading and schema validation for weekly report inputs.
-- v0.3: PowerPoint template binding and `.pptx` generation.
-- v0.4: Workflow hardening, testing, and extension points for future automation.
+- v0.1: Deterministic weekly-report CLI with YAML validation and `.pptx` output.
+- v0.2: Richer slide layouts, branding support, and metrics visualizations.
+- v0.3: AI-assisted content drafting on top of the structured pipeline.
+- v0.4: Web demo, workflow polish, and broader output automation.
