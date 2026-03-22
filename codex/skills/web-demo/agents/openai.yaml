@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Demo"
+  short_description: "Maintain FastAPI demo routes, HTML surface, and generation API behavior."
+  default_prompt: "Work on the autoreport web demo while preserving the tested route contracts, error payloads, and PPTX download behavior."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Autoreport CLI"
+  short_description: "Maintain argparse, exit codes, and user-visible CLI behavior."
+  default_prompt: "Work on autoreport CLI behavior while preserving the tested command shape, success output, and failure mapping."

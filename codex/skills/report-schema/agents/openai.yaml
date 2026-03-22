@@ -1,0 +1,4 @@
+interface:
+  display_name: "Report Schema"
+  short_description: "Maintain YAML loading, validation, and weekly report schema contracts."
+  default_prompt: "Work on autoreport schema behavior while preserving the tested separation between YAML loading and validation."
