@@ -11,7 +11,11 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from autoreport.cli import main
-from autoreport.outputs.pptx_writer import OutputWriteError
+from autoreport.outputs.pptx_writer import (
+    OutputWriteError,
+    TemplateCompatibilityError,
+    TemplateReadError,
+)
 
 
 TEST_TEMP_ROOT = Path("tests") / "_tmp"
@@ -196,6 +200,48 @@ next_steps:
         self.assertEqual(
             stderr_buffer.getvalue().strip(),
             f"Invalid PowerPoint template file: {template_path}",
+        )
+
+    def test_generate_command_reports_incompatible_template(self) -> None:
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
+        template_path = Path("tests") / "template.pptx"
+
+        with patch(
+            "autoreport.cli.generate_report",
+            side_effect=TemplateCompatibilityError(
+                template_path,
+                "missing 'bullets' slide layout at index 1",
+            ),
+        ):
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                exit_code = main(["generate", "examples/weekly_report.yaml"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(stdout_buffer.getvalue(), "")
+        self.assertEqual(
+            stderr_buffer.getvalue().strip(),
+            "PowerPoint template is not compatible with the weekly report layout: "
+            "tests\\template.pptx (missing 'bullets' slide layout at index 1)",
+        )
+
+    def test_generate_command_reports_template_read_errors(self) -> None:
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
+        template_path = Path("tests") / "template.pptx"
+
+        with patch(
+            "autoreport.cli.generate_report",
+            side_effect=TemplateReadError(template_path),
+        ):
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                exit_code = main(["generate", "examples/weekly_report.yaml"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(stdout_buffer.getvalue(), "")
+        self.assertEqual(
+            stderr_buffer.getvalue().strip(),
+            f"Could not read template file: {template_path}",
         )
 
 

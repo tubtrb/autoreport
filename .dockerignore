@@ -1,0 +1,12 @@
+.git
+.gitignore
+.codex/
+.venv/
+venv/
+output/
+tests/_tmp/
+tests/tmp*/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

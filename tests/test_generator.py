@@ -10,7 +10,10 @@ from uuid import uuid4
 
 from pptx import Presentation
 
-from autoreport.engine.generator import generate_report
+from autoreport.engine.generator import (
+    generate_report,
+    generate_report_from_mapping,
+)
 from autoreport.models import ReportRequest
 
 
@@ -162,6 +165,38 @@ class GeneratorTestCase(unittest.TestCase):
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
 
+        self.assertEqual(
+            slide_titles,
+            ["Weekly Report", "Highlights", "Metrics", "Risks", "Next Steps"],
+        )
+
+    def test_generate_report_from_mapping_creates_weekly_presentation(self) -> None:
+        test_dir = make_test_dir()
+        try:
+            output_path = test_dir / "output" / "weekly_report.pptx"
+
+            generated_path = generate_report_from_mapping(
+                {
+                    "title": "Weekly Report",
+                    "team": "Platform Team",
+                    "week": "2026-W24",
+                    "highlights": ["Built the generation pipeline."],
+                    "metrics": {
+                        "tasks_completed": 8,
+                        "open_issues": 3,
+                    },
+                    "risks": ["Layout polish is still pending."],
+                    "next_steps": ["Review the generated deck."],
+                },
+                output_path=output_path,
+            )
+
+            presentation = Presentation(str(output_path))
+            slide_titles = [slide.shapes.title.text for slide in presentation.slides]
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        self.assertEqual(generated_path, output_path)
         self.assertEqual(
             slide_titles,
             ["Weekly Report", "Highlights", "Metrics", "Risks", "Next Steps"],

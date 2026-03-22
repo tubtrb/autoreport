@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import yaml
 
-from autoreport.loader import load_yaml
+from autoreport.loader import load_yaml, parse_yaml_text
 
 
 TEST_TEMP_ROOT = Path("tests") / "_tmp"
@@ -72,6 +72,21 @@ class LoaderTestCase(unittest.TestCase):
                     load_yaml(report_path)
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_parse_yaml_text_returns_raw_mapping(self) -> None:
+        loaded = parse_yaml_text("title: Weekly Report\nteam: Platform Team\n")
+
+        self.assertEqual(
+            loaded,
+            {
+                "title": "Weekly Report",
+                "team": "Platform Team",
+            },
+        )
+
+    def test_parse_yaml_text_raises_yaml_error_for_invalid_content(self) -> None:
+        with self.assertRaises(yaml.YAMLError):
+            parse_yaml_text("title: [broken")
 
 
 if __name__ == "__main__":

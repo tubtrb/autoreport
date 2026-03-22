@@ -13,8 +13,10 @@ from autoreport.engine.generator import generate_report
 from autoreport.models import ReportRequest
 from autoreport.outputs.pptx_writer import (
     OutputWriteError,
+    TemplateCompatibilityError,
     TemplateLoadError,
     TemplateNotFoundError,
+    TemplateReadError,
 )
 from autoreport.validator import ValidationError
 
@@ -77,6 +79,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Report file not found: {report_path}", file=sys.stderr)
             return 1
         except TemplateLoadError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        except TemplateReadError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        except TemplateCompatibilityError as exc:
             print(str(exc), file=sys.stderr)
             return 1
         except OutputWriteError as exc:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from zipfile import BadZipFile
 
 from pptx import Presentation
 from pptx.exc import PackageNotFoundError
@@ -33,6 +34,27 @@ class TemplateLoadError(OSError):
         super().__init__(f"Invalid PowerPoint template file: {template_path}")
 
 
+class TemplateReadError(OSError):
+    """Raised when a presentation template cannot be read from disk."""
+
+    def __init__(self, template_path: Path) -> None:
+        self.template_path = template_path
+        super().__init__(f"Could not read template file: {template_path}")
+
+
+class TemplateCompatibilityError(ValueError):
+    """Raised when a template lacks the layouts/placeholders weekly reports need."""
+
+    def __init__(self, template_path: Path | None, detail: str) -> None:
+        self.template_path = template_path
+        self.detail = detail
+        target = str(template_path) if template_path is not None else "default template"
+        super().__init__(
+            f"PowerPoint template is not compatible with the weekly report layout: "
+            f"{target} ({detail})"
+        )
+
+
 class PowerPointWriter:
     """Write report content into a `.pptx` presentation."""
 
@@ -46,6 +68,10 @@ class PowerPointWriter:
         """Write a PowerPoint file using a template and prepared context."""
 
         presentation = self._load_presentation(template_path)
+        self._ensure_weekly_template_compatibility(
+            presentation,
+            template_path=template_path,
+        )
         self._clear_slides(presentation)
 
         for slide_context in context.get("slides", []):
@@ -87,10 +113,74 @@ class PowerPointWriter:
 
         try:
             return Presentation(str(template_path))
-        except PackageNotFoundError as exc:
+        except (BadZipFile, KeyError, PackageNotFoundError, ValueError) as exc:
             raise TemplateLoadError(template_path) from exc
         except OSError as exc:
-            raise TemplateLoadError(template_path) from exc
+            raise TemplateReadError(template_path) from exc
+
+    def _ensure_weekly_template_compatibility(
+        self,
+        presentation: Presentation,
+        *,
+        template_path: Path | None,
+    ) -> None:
+        """Verify the template exposes the layouts/placeholders weekly reports use."""
+
+        self._assert_layout_access(
+            presentation,
+            layout_index=0,
+            placeholder_index=1,
+            layout_name="title",
+            template_path=template_path,
+        )
+        self._assert_layout_access(
+            presentation,
+            layout_index=1,
+            placeholder_index=1,
+            layout_name="bullets",
+            template_path=template_path,
+        )
+
+    def _assert_layout_access(
+        self,
+        presentation: Presentation,
+        *,
+        layout_index: int,
+        placeholder_index: int,
+        layout_name: str,
+        template_path: Path | None,
+    ) -> None:
+        """Check that the expected layout and placeholder can be instantiated."""
+
+        try:
+            layout = presentation.slide_layouts[layout_index]
+        except IndexError as exc:
+            raise TemplateCompatibilityError(
+                template_path,
+                f"missing '{layout_name}' slide layout at index {layout_index}",
+            ) from exc
+
+        try:
+            slide = presentation.slides.add_slide(layout)
+            if slide.shapes.title is None:
+                raise TemplateCompatibilityError(
+                    template_path,
+                    f"'{layout_name}' layout has no title placeholder",
+                )
+            placeholder = slide.placeholders[placeholder_index]
+            if not hasattr(placeholder, "text_frame"):
+                raise TemplateCompatibilityError(
+                    template_path,
+                    f"'{layout_name}' layout placeholder {placeholder_index} "
+                    f"does not support text",
+                )
+        except TemplateCompatibilityError:
+            raise
+        except (AttributeError, IndexError, KeyError) as exc:
+            raise TemplateCompatibilityError(
+                template_path,
+                f"'{layout_name}' layout is missing placeholder {placeholder_index}",
+            ) from exc
 
     def _clear_slides(self, presentation: Presentation) -> None:
         """Remove existing slides while preserving the template theme."""
