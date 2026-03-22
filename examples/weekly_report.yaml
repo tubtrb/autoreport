@@ -1,0 +1,14 @@
+# Example input for the v0.1 weekly report schema.
+title: Weekly Business Review
+team: Platform Team
+week: 2026-W11
+highlights:
+  - Revenue finished above plan.
+  - Customer escalations declined week over week.
+metrics:
+  tasks_completed: 8
+  open_issues: 3
+risks:
+  - Slide rendering is not implemented in v0.1.
+next_steps:
+  - Add PowerPoint generation in the next task.
