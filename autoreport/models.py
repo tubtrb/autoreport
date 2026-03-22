@@ -12,6 +12,7 @@ class ReportRequest:
 
     source_path: Path
     output_path: Path | None = None
+    template_path: Path | None = None
     template_name: str = "weekly_report"
 
 

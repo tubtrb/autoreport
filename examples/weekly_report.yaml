@@ -9,6 +9,6 @@ metrics:
   tasks_completed: 8
   open_issues: 3
 risks:
-  - Slide rendering is not implemented in v0.1.
+  - Slide layout still needs branding polish.
 next_steps:
-  - Add PowerPoint generation in the next task.
+  - Share the generated deck with stakeholders.
