@@ -20,6 +20,7 @@ and routes deeper work to one primary focused skill.
   - `../../../docs/architecture/template-aware-autofill-engine.md`
   - `../../../docs/architecture/v0.3-template-workstreams.md`
 - Identify the primary surface before editing:
+  - Parallel worktree monitoring/orchestration -> `../workstream-orchestrator/SKILL.md`
   - CLI/entrypoint -> `../autoreport-cli/SKILL.md`
   - Loader/schema/example/tests -> `../report-schema/SKILL.md`
   - Template/generator/writer -> `../pptx-output/SKILL.md`

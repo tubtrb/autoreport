@@ -42,6 +42,7 @@
 - CLI, argparse, exit codes, user-visible command output -> `autoreport-cli`
 - YAML loading, models, validator rules, example payload, schema tests -> `report-schema`
 - Template shaping, generation orchestration, writer behavior, template compatibility -> `pptx-output`
+- Parallel v0.3 worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
 - FastAPI routes, HTML demo surface, API error shape, web tests -> `web-demo`
 - Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`

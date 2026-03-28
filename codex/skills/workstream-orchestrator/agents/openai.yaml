@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workstream Orchestrator"
+  short_description: "Monitor autoreport worktrees and dispatch next actions."
+  default_prompt: "Use $workstream-orchestrator to inspect the autoreport master thread, decide each workstream's next action, and write .codex/master-next.txt files."
