@@ -37,6 +37,31 @@ root unless the user explicitly sets another interpreter.
 `text-layout-engine` and `image-layout-engine` can move in parallel only after
 the contract-export and payload-schema surfaces are stable enough.
 
+## Git ownership policy
+
+- Workers own code changes, local tests, and local WIP commits.
+- The master thread owns remote push, rebase, merge, and force-push whenever
+  the goal is to preserve a clean shared integration history.
+- For tracked shared policy changes under files such as `AGENTS.md`,
+  `codex/skills/`, or shared architecture docs, the master thread should land
+  the change on the shared base first and then propagate it to sibling
+  worktrees by rebase.
+
+## Policy sync mode
+
+Use this mode when the master thread changes tracked shared operating rules.
+
+1. Commit and push the policy change on the shared base.
+2. Inspect each sibling worktree for local changes.
+3. Create a checkpoint commit if the worktree is dirty.
+4. Rebase the branch onto `origin/codex/v0.3-template-engine`.
+5. Run the branch's narrow verification command.
+6. Push the rebased branch.
+
+Do not rely on `.codex/master-next.txt` as the only channel for a new policy
+until the affected branches have actually received that policy through git
+history.
+
 ## Overlap hotspots
 
 - `autoreport/templates/weekly_report.py`

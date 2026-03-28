@@ -12,6 +12,11 @@ Use this skill for the master-thread role that coordinates the sibling
 while pushing short, concrete next-step instructions into each worktree's
 private `.codex/` state.
 
+Master-thread git control is the default operating mode for this skill.
+Workers may continue local development, local tests, and local WIP commits, but
+the master thread owns checkpoint cleanup, remote push, rebase, merge, and
+force-push decisions whenever branch history needs to stay aligned.
+
 ## Mandatory Preload
 
 - Read `../../../AGENTS.md`.
@@ -40,13 +45,24 @@ private `.codex/` state.
 - Keep ownership boundaries from `v0.3-template-workstreams.md`; do not widen a
   thread just because files overlap.
 
-3. Write the next-step instructions.
+3. Apply master-owned git orchestration when policy or shared history changes.
+- Treat policy updates to tracked shared files such as `AGENTS.md`,
+  `codex/skills/`, and shared architecture docs as master-owned changes.
+- After a policy change lands on the shared base, the master thread should
+  inspect each sibling worktree, make any needed checkpoint commit, rebase onto
+  the shared base, rerun the narrow tests, and push the branch.
+- Do not assume `.codex/master-next.txt` is the authoritative channel until the
+  branch history actually contains the updated skill/policy files.
+- Use workers for implementation checkpoints; use the master thread for final
+  integration history.
+
+4. Write the next-step instructions.
 - Keep each instruction short, concrete, and copy-pastable.
 - Default target file is `.codex/master-next.txt` inside each sibling worktree.
 - Use the dispatch script with a JSON object that maps workstream keys to
   instruction text.
 
-4. Report back to the user.
+5. Report back to the user.
 - Summarize which worktrees were inspected, which files were written, and any
   blockers.
 - Call out overlap on `autoreport/templates/weekly_report.py`,
