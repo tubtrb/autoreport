@@ -84,6 +84,12 @@ same time.
   append-only log.
 - Tell workers to keep `.codex/worker-status.json` current and to create
   `.codex/worker-final.json` only when the branch is ready for master review.
+- Treat the file as the source of truth for branch-specific work.
+- After updating these files, the normal shared worker-facing message should be
+  short and generic: reload the latest policy/skill files, then follow local
+  `.codex/master-next.txt`.
+- Avoid duplicating long per-branch instructions in user-facing chat once they
+  are already present in the worktrees.
 
 ## Report channel policy
 
