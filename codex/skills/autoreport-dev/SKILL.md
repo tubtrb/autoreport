@@ -25,6 +25,7 @@ and routes deeper work to one primary focused skill.
   - Release readiness checks, browser smoke tests, and evidence capture -> `../release-verification/SKILL.md`
   - README/release/package messaging -> `../release-docs/SKILL.md`
   - WordPress-style development logs, release notes, and user guides -> `../write-doc-markdown/SKILL.md`
+  - Handoff of versioned posts into the private `autorelease` repo -> `../autorelease-handoff/SKILL.md`
 - If a focused skill is missing, continue with this umbrella guidance and report the coverage gap.
 
 ## Workflow
@@ -51,6 +52,7 @@ and routes deeper work to one primary focused skill.
 - User-visible behavior changes should update the nearest tests in the same change.
 - Public wording changes should keep README and package metadata aligned with real behavior.
 - Any task that could make files public should run `public-repo-safety` before signoff.
+- If versioned posts under `docs/posts/` are part of the task and the branch is being wrapped up, run `autorelease-handoff` before calling the work finished.
 
 5. Verify narrowly before broadening.
 - Run the smallest relevant unittest target first.

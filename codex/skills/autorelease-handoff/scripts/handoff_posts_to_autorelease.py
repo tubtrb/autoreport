@@ -1,0 +1,387 @@
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import shutil
+import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+from typing import Callable
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover
+    import tomli as tomllib  # type: ignore[no-redef]
+
+
+class HandoffError(Exception):
+    """Raised when the autorelease handoff cannot be completed."""
+
+
+@dataclass(frozen=True)
+class PostSpec:
+    key: str
+    section: str
+    source_path: Path
+    target_path: Path
+    slug: str
+    title: str
+    summary: str
+    tags: tuple[str, ...]
+    transform_body: Callable[[str, "PostSpec", argparse.Namespace], str]
+    source_asset_dir: Path | None = None
+    cover_image: str | None = None
+
+
+def parse_args() -> argparse.Namespace:
+    repo_root = Path(__file__).resolve().parents[4]
+    parser = argparse.ArgumentParser(
+        description=(
+            "Sync versioned autoreport posts into the private autorelease repo."
+        )
+    )
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=repo_root,
+        help="Path to the autoreport repository root.",
+    )
+    parser.add_argument(
+        "--autorelease-root",
+        type=Path,
+        default=repo_root.parent / "autorelease",
+        help="Path to the private autorelease repository root.",
+    )
+    parser.add_argument(
+        "--version",
+        default=None,
+        help="Version to hand off. Defaults to the version in pyproject.toml.",
+    )
+    parser.add_argument(
+        "--source-ref",
+        default=None,
+        help="Branch, tag, or commit to record in the handoff front matter.",
+    )
+    parser.add_argument(
+        "--date",
+        dest="date_value",
+        default=date.today().isoformat(),
+        help="Front matter date in YYYY-MM-DD format.",
+    )
+    parser.add_argument(
+        "--status",
+        default="draft",
+        choices=("draft", "publish"),
+        help="Target publish status for the handoff items.",
+    )
+    parser.add_argument(
+        "--source-repo",
+        default="tubtrb/autoreport",
+        help="Source repository name written into the front matter.",
+    )
+    return parser.parse_args()
+
+
+def read_project_version(repo_root: Path) -> str:
+    pyproject_path = repo_root / "pyproject.toml"
+    with pyproject_path.open("rb") as handle:
+        data = tomllib.load(handle)
+    version = data.get("project", {}).get("version")
+    if not version:
+        raise HandoffError(f"Could not find project.version in {pyproject_path}.")
+    return str(version)
+
+
+def detect_source_ref(repo_root: Path) -> str:
+    exact_tag = run_git(
+        repo_root,
+        ["describe", "--tags", "--exact-match"],
+        allow_failure=True,
+    )
+    if exact_tag:
+        return exact_tag
+
+    branch_name = run_git(
+        repo_root,
+        ["rev-parse", "--abbrev-ref", "HEAD"],
+        allow_failure=True,
+    )
+    if branch_name and branch_name != "HEAD":
+        return branch_name
+
+    commit_sha = run_git(
+        repo_root,
+        ["rev-parse", "--short", "HEAD"],
+        allow_failure=False,
+    )
+    return commit_sha
+
+
+def run_git(repo_root: Path, args: list[str], *, allow_failure: bool) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        if allow_failure:
+            return ""
+        raise HandoffError(result.stderr.strip() or "git command failed")
+    return result.stdout.strip()
+
+
+def slug_version(version: str) -> str:
+    return version.replace(".", "-")
+
+
+def build_specs(args: argparse.Namespace) -> list[PostSpec]:
+    repo_root = args.repo_root.resolve()
+    autorelease_root = args.autorelease_root.resolve()
+    version = args.version
+    slugged_version = slug_version(version)
+
+    devlog_slug = f"autoreport-v{slugged_version}-devlog"
+    guide_slug = f"autoreport-guide-v{slugged_version}"
+    release_slug = f"autoreport-v{slugged_version}-release-notes"
+
+    posts_root = repo_root / "docs" / "posts"
+    return [
+        PostSpec(
+            key="devlog",
+            section="devlog",
+            source_path=posts_root / f"autoreport-v{version}-development-log.md",
+            target_path=autorelease_root / "content" / "devlogs" / f"{devlog_slug}.md",
+            slug=devlog_slug,
+            title=f"Autoreport v{version} 개발 일지",
+            summary=(
+                f"Autoreport v{version} 작업 기록으로, 구현 메모와 릴리즈 준비 흐름을 담았습니다."
+            ),
+            tags=("development-log", "autoreport", f"v{version}"),
+            transform_body=transform_devlog_body,
+            source_asset_dir=posts_root / f"devlog-image-v{version}",
+        ),
+        PostSpec(
+            key="guide",
+            section="guide",
+            source_path=posts_root / f"autoreport-guide-v{version}.md",
+            target_path=autorelease_root / "content" / "guides" / f"{guide_slug}.md",
+            slug=guide_slug,
+            title=f"Autoreport User Guide v{version}",
+            summary=(
+                "Learn the current weekly-report workflow across the public CLI and browser demo."
+            ),
+            tags=("user-guide", "autoreport", "web-demo"),
+            transform_body=transform_guide_body,
+            source_asset_dir=posts_root / f"guide-image-v{version}",
+            cover_image=f"../assets/{guide_slug}/image.png",
+        ),
+        PostSpec(
+            key="release-note",
+            section="release-note",
+            source_path=posts_root / f"autoreport-v{version}-release-notes.md",
+            target_path=(
+                autorelease_root
+                / "content"
+                / "release-notes"
+                / f"{release_slug}.md"
+            ),
+            slug=release_slug,
+            title=f"Autoreport v{version} Release Notes",
+            summary=(
+                f"Release summary for Autoreport v{version}, including current capabilities and verification notes."
+            ),
+            tags=("release", "autoreport", f"v{version}"),
+            transform_body=transform_release_notes_body,
+        ),
+    ]
+
+
+def ensure_source_exists(spec: PostSpec) -> None:
+    if not spec.source_path.exists():
+        raise HandoffError(f"Source post not found: {spec.source_path}")
+
+
+def read_source_body(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    if text.startswith("---"):
+        match = re.match(r"^---\s*\r?\n.*?\r?\n---\s*\r?\n?(.*)$", text, re.DOTALL)
+        if match is not None:
+            return match.group(1).strip() + "\n"
+    return text.strip() + "\n"
+
+
+def transform_devlog_body(body: str, spec: PostSpec, _: argparse.Namespace) -> str:
+    source_prefix = spec.source_asset_dir.name if spec.source_asset_dir else ""
+    if source_prefix:
+        body = body.replace(
+            f"]({source_prefix}/",
+            f"](../assets/{spec.slug}/",
+        )
+    return body
+
+
+def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) -> str:
+    body = body.replace(
+        "This guide reflects the current implementation of Autoreport on the active branch.",
+        f"This guide reflects the Autoreport implementation at `{args.source_ref}`.",
+    )
+    body = body.replace(
+        "On the current branch, the success state changes to",
+        "In this handoff build, the success state changes to",
+    )
+    body = body.replace(
+        "The current branch was verified with the web contract tests and real browser smoke checks.",
+        f"The `{args.source_ref}` build was verified with the web contract tests and real browser smoke checks.",
+    )
+    body = body.replace(
+        "## Verification on the current branch",
+        "## Verification for this handoff build",
+    )
+    body = body.replace(
+        "REPLACE_WITH_PUBLIC_IMAGE_URL",
+        f"../assets/{spec.slug}/image.png",
+    )
+    body = re.sub(
+        r"<!-- Local working screenshot asset: .*? -->\r?\n?",
+        "",
+        body,
+    )
+    return body
+
+
+def transform_release_notes_body(
+    body: str,
+    _: PostSpec,
+    args: argparse.Namespace,
+) -> str:
+    body = body.replace(
+        "The current branch now exposes",
+        "This release now exposes",
+    )
+    body = body.replace(
+        "Clearer current-branch release verification using focused tests and browser smoke checks",
+        "Clearer release verification using focused tests and browser smoke checks",
+    )
+    body = body.replace(
+        "## Verification on the current branch",
+        "## Verification for this release",
+    )
+    current_branch_sentence = (
+        "This release note is based on the current workspace state rather than a tagged public deployment."
+    )
+    if args.source_ref.startswith("v"):
+        replacement = (
+            f"This release note reflects the `{args.source_ref}` tag and the verification run used for release signoff."
+        )
+    else:
+        replacement = (
+            f"This release note reflects the `{args.source_ref}` branch and its verification run."
+        )
+    body = body.replace(current_branch_sentence, replacement)
+    return body
+
+
+def render_front_matter(spec: PostSpec, args: argparse.Namespace) -> str:
+    lines = [
+        "---",
+        f"title: {json.dumps(spec.title, ensure_ascii=False)}",
+        f"slug: {spec.slug}",
+        f"section: {spec.section}",
+        f"summary: {json.dumps(spec.summary, ensure_ascii=False)}",
+        f"date: {args.date_value}",
+        f"status: {args.status}",
+        "tags:",
+    ]
+    for tag in spec.tags:
+        lines.append(f"  - {tag}")
+    lines.extend(
+        [
+            f"source_repo: {json.dumps(args.source_repo, ensure_ascii=False)}",
+            f"source_ref: {json.dumps(args.source_ref, ensure_ascii=False)}",
+        ]
+    )
+    if spec.cover_image:
+        lines.append(f"cover_image: {json.dumps(spec.cover_image, ensure_ascii=False)}")
+    lines.append("---")
+    return "\n".join(lines)
+
+
+def write_target_post(spec: PostSpec, args: argparse.Namespace) -> None:
+    ensure_source_exists(spec)
+    body = read_source_body(spec.source_path)
+    body = spec.transform_body(body, spec, args).strip() + "\n"
+    front_matter = render_front_matter(spec, args)
+    spec.target_path.parent.mkdir(parents=True, exist_ok=True)
+    spec.target_path.write_text(
+        front_matter + "\n\n" + body,
+        encoding="utf-8",
+    )
+
+
+def sync_assets(spec: PostSpec) -> None:
+    if spec.source_asset_dir is None or not spec.source_asset_dir.exists():
+        return
+
+    target_root = spec.target_path.parents[1] / "assets" / spec.slug
+    target_root.mkdir(parents=True, exist_ok=True)
+    for source in spec.source_asset_dir.rglob("*"):
+        if not source.is_file():
+            continue
+        relative = source.relative_to(spec.source_asset_dir)
+        destination = target_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+
+
+def validate_touched_posts(args: argparse.Namespace, specs: list[PostSpec]) -> None:
+    autorelease_src = args.autorelease_root / "src"
+    sys.path.insert(0, str(autorelease_src))
+    try:
+        from autorelease.content import load_post
+        from autorelease.validate import validate_post
+    except ModuleNotFoundError as exc:  # pragma: no cover
+        raise HandoffError(
+            "Could not import autorelease validation helpers. "
+            "Run this script in an environment with PyYAML available."
+        ) from exc
+
+    errors: list[str] = []
+    for spec in specs:
+        post = load_post(spec.target_path, args.autorelease_root)
+        errors.extend(validate_post(post))
+
+    if errors:
+        raise HandoffError("\n".join(errors))
+
+
+def main() -> int:
+    args = parse_args()
+    args.repo_root = args.repo_root.resolve()
+    args.autorelease_root = args.autorelease_root.resolve()
+    args.version = args.version or read_project_version(args.repo_root)
+    args.source_ref = args.source_ref or detect_source_ref(args.repo_root)
+
+    specs = build_specs(args)
+    for spec in specs:
+        write_target_post(spec, args)
+        sync_assets(spec)
+
+    validate_touched_posts(args, specs)
+
+    print(
+        "HANDOFF_OK "
+        f"version={args.version} "
+        f"source_ref={args.source_ref} "
+        f"posts={len(specs)}"
+    )
+    for spec in specs:
+        print(spec.target_path)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

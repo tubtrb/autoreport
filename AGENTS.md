@@ -47,6 +47,7 @@
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`
 - README, release notes, packaging metadata, public wording alignment -> `release-docs`
 - WordPress-style public Markdown posts for development logs, release notes, and user guides -> `write-doc-markdown`
+- Versioned post handoff from `docs/posts/` into the private `autorelease` publishing repo -> `autorelease-handoff`
 - If a task genuinely spans multiple surfaces, keep one primary skill and consult adjacent skills only where necessary.
 
 ## Bootstrap Rules
@@ -56,3 +57,4 @@
 - Before any public push, PR, release, publish-ready doc handoff, or claim that the repo is safe to share publicly, load `codex/skills/public-repo-safety/SKILL.md` and run its blocker checks.
 - If `public-repo-safety` finds a blocker in a tracked file or a non-ignored untracked file, stop the public-sharing flow until the finding is removed or intentionally resolved.
 - Do not promote ignored screenshots or local artifacts into tracked docs paths without reviewing them through `public-repo-safety`.
+- If a task ends a branch, prepares a tag, or wraps up versioned public posts under `docs/posts/`, run `codex/skills/autorelease-handoff/SKILL.md` unless the user explicitly opts out of the private publishing handoff.
