@@ -115,6 +115,7 @@ uvicorn autoreport.web.debug_app:app --host 0.0.0.0 --port 8010
 - `examples/autoreport_editorial_template_contract.yaml`: built-in editorial contract export
 - `examples/autoreport_editorial_report_content.yaml`: AI-facing draft example for another model to fill
 - `examples/autoreport_website_intro_report_content.yaml`: basic website-intro draft example you can paste into the web app and edit
+- `examples/autoreport_website_visual_report_content.yaml`: website demo draft with one real screenshot upload bound to `image_1`
 - `examples/autoreport_editorial_authoring_payload.yaml`: built-in editorial authoring example, including the `text_image` example that uses `image_1`
 - `examples/autoreport_editorial_report_payload.yaml`: compiled runtime payload reference for the built-in editorial template
 

@@ -124,6 +124,49 @@ report_content:
           - Runtime: deterministic local PPTX generation
           - Editing result: editable PowerPoint output
 """.strip()
+WEBSITE_VISUAL_EXAMPLE_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport Website Demo
+      subtitle_1: |
+        Show one real screenshot, explain the workflow, and generate the deck
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. What The User Sees
+        2. Screenshot-Based Walkthrough
+        3. Why It Feels Simple
+  slides:
+    - pattern_id: text.editorial
+      slots:
+        title: What The User Sees
+        body_1: |
+          The website is built for one simple workflow.
+          A user asks another AI for report_content, pastes the YAML, optionally
+          uploads a real image, and generates an editable PPTX immediately.
+    - pattern_id: text_image.editorial
+      slots:
+        title: Screenshot-Based Walkthrough
+        body_1: |
+          Upload one real screenshot of the Autoreport website and keep it bound
+          to image_1 for this example.
+          This slide shows users that the visual can be replaced, removed, or
+          updated without rebuilding the whole deck.
+        image_1: image_1
+        caption_1: Replace this with a real website screenshot upload
+    - pattern_id: metrics.editorial
+      slots:
+        title: Why It Feels Simple
+        body_1: |
+          - First step: paste or edit YAML in one editor
+          - Visual step: upload or replace a real screenshot
+          - Output: generate an editable PowerPoint deck
+          - Flexibility: add, remove, or swap uploaded images easily
+""".strip()
 app = FastAPI(
     title="Autoreport Demo",
     docs_url=None,
@@ -135,7 +178,8 @@ app = FastAPI(
 def _render_demo_html() -> str:
     contract_json = json.dumps(DEFAULT_CONTRACT_YAML)
     draft_prompt_json = json.dumps(AI_DRAFT_PROMPT_YAML)
-    example_json = json.dumps(WEBSITE_INTRO_EXAMPLE_YAML)
+    intro_example_json = json.dumps(WEBSITE_INTRO_EXAMPLE_YAML)
+    visual_example_json = json.dumps(WEBSITE_VISUAL_EXAMPLE_YAML)
     compiled_json = json.dumps("")
     return """<!DOCTYPE html>
 <html lang="en">
@@ -264,7 +308,8 @@ def _render_demo_html() -> str:
               <p class="panel-copy">
                 If the AI draft asks for images, upload the real files here and replace the
                 descriptive <code>slots.image_*</code> text with refs such as
-                <code>image_1</code>.
+                <code>image_1</code>. You can add more uploads later or remove a ref before
+                generating.
               </p>
               <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
               <ul id="upload-list" class="upload-list"></ul>
@@ -286,6 +331,7 @@ def _render_demo_html() -> str:
               <div class="copy-actions">
                 <button id="reset-draft" class="ghost" type="button">Reset To AI Draft Prompt</button>
                 <button id="load-intro-example" class="ghost" type="button">Load Website Intro Example</button>
+                <button id="load-visual-example" class="ghost" type="button">Load Website Visual Example</button>
                 <button id="copy-draft-prompt" class="ghost" type="button">Copy AI Draft Prompt</button>
                 <button id="copy-contract" class="ghost" type="button">Copy Template Contract</button>
                 <button id="copy-handoff-secondary" class="ghost" type="button">Copy AI Package</button>
@@ -306,7 +352,8 @@ def _render_demo_html() -> str:
     <script>
       const CONTRACT_YAML = __CONTRACT_JSON__;
       const AI_DRAFT_PROMPT = __DRAFT_PROMPT_JSON__;
-      const WEBSITE_INTRO_EXAMPLE = __EXAMPLE_JSON__;
+      const WEBSITE_INTRO_EXAMPLE = __INTRO_EXAMPLE_JSON__;
+      const WEBSITE_VISUAL_EXAMPLE = __VISUAL_EXAMPLE_JSON__;
       const DEFAULT_COMPILED = __COMPILED_JSON__;
       const contractNode = document.getElementById("template-contract");
       const payloadNode = document.getElementById("payload-yaml");
@@ -415,10 +462,34 @@ def _render_demo_html() -> str:
             setStatus(`${item.ref} was inserted at the current cursor.`);
           });
 
-          actions.append(insertRefButton);
+          const removeRefButton = document.createElement("button");
+          removeRefButton.type = "button";
+          removeRefButton.className = "ghost";
+          removeRefButton.textContent = "Remove Upload";
+          removeRefButton.addEventListener("click", () => {
+            uploadedRefs = uploadedRefs.filter((entry) => entry.ref !== item.ref);
+            renderUploads();
+            setStatus(
+              `${item.ref} was removed from this browser session.`,
+              [],
+              uploadedRefs.length
+                ? [`Remaining refs: ${uploadedRefs.map((entry) => entry.ref).join(", ")}`]
+                : ["No uploaded refs remain. Add a new file to create image_1 again."]
+            );
+          });
+
+          actions.append(insertRefButton, removeRefButton);
           li.append(label, actions);
           uploadList.appendChild(li);
         }
+      }
+
+      function nextUploadRef() {
+        let index = 1;
+        while (uploadedRefs.some((item) => item.ref === `image_${index}`)) {
+          index += 1;
+        }
+        return `image_${index}`;
       }
 
       async function postPayload(url) {
@@ -486,6 +557,15 @@ def _render_demo_html() -> str:
           ["Edit this starter deck in the main editor, then normalize or generate it."]
         );
       });
+      document.getElementById("load-visual-example").addEventListener("click", () => {
+        payloadNode.value = WEBSITE_VISUAL_EXAMPLE;
+        compiledNode.value = "";
+        setStatus(
+          "Website visual example loaded.",
+          [],
+          ["Upload one screenshot so image_1 resolves, or replace image_1 with another uploaded ref before generating."]
+        );
+      });
 
       document.getElementById("refresh-compiled").addEventListener("click", refreshCompiledPreview);
       document.getElementById("copy-draft-prompt").addEventListener("click", () => copyTextToClipboard("AI draft prompt", AI_DRAFT_PROMPT));
@@ -494,10 +574,12 @@ def _render_demo_html() -> str:
       document.getElementById("copy-handoff-secondary").addEventListener("click", () => copyTextToClipboard("AI handoff package", buildAiHandoffPackage()));
 
       fileInput.addEventListener("change", () => {
-        uploadedRefs = Array.from(fileInput.files || []).map((file, index) => ({
-          ref: `image_${index + 1}`,
+        const newUploads = Array.from(fileInput.files || []).map((file) => ({
+          ref: nextUploadRef(),
           file,
         }));
+        uploadedRefs = uploadedRefs.concat(newUploads);
+        fileInput.value = "";
         renderUploads();
         if (uploadedRefs.length) {
           setStatus(
@@ -544,7 +626,7 @@ def _render_demo_html() -> str:
       });
     </script>
   </body>
-</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__DRAFT_PROMPT_JSON__", draft_prompt_json).replace("__EXAMPLE_JSON__", example_json).replace("__COMPILED_JSON__", compiled_json)
+</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__DRAFT_PROMPT_JSON__", draft_prompt_json).replace("__INTRO_EXAMPLE_JSON__", intro_example_json).replace("__VISUAL_EXAMPLE_JSON__", visual_example_json).replace("__COMPILED_JSON__", compiled_json)
 
 
 INDEX_HTML = _render_demo_html()

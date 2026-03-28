@@ -10,7 +10,12 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from pptx import Presentation
 
-from autoreport.web.app import MEDIA_TYPE_PPTX, WEBSITE_INTRO_EXAMPLE_YAML, app
+from autoreport.web.app import (
+    MEDIA_TYPE_PPTX,
+    WEBSITE_INTRO_EXAMPLE_YAML,
+    WEBSITE_VISUAL_EXAMPLE_YAML,
+    app,
+)
 
 
 PNG_BYTES = base64.b64decode(
@@ -183,10 +188,12 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Copy AI Package", response.text)
         self.assertIn("Reset To AI Draft Prompt", response.text)
         self.assertIn("Load Website Intro Example", response.text)
+        self.assertIn("Load Website Visual Example", response.text)
         self.assertIn("authoring_payload", response.text)
         self.assertIn("report_content", response.text)
         self.assertIn("image_layout", response.text)
         self.assertIn("Do not declare the total slide count anywhere.", response.text)
+        self.assertIn("Remove Upload", response.text)
         self.assertIn("The built-in editorial contract and AI draft prompt are loaded.", response.text)
         self.assertNotIn("Insert 2-Image Horizontal", response.text)
         self.assertNotIn("Workspace Actions", response.text)
@@ -355,6 +362,37 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         presentation = Presentation(BytesIO(response.content))
         self.assertEqual(len(presentation.slides), 5)
+
+    def test_generate_endpoint_accepts_built_in_website_visual_example_with_upload(self) -> None:
+        response = self.client.post(
+            "/api/generate",
+            data={
+                "payload_yaml": WEBSITE_VISUAL_EXAMPLE_YAML,
+                "image_manifest": '[{"ref":"image_1","field_name":"image_1","filename":"website.png"}]',
+            },
+            files={
+                "image_1": ("website.png", PNG_BYTES, "image/png"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        presentation = Presentation(BytesIO(response.content))
+        self.assertEqual(len(presentation.slides), 5)
+
+    def test_generate_endpoint_reports_missing_upload_for_built_in_website_visual_example(self) -> None:
+        response = self.client.post(
+            "/api/generate",
+            data={
+                "payload_yaml": WEBSITE_VISUAL_EXAMPLE_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn(
+            "Slide 2 needs an uploaded image for ref 'image_1'.",
+            " ".join(response.json()["errors"]),
+        )
 
     def test_generate_endpoint_binds_uploaded_image_refs(self) -> None:
         response = self.client.post(
