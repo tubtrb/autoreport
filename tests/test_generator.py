@@ -13,6 +13,7 @@ from pptx import Presentation
 from autoreport.engine.generator import (
     generate_report,
     generate_report_from_mapping,
+    prepare_generation_artifacts_from_mapping,
 )
 from autoreport.models import ReportRequest
 
@@ -201,3 +202,108 @@ class GeneratorTestCase(unittest.TestCase):
             slide_titles,
             ["Weekly Report", "Highlights", "Metrics", "Risks", "Next Steps"],
         )
+
+    def test_prepare_generation_artifacts_profiles_default_template(self) -> None:
+        artifacts = prepare_generation_artifacts_from_mapping(
+            {
+                "title": "Weekly Report",
+                "team": "Platform Team",
+                "week": "2026-W24",
+                "highlights": ["Built the generation pipeline."],
+                "metrics": {
+                    "tasks_completed": 8,
+                    "open_issues": 3,
+                },
+                "risks": ["Layout polish is still pending."],
+                "next_steps": ["Review the generated deck."],
+            },
+            presentation=Presentation(),
+        )
+
+        self.assertEqual(artifacts.template_profile.title_layout_index, 0)
+        self.assertEqual(artifacts.template_profile.body_layout_index, 1)
+        self.assertEqual(artifacts.template_profile.title_slot.placeholder_index, 0)
+        self.assertEqual(
+            artifacts.template_profile.body_content_slot.placeholder_index,
+            1,
+        )
+        self.assertEqual(len(artifacts.content_blocks), 5)
+        self.assertEqual(len(artifacts.fill_plan.slides), 5)
+        self.assertEqual(artifacts.diagnostic_report.errors, [])
+
+    def test_prepare_generation_artifacts_spills_long_content_to_continuation_slide(self) -> None:
+        long_highlights = [
+            "This is a deliberately long highlight item that keeps expanding "
+            f"to force spill behavior across multiple slides {index}. "
+            * 2
+            for index in range(1, 15)
+        ]
+        artifacts = prepare_generation_artifacts_from_mapping(
+            {
+                "title": "Weekly Report",
+                "team": "Platform Team",
+                "week": "2026-W24",
+                "highlights": long_highlights,
+                "metrics": {
+                    "tasks_completed": 8,
+                    "open_issues": 3,
+                },
+                "risks": ["Layout polish is still pending."],
+                "next_steps": ["Review the generated deck."],
+            },
+            presentation=Presentation(),
+        )
+
+        slide_titles = [slide.title_text for slide in artifacts.fill_plan.slides]
+        warning_codes = [
+            entry.code for entry in artifacts.diagnostic_report.warnings
+        ]
+
+        self.assertIn("Highlights (cont.)", slide_titles)
+        self.assertIn("overflow-spill", warning_codes)
+
+    def test_prepare_generation_artifacts_flags_font_risk_for_user_template(self) -> None:
+        artifacts = prepare_generation_artifacts_from_mapping(
+            {
+                "title": "Weekly Report",
+                "team": "Platform Team",
+                "week": "2026-W24",
+                "highlights": ["Built the generation pipeline."],
+                "metrics": {
+                    "tasks_completed": 8,
+                    "open_issues": 3,
+                },
+                "risks": ["Layout polish is still pending."],
+                "next_steps": ["Review the generated deck."],
+            },
+            presentation=Presentation(),
+            template_path=Path("corporate-template.pptx"),
+        )
+
+        warning_codes = [
+            entry.code for entry in artifacts.diagnostic_report.warnings
+        ]
+        self.assertIn("font-substitution-risk", warning_codes)
+
+    def test_prepare_generation_artifacts_warns_when_one_item_exceeds_slot_budget(self) -> None:
+        oversized_highlight = "Oversized highlight " * 180
+        artifacts = prepare_generation_artifacts_from_mapping(
+            {
+                "title": "Weekly Report",
+                "team": "Platform Team",
+                "week": "2026-W24",
+                "highlights": [oversized_highlight],
+                "metrics": {
+                    "tasks_completed": 8,
+                    "open_issues": 3,
+                },
+                "risks": ["Layout polish is still pending."],
+                "next_steps": ["Review the generated deck."],
+            },
+            presentation=Presentation(),
+        )
+
+        warning_codes = [
+            entry.code for entry in artifacts.diagnostic_report.warnings
+        ]
+        self.assertIn("out-of-bounds-risk", warning_codes)

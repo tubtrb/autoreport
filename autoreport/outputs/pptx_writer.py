@@ -8,51 +8,17 @@ from zipfile import BadZipFile
 
 from pptx import Presentation
 from pptx.exc import PackageNotFoundError
+from pptx.util import Pt
 
-
-class TemplateNotFoundError(FileNotFoundError):
-    """Raised when the requested presentation template does not exist."""
-
-    def __init__(self, template_path: Path) -> None:
-        self.template_path = template_path
-        super().__init__(f"Template file not found: {template_path}")
-
-
-class OutputWriteError(OSError):
-    """Raised when the generated presentation cannot be written to disk."""
-
-    def __init__(self, output_path: Path) -> None:
-        self.output_path = output_path
-        super().__init__(f"Could not write report file: {output_path}")
-
-
-class TemplateLoadError(OSError):
-    """Raised when a presentation template cannot be read as a `.pptx`."""
-
-    def __init__(self, template_path: Path) -> None:
-        self.template_path = template_path
-        super().__init__(f"Invalid PowerPoint template file: {template_path}")
-
-
-class TemplateReadError(OSError):
-    """Raised when a presentation template cannot be read from disk."""
-
-    def __init__(self, template_path: Path) -> None:
-        self.template_path = template_path
-        super().__init__(f"Could not read template file: {template_path}")
-
-
-class TemplateCompatibilityError(ValueError):
-    """Raised when a template lacks the layouts/placeholders weekly reports need."""
-
-    def __init__(self, template_path: Path | None, detail: str) -> None:
-        self.template_path = template_path
-        self.detail = detail
-        target = str(template_path) if template_path is not None else "default template"
-        super().__init__(
-            f"PowerPoint template is not compatible with the weekly report layout: "
-            f"{target} ({detail})"
-        )
+from autoreport.outputs.errors import (
+    OutputWriteError,
+    TemplateCompatibilityError,
+    TemplateLoadError,
+    TemplateNotFoundError,
+    TemplateReadError,
+)
+from autoreport.templates.autofill import FillPlan, PlannedSlide
+from autoreport.templates.weekly_report import profile_weekly_template
 
 
 class PowerPointWriter:
@@ -102,6 +68,27 @@ class PowerPointWriter:
 
         return output_path
 
+    def write_fill_plan(
+        self,
+        *,
+        presentation: Presentation,
+        output_path: Path,
+        fill_plan: FillPlan,
+    ) -> Path:
+        """Write a presentation from a template-aware slide plan."""
+
+        self._clear_slides(presentation)
+        for planned_slide in fill_plan.slides:
+            self._write_planned_slide(presentation, planned_slide)
+
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            presentation.save(str(output_path))
+        except OSError as exc:
+            raise OutputWriteError(output_path) from exc
+
+        return output_path
+
     def _load_presentation(self, template_path: Path | None) -> Presentation:
         """Load an existing template or fall back to the default presentation."""
 
@@ -126,18 +113,8 @@ class PowerPointWriter:
     ) -> None:
         """Verify the template exposes the layouts/placeholders weekly reports use."""
 
-        self._assert_layout_access(
+        profile_weekly_template(
             presentation,
-            layout_index=0,
-            placeholder_index=1,
-            layout_name="title",
-            template_path=template_path,
-        )
-        self._assert_layout_access(
-            presentation,
-            layout_index=1,
-            placeholder_index=1,
-            layout_name="bullets",
             template_path=template_path,
         )
 
@@ -222,4 +199,57 @@ class PowerPointWriter:
         for index, item in enumerate(items):
             paragraph = text_frame.paragraphs[0] if index == 0 else text_frame.add_paragraph()
             paragraph.text = item
+
+    def _write_planned_slide(
+        self,
+        presentation: Presentation,
+        planned_slide: PlannedSlide,
+    ) -> None:
+        """Render one planned slide into the target presentation."""
+
+        slide = presentation.slides.add_slide(
+            presentation.slide_layouts[planned_slide.layout_index]
+        )
+        title_placeholder = slide.placeholders[
+            planned_slide.title_slot.placeholder_index
+        ]
+        title_placeholder.text = planned_slide.title_text
+        if planned_slide.title_font_size is not None:
+            self._apply_font_size(
+                title_placeholder.text_frame,
+                planned_slide.title_font_size,
+            )
+
+        if planned_slide.body_slot is None:
+            return
+
+        body_placeholder = slide.placeholders[
+            planned_slide.body_slot.placeholder_index
+        ]
+        if planned_slide.subtitle_text is not None:
+            body_placeholder.text = planned_slide.subtitle_text
+            if planned_slide.body_font_size is not None:
+                self._apply_font_size(
+                    body_placeholder.text_frame,
+                    planned_slide.body_font_size,
+                )
+            return
+
+        text_frame = body_placeholder.text_frame
+        text_frame.clear()
+        for index, item in enumerate(planned_slide.body_items):
+            paragraph = (
+                text_frame.paragraphs[0]
+                if index == 0
+                else text_frame.add_paragraph()
+            )
+            paragraph.text = item
+            if planned_slide.body_font_size is not None:
+                paragraph.font.size = Pt(planned_slide.body_font_size)
+
+    def _apply_font_size(self, text_frame, font_size: int) -> None:
+        """Apply one font size across all paragraphs in a text frame."""
+
+        for paragraph in text_frame.paragraphs:
+            paragraph.font.size = Pt(font_size)
 

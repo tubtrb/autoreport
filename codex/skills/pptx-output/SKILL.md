@@ -26,16 +26,17 @@ and the tests that lock generation and template compatibility behavior.
 
 1. Preserve the current pipeline shape.
 - `generate_report` loads YAML and delegates to `generate_report_from_mapping`.
-- `generate_report_from_mapping` validates, builds template context, and writes the `.pptx`.
+- `generate_report_from_mapping` validates, profiles the template, builds content blocks, creates a fill plan, and writes the `.pptx`.
 - Keep orchestration separate from file writing.
 
 2. Keep template context stable.
-- `build_weekly_report_context` currently builds one title slide and four bullet slides.
+- `build_weekly_report_content_blocks` expresses the semantic weekly sections.
+- `build_weekly_report_fill_plan` maps those sections into template slots and continuation slides.
 - Preserve slide ordering and metric labeling unless the task intentionally changes presentation structure.
 
 3. Treat template compatibility as a first-class contract.
-- The writer currently expects a title layout at index `0` and a bullet layout at index `1`.
-- Both layouts must expose a title placeholder and placeholder `1` with text support.
+- The current weekly profile starts from layout index `0` for the title slide and `1` for the body slide.
+- Each profiled layout must expose a title placeholder plus one primary text placeholder.
 - Preserve explicit template error types so CLI and web surfaces can map them cleanly.
 
 4. Update tests when slide structure changes.
@@ -47,9 +48,10 @@ and the tests that lock generation and template compatibility behavior.
 - Default output path is `output/<source-stem>.pptx` when the caller does not provide one.
 - The default writer path uses a fresh `Presentation()` if no template path is supplied.
 - Existing slides from a template are cleared before report slides are added.
-- Unsupported slide layouts raise `ValueError`.
+- The current fit policy prefers the default font size, shrinks as needed, then spills onto continuation slides.
+- Diagnostics currently cover font shrink, overflow spill, out-of-bounds risk, and user-template font substitution risk.
 
 ## Output Contract
 
-- State the pipeline stage being changed: context shaping, orchestration, template loading, compatibility, or file writing.
+- State the pipeline stage being changed: template profiling, content block shaping, fill planning, diagnostics, compatibility, or file writing.
 - Cite generation/writer tests for slide structure and template assumptions.
