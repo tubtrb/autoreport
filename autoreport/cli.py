@@ -10,6 +10,7 @@ from pathlib import Path
 
 import yaml
 
+from autoreport.loader import load_yaml
 from autoreport.engine.generator import generate_report
 from autoreport.models import ReportRequest
 from autoreport.outputs.pptx_writer import (
@@ -22,6 +23,7 @@ from autoreport.template_flow import (
     PUBLIC_BUILT_IN_TEMPLATE_NAME,
     inspect_template_contract,
     load_template_contract,
+    materialize_report_payload,
     scaffold_payload,
     serialize_document,
 )
@@ -68,7 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     scaffold_parser = subparsers.add_parser(
         "scaffold-payload",
-        help="Generate a starter report payload from a template contract file.",
+        help="Generate a starter authoring payload from a template contract file.",
     )
     scaffold_parser.add_argument(
         "contract_path",
@@ -87,13 +89,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional output file path for the starter payload.",
     )
 
+    compile_parser = subparsers.add_parser(
+        "compile-payload",
+        help="Compile an authoring payload into the runtime report payload.",
+    )
+    compile_parser.add_argument(
+        "payload_path",
+        help="Path to the authoring payload YAML or JSON file.",
+    )
+    compile_group = compile_parser.add_mutually_exclusive_group()
+    compile_group.add_argument(
+        "--template",
+        dest="template_path",
+        help="Path to a PowerPoint template file.",
+    )
+    compile_group.add_argument(
+        "--built-in",
+        dest="built_in",
+        default=PUBLIC_BUILT_IN_TEMPLATE_NAME,
+        help="Built-in template name to use during compilation.",
+    )
+    compile_parser.add_argument(
+        "--format",
+        choices=("yaml", "json"),
+        default="yaml",
+        help="Serialization format for the compiled runtime payload.",
+    )
+    compile_parser.add_argument(
+        "-o",
+        "--output",
+        dest="output_path",
+        help="Optional output file path for the compiled runtime payload.",
+    )
+
     generate_parser = subparsers.add_parser(
         "generate",
-        help="Generate an Autoreport deck from a report payload file.",
+        help="Generate an Autoreport deck from an authoring or report payload file.",
     )
     generate_parser.add_argument(
         "payload_path",
-        help="Path to the report payload YAML definition.",
+        help="Path to the authoring/report payload YAML definition.",
     )
     generate_group = generate_parser.add_mutually_exclusive_group()
     generate_group.add_argument(
@@ -139,6 +174,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             contract = load_template_contract(Path(args.contract_path))
             payload = scaffold_payload(contract)
             document = serialize_document(payload.to_dict(), fmt=args.format)
+            _emit_document(document, output_path=args.output_path)
+            return 0
+
+        if args.command == "compile-payload":
+            contract = inspect_template_contract(
+                template_path=(
+                    Path(args.template_path) if args.template_path else None
+                ),
+                built_in=args.built_in,
+            )
+            raw_payload = load_yaml(Path(args.payload_path))
+            compiled = materialize_report_payload(raw_payload, contract)
+            document = serialize_document(compiled.to_dict(), fmt=args.format)
             _emit_document(document, output_path=args.output_path)
             return 0
 

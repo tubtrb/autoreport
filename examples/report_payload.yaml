@@ -9,15 +9,16 @@ report_payload:
     enabled: true
   slides:
     - kind: text
-      title: Text Slide Example
+      title: What It Does
       include_in_contents: true
       pattern_id: text.editorial
       body:
-        - Provide body as a list of paragraphs for text slides.
-        - Leave slot_overrides empty unless you need exact placeholder-level control.
+        - Generate editable PowerPoint decks from structured inputs.
+        - Describe the slide goal and supporting bullets instead of drawing placeholder geometry.
+        - The compiler resolves this authoring block into the runtime report payload automatically.
       slot_overrides: {}
     - kind: metrics
-      title: Metrics Slide Example
+      title: Adoption Snapshot
       include_in_contents: true
       pattern_id: metrics.editorial
       items:
@@ -25,16 +26,4 @@ report_payload:
           value: 12
         - label: Decks generated
           value: 24
-      slot_overrides: {}
-    - kind: text_image
-      title: Text + Image Slide Example
-      include_in_contents: true
-      pattern_id: text_image.editorial
-      body:
-        - Provide body text plus exactly one image for text_image slides.
-        - Use image.ref for uploaded demo assets or image.path for local files.
-      image:
-        fit: contain
-        ref: image_1
-      caption: Example uses image.ref=image_1 with fit=contain. Switch to image.path to load from disk.
       slot_overrides: {}

@@ -13,6 +13,7 @@ from autoreport.template_flow import (
     PUBLIC_BUILT_IN_TEMPLATE_NAME,
     get_built_in_contract,
     get_built_in_profile,
+    materialize_report_payload,
 )
 from autoreport.templates.autofill import (
     DiagnosticReport,
@@ -25,9 +26,6 @@ from autoreport.templates.weekly_report import (
     export_template_contract,
     profile_template,
 )
-from autoreport.validator import validate_payload
-
-
 @dataclass(slots=True)
 class GenerationArtifacts:
     """Internal generation bundle used by the contract-first flow."""
@@ -121,7 +119,7 @@ def prepare_generation_artifacts_from_mapping(
         template_path=template_path,
         template_name=template_name,
     )
-    payload = validate_payload(
+    payload = materialize_report_payload(
         raw_data,
         template_contract,
         available_image_refs=(image_refs or {}).keys(),

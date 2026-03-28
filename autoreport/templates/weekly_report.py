@@ -282,74 +282,9 @@ def profile_basic_template(
             ),
             decorations=_build_basic_template_body_decorations(presentation),
         ),
-        PatternProfile(
-            pattern_id="text_image.editorial",
-            kind="text_image",
-            layout_index=BLANK_LAYOUT_INDEX,
+        *_build_basic_template_text_image_patterns(
+            presentation,
             layout_name=blank_layout.name,
-            slots=(
-                _build_text_box_slot(
-                    presentation,
-                    layout_index=BLANK_LAYOUT_INDEX,
-                    slot_name="text_image.title",
-                    alias="title",
-                    slot_type="title",
-                    x_ratio=0.077,
-                    y_ratio=0.085,
-                    width_ratio=0.581,
-                    height_ratio=0.069,
-                    preferred_font_size=SECTION_TITLE_FONT_SIZE,
-                    min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
-                    allowed_kinds=(SlotContentKind.TITLE,),
-                ),
-                _build_text_box_slot(
-                    presentation,
-                    layout_index=BLANK_LAYOUT_INDEX,
-                    slot_name="text_image.body_1",
-                    alias="body_1",
-                    slot_type="text",
-                    x_ratio=0.081,
-                    y_ratio=0.237,
-                    width_ratio=0.566,
-                    height_ratio=0.597,
-                    preferred_font_size=SECTION_BODY_FONT_SIZE,
-                    min_font_size=SECTION_BODY_MIN_FONT_SIZE,
-                    allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS,),
-                    orientation="stack",
-                    order=1,
-                ),
-                _build_geometry_slot(
-                    presentation,
-                    layout_index=BLANK_LAYOUT_INDEX,
-                    slot_name="text_image.image_1",
-                    alias="image_1",
-                    slot_type="image",
-                    x_ratio=0.709,
-                    y_ratio=0.197,
-                    width_ratio=0.227,
-                    height_ratio=0.470,
-                    orientation="stack",
-                    order=1,
-                ),
-                _build_text_box_slot(
-                    presentation,
-                    layout_index=BLANK_LAYOUT_INDEX,
-                    slot_name="text_image.caption_1",
-                    alias="caption_1",
-                    slot_type="caption",
-                    x_ratio=0.709,
-                    y_ratio=0.700,
-                    width_ratio=0.227,
-                    height_ratio=0.095,
-                    preferred_font_size=CAPTION_FONT_SIZE,
-                    min_font_size=CAPTION_MIN_FONT_SIZE,
-                    allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
-                    orientation="stack",
-                    order=1,
-                    required=False,
-                ),
-            ),
-            decorations=_build_basic_template_body_decorations(presentation),
         ),
     )
 
@@ -362,6 +297,164 @@ def profile_basic_template(
         title_pattern=title_pattern,
         contents_pattern=contents_pattern,
         slide_patterns=slide_patterns,
+    )
+
+
+def _build_basic_template_text_image_patterns(
+    presentation: Presentation,
+    *,
+    layout_name: str,
+) -> tuple[PatternProfile, ...]:
+    return (
+        _build_basic_text_image_pattern(
+            presentation,
+            pattern_id="text_image.editorial",
+            layout_name=layout_name,
+            body_region=(0.081, 0.237, 0.566, 0.597),
+            image_regions=((0.709, 0.197, 0.227, 0.470),),
+            caption_region=(0.709, 0.700, 0.227, 0.095),
+            image_orientation="stack",
+        ),
+        _build_basic_text_image_pattern(
+            presentation,
+            pattern_id="text_image.editorial.two_horizontal",
+            layout_name=layout_name,
+            body_region=(0.081, 0.210, 0.855, 0.180),
+            image_regions=(
+                (0.081, 0.445, 0.405, 0.255),
+                (0.531, 0.445, 0.405, 0.255),
+            ),
+            caption_region=(0.081, 0.735, 0.855, 0.080),
+            image_orientation="horizontal",
+        ),
+        _build_basic_text_image_pattern(
+            presentation,
+            pattern_id="text_image.editorial.two_vertical",
+            layout_name=layout_name,
+            body_region=(0.081, 0.237, 0.360, 0.525),
+            image_regions=(
+                (0.531, 0.237, 0.405, 0.235),
+                (0.531, 0.505, 0.405, 0.235),
+            ),
+            caption_region=(0.531, 0.770, 0.405, 0.060),
+            image_orientation="vertical",
+        ),
+        _build_basic_text_image_pattern(
+            presentation,
+            pattern_id="text_image.editorial.three_horizontal",
+            layout_name=layout_name,
+            body_region=(0.081, 0.205, 0.855, 0.155),
+            image_regions=(
+                (0.081, 0.420, 0.255, 0.225),
+                (0.381, 0.420, 0.255, 0.225),
+                (0.681, 0.420, 0.255, 0.225),
+            ),
+            caption_region=(0.081, 0.690, 0.855, 0.080),
+            image_orientation="horizontal",
+        ),
+        _build_basic_text_image_pattern(
+            presentation,
+            pattern_id="text_image.editorial.three_vertical",
+            layout_name=layout_name,
+            body_region=(0.081, 0.237, 0.300, 0.560),
+            image_regions=(
+                (0.454, 0.205, 0.482, 0.150),
+                (0.454, 0.390, 0.482, 0.150),
+                (0.454, 0.575, 0.482, 0.150),
+            ),
+            caption_region=(0.454, 0.760, 0.482, 0.060),
+            image_orientation="vertical",
+        ),
+    )
+
+
+def _build_basic_text_image_pattern(
+    presentation: Presentation,
+    *,
+    pattern_id: str,
+    layout_name: str,
+    body_region: tuple[float, float, float, float],
+    image_regions: tuple[tuple[float, float, float, float], ...],
+    caption_region: tuple[float, float, float, float],
+    image_orientation: str,
+) -> PatternProfile:
+    slots: list[SlotDescriptor] = [
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.title",
+            alias="title",
+            slot_type="title",
+            x_ratio=0.077,
+            y_ratio=0.085,
+            width_ratio=0.581,
+            height_ratio=0.069,
+            preferred_font_size=SECTION_TITLE_FONT_SIZE,
+            min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
+            allowed_kinds=(SlotContentKind.TITLE,),
+        ),
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.body_1",
+            alias="body_1",
+            slot_type="text",
+            x_ratio=body_region[0],
+            y_ratio=body_region[1],
+            width_ratio=body_region[2],
+            height_ratio=body_region[3],
+            preferred_font_size=SECTION_BODY_FONT_SIZE,
+            min_font_size=SECTION_BODY_MIN_FONT_SIZE,
+            allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS,),
+            orientation="stack",
+            order=1,
+        ),
+    ]
+
+    for index, region in enumerate(image_regions, start=1):
+        slots.append(
+            _build_geometry_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name=f"text_image.image_{index}",
+                alias=f"image_{index}",
+                slot_type="image",
+                x_ratio=region[0],
+                y_ratio=region[1],
+                width_ratio=region[2],
+                height_ratio=region[3],
+                orientation=image_orientation,
+                order=index,
+            )
+        )
+
+    slots.append(
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.caption_1",
+            alias="caption_1",
+            slot_type="caption",
+            x_ratio=caption_region[0],
+            y_ratio=caption_region[1],
+            width_ratio=caption_region[2],
+            height_ratio=caption_region[3],
+            preferred_font_size=CAPTION_FONT_SIZE,
+            min_font_size=CAPTION_MIN_FONT_SIZE,
+            allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+            orientation=image_orientation,
+            order=1,
+            required=False,
+        )
+    )
+
+    return PatternProfile(
+        pattern_id=pattern_id,
+        kind="text_image",
+        layout_index=BLANK_LAYOUT_INDEX,
+        layout_name=layout_name,
+        slots=tuple(slots),
+        decorations=_build_basic_template_body_decorations(presentation),
     )
 
 
@@ -781,43 +874,45 @@ def _plan_text_image_slides(
     diagnostics: DiagnosticReport,
     image_refs: dict[str, Path],
 ) -> list[PlannedSlide]:
-    caption_slots = list(pattern.slots_by_type("caption"))
-    image_slots = list(pattern.slots_by_type("image"))
+    caption_slots = sort_slots_in_reading_order(list(pattern.slots_by_type("caption")))
+    image_slots = sort_slots_in_reading_order(list(pattern.slots_by_type("image")))
     slot_overrides = payload_slide.slot_overrides
 
-    image_fill: PlannedImageFill | None = None
-    if image_slots:
-        image_slot = image_slots[0]
+    image_fills: list[PlannedImageFill] = []
+    for image_slot in image_slots:
         image_override = slot_overrides.get(image_slot.slot_name)
-        resolved_image = (
-            image_override.image
-            if image_override is not None and image_override.image is not None
-            else payload_slide.image
-        )
+        resolved_image = None
+        if image_override is not None and image_override.image is not None:
+            resolved_image = image_override.image
+        elif image_slot.order == 1 and payload_slide.image is not None:
+            resolved_image = payload_slide.image
         if resolved_image is not None:
-            image_fill = PlannedImageFill(
-                slot=image_slot,
-                image_path=_resolve_image_path(resolved_image, image_refs),
-                fit=resolved_image.fit,
+            image_fills.append(
+                PlannedImageFill(
+                    slot=image_slot,
+                    image_path=_resolve_image_path(resolved_image, image_refs),
+                    fit=resolved_image.fit,
+                )
             )
 
-    caption_fill: PlannedTextFill | None = None
-    if caption_slots:
-        caption_slot = caption_slots[0]
+    caption_fills: list[PlannedTextFill] = []
+    for caption_slot in caption_slots:
         caption_override = slot_overrides.get(caption_slot.slot_name)
         caption_values = None
         if caption_override is not None and caption_override.text is not None:
             caption_values = caption_override.text
-        elif payload_slide.caption:
+        elif caption_slot.order == 1 and payload_slide.caption:
             caption_values = [payload_slide.caption]
         if caption_values:
             caption_text = "\n".join(caption_values)
             caption_fit = fit_text_to_slot(caption_text, caption_slot)
-            caption_fill = PlannedTextFill(
-                slot=caption_slot,
-                text=caption_text,
-                font_size=caption_fit.font_size,
-                fit_result=caption_fit,
+            caption_fills.append(
+                PlannedTextFill(
+                    slot=caption_slot,
+                    text=caption_text,
+                    font_size=caption_fit.font_size,
+                    fit_result=caption_fit,
+                )
             )
             _record_fit_diagnostics(
                 diagnostics,
@@ -838,10 +933,8 @@ def _plan_text_image_slides(
         # Keep the image-caption pair anchored to the primary slide so
         # continuation slides only show the remaining narrative content.
         primary_slide = slides[0]
-        if image_fill is not None:
-            primary_slide.image_fills.append(image_fill)
-        if caption_fill is not None:
-            primary_slide.text_fills.append(caption_fill)
+        primary_slide.image_fills.extend(image_fills)
+        primary_slide.text_fills.extend(caption_fills)
     return slides
 
 
@@ -941,6 +1034,25 @@ def _export_pattern_contract(pattern: PatternProfile) -> TemplatePatternContract
         kind=pattern.kind,
         layout_name=pattern.layout_name,
         slots=tuple(_export_slot_contract(slot) for slot in pattern.slots),
+        image_count=len(pattern.slots_by_type("image")),
+        image_layout=_derive_pattern_image_layout(pattern),
+        caption_slots=len(pattern.slots_by_type("caption")),
+        body_slot_count=len(_pattern_body_slots(pattern)),
+    )
+
+
+def _derive_pattern_image_layout(pattern: PatternProfile) -> str:
+    image_slots = list(pattern.slots_by_type("image"))
+    if not image_slots:
+        return "stack"
+    return image_slots[0].orientation or "stack"
+
+
+def _pattern_body_slots(pattern: PatternProfile) -> tuple[SlotDescriptor, ...]:
+    return tuple(
+        slot
+        for slot in pattern.slots_by_type("text")
+        if slot.slot_name.startswith(f"{pattern.kind}.body_")
     )
 
 

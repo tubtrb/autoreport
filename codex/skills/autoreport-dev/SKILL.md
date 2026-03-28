@@ -83,15 +83,16 @@ The target template-driven runtime flow is:
 
 1. user selects a PowerPoint template
 2. `autoreport` inspects the template and exposes the required YAML or JSON contract
-3. a human or another AI fills that contract
-4. `autoreport` generates a `.pptx` that follows the selected template
+3. a human or another AI fills an `authoring_payload`
+4. `autoreport` compiles that into a runtime `report_payload`
+5. `autoreport` generates a `.pptx` that follows the selected template
 
 Current design expectations:
 
 - template selection and contract display are first-class product behavior, not just internal debugging helpers
 - slide titles should drive the generated `Contents` slide so the outline stays in sync with the real deck
 - text and image placement should be template-slot driven, including horizontal and vertical arrangements when the template exposes them
-- generalized template contracts, payload scaffolds, and built-in editorial flows are now the primary product path; legacy weekly-only wording should be treated as migration debt unless tests still lock it
+- generalized template contracts, `authoring_payload` scaffolds, compiled runtime payloads, and built-in editorial flows are now the primary product path; legacy weekly-only wording should be treated as migration debt unless tests still lock it
 - when the design frame changes, update both the architecture docs and the relevant repo-local skill in the same task when practical
 
 ## Output Contract

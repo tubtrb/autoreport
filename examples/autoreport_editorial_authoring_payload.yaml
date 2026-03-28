@@ -1,0 +1,53 @@
+authoring_payload:
+  payload_version: autoreport.authoring.v1
+  template_id: autoreport-editorial-v1
+  deck_context:
+    audience: internal stakeholders
+    tone: concise
+    objective: weekly progress review
+  title_slide:
+    title: Autoreport
+    subtitle:
+      - Template-aware PPTX autofill engine
+  contents:
+    enabled: true
+  slides:
+    - slide_no: 1
+      goal: What It Does
+      include_in_contents: true
+      context:
+        summary: Generate editable PowerPoint decks from structured inputs.
+        bullets:
+          - Describe the slide goal and supporting bullets instead of drawing placeholder geometry.
+          - The compiler resolves this authoring block into the runtime report payload automatically.
+      layout_request:
+        kind: text
+        image_orientation: auto
+    - slide_no: 2
+      goal: Adoption Snapshot
+      include_in_contents: true
+      context:
+        metrics:
+          - label: Templates profiled
+            value: 12
+          - label: Decks generated
+            value: 24
+      layout_request:
+        kind: metrics
+        image_orientation: auto
+    - slide_no: 3
+      goal: Why It Matters
+      include_in_contents: true
+      context:
+        summary: Pair narrative context with an uploaded image or a local file path.
+        bullets:
+          - Use assets.images[*].ref for web uploads.
+          - Use assets.images[*].path when driving generation from the CLI.
+        caption: Example uses image_1 as the uploaded image ref.
+      layout_request:
+        kind: text_image
+        image_orientation: auto
+      assets:
+        images:
+          - fit: contain
+            ref: image_1

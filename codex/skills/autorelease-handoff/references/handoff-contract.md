@@ -6,18 +6,18 @@ The final publishable contract lives in the private `autorelease` repository.
 ## Default file mapping
 
 - `docs/posts/autoreport-v<version>-development-log.md`
-  -> `C:/Users/ggssg/workplace/autorelease/content/devlogs/autoreport-v<version-with-hyphens>-devlog.md`
+  -> `../autorelease/content/devlogs/autoreport-v<version-with-hyphens>-devlog.md`
 - `docs/posts/autoreport-guide-v<version>.md`
-  -> `C:/Users/ggssg/workplace/autorelease/content/guides/autoreport-guide-v<version-with-hyphens>.md`
+  -> `../autorelease/content/guides/autoreport-guide-v<version-with-hyphens>.md`
 - `docs/posts/autoreport-v<version>-release-notes.md`
-  -> `C:/Users/ggssg/workplace/autorelease/content/release-notes/autoreport-v<version-with-hyphens>-release-notes.md`
+  -> `../autorelease/content/release-notes/autoreport-v<version-with-hyphens>-release-notes.md`
 
 ## Default asset mapping
 
 - `docs/posts/devlog-image-v<version>/`
-  -> `C:/Users/ggssg/workplace/autorelease/content/assets/autoreport-v<version-with-hyphens>-devlog/`
+  -> `../autorelease/content/assets/autoreport-v<version-with-hyphens>-devlog/`
 - `docs/posts/guide-image-v<version>/`
-  -> `C:/Users/ggssg/workplace/autorelease/content/assets/autoreport-guide-v<version-with-hyphens>/`
+  -> `../autorelease/content/assets/autoreport-guide-v<version-with-hyphens>/`
 
 ## Why the script exists
 

@@ -17,10 +17,12 @@ PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII="
 )
 
-VALID_PAYLOAD_YAML = """
-report_payload:
-  payload_version: autoreport.payload.v1
+VALID_AUTHORING_PAYLOAD_YAML = """
+authoring_payload:
+  payload_version: autoreport.authoring.v1
   template_id: autoreport-editorial-v1
+  deck_context:
+    audience: executives
   title_slide:
     title: Autoreport
     subtitle:
@@ -28,25 +30,22 @@ report_payload:
   contents:
     enabled: true
   slides:
-    - kind: text
-      title: What It Does
+    - slide_no: 1
+      goal: What It Does
       include_in_contents: true
-      body:
-        - Generate editable PowerPoint decks from structured inputs.
-      slot_overrides: {}
-    - kind: metrics
-      title: Adoption Snapshot
-      include_in_contents: true
-      items:
-        - label: Templates profiled
-          value: 12
-      slot_overrides: {}
+      context:
+        summary: Generate editable PowerPoint decks from structured inputs.
+      layout_request:
+        kind: text
+        image_orientation: auto
 """.strip()
 
-VALID_TEXT_IMAGE_PAYLOAD_YAML = """
-report_payload:
-  payload_version: autoreport.payload.v1
+VALID_TEXT_IMAGE_AUTHORING_PAYLOAD_YAML = """
+authoring_payload:
+  payload_version: autoreport.authoring.v1
   template_id: autoreport-editorial-v1
+  deck_context:
+    audience: executives
   title_slide:
     title: Autoreport
     subtitle:
@@ -54,44 +53,48 @@ report_payload:
   contents:
     enabled: true
   slides:
-    - kind: text_image
-      title: Why It Matters
+    - slide_no: 1
+      goal: Visual Proof
       include_in_contents: true
-      body:
-        - Teams keep their own template language.
-      image:
-        ref: image_1
-        fit: contain
-      caption: Workflow preview
-      slot_overrides: {}
+      context:
+        summary: Pair narrative context with an uploaded image.
+        caption: Workflow preview
+      assets:
+        images:
+          - ref: image_1
+            fit: contain
+      layout_request:
+        kind: text_image
+        image_orientation: auto
 """.strip()
 
 
 class WebAppTestCase(unittest.TestCase):
-    """Verify the demo page and generation API behavior."""
+    """Verify the demo page, compile endpoint, and generation API behavior."""
 
     def setUp(self) -> None:
         self.client = TestClient(app)
 
-    def test_demo_page_renders_contract_payload_and_upload_panels(self) -> None:
+    def test_demo_page_renders_authoring_first_homepage(self) -> None:
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Inspect the contract, fill the payload", response.text)
+        self.assertIn("Author the deck, inspect the contract", response.text)
         self.assertIn("Template Contract", response.text)
-        self.assertIn("Report Payload", response.text)
-        self.assertIn("Image Uploads", response.text)
-        self.assertIn("Load Image Example", response.text)
-        self.assertIn("Insert Text Slide", response.text)
-        self.assertIn("Insert Metrics Slide", response.text)
-        self.assertIn("Insert Text + Image Slide", response.text)
-        self.assertIn("Insert Ref", response.text)
-        self.assertIn("Current Deck Summary", response.text)
-        self.assertIn("This is the template's capability map.", response.text)
-        self.assertIn("Expected generated slides:", response.text)
-        self.assertIn("Validation stopped in", response.text)
-        self.assertIn("image_1", response.text)
-        self.assertIn("built-in editorial template", response.text)
+        self.assertIn("Authoring Payload", response.text)
+        self.assertIn("Advanced Debug: Compiled Report Payload", response.text)
+        self.assertIn("Refresh Compiled Preview", response.text)
+        self.assertIn("Insert 2-Image Horizontal", response.text)
+        self.assertIn("Insert 3-Image Vertical", response.text)
+        self.assertIn("built-in editorial capability map", response.text)
+        self.assertIn("authoring_payload", response.text)
+        self.assertIn("image_layout", response.text)
+
+    def test_demo_page_helper_blocks_keep_slides_yaml_valid(self) -> None:
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("`  - slide_no: ${slideNo}`", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")
@@ -99,11 +102,26 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
-    def test_generate_endpoint_returns_pptx_attachment(self) -> None:
+    def test_compile_endpoint_returns_compiled_runtime_payload(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": VALID_AUTHORING_PAYLOAD_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["payload_kind"], "authoring")
+        self.assertIn("report_payload:", response.json()["compiled_yaml"])
+        self.assertIn("pattern_id: text.editorial", response.json()["compiled_yaml"])
+        self.assertEqual(response.json()["slide_count"], 1)
+
+    def test_generate_endpoint_returns_pptx_attachment_from_authoring_payload(self) -> None:
         response = self.client.post(
             "/api/generate",
             data={
-                "payload_yaml": VALID_PAYLOAD_YAML,
+                "payload_yaml": VALID_AUTHORING_PAYLOAD_YAML,
                 "image_manifest": "[]",
             },
         )
@@ -115,13 +133,13 @@ class WebAppTestCase(unittest.TestCase):
             response.headers["content-disposition"],
         )
         presentation = Presentation(BytesIO(response.content))
-        self.assertEqual(len(presentation.slides), 4)
+        self.assertEqual(len(presentation.slides), 3)
 
     def test_generate_endpoint_binds_uploaded_image_refs(self) -> None:
         response = self.client.post(
             "/api/generate",
             data={
-                "payload_yaml": VALID_TEXT_IMAGE_PAYLOAD_YAML,
+                "payload_yaml": VALID_TEXT_IMAGE_AUTHORING_PAYLOAD_YAML,
                 "image_manifest": '[{"ref":"image_1","field_name":"image_1","filename":"workflow.png"}]',
             },
             files={
@@ -142,7 +160,7 @@ class WebAppTestCase(unittest.TestCase):
         response = self.client.post(
             "/api/generate",
             data={
-                "payload_yaml": VALID_TEXT_IMAGE_PAYLOAD_YAML,
+                "payload_yaml": VALID_TEXT_IMAGE_AUTHORING_PAYLOAD_YAML,
                 "image_manifest": "[",
             },
         )
@@ -158,7 +176,7 @@ class WebAppTestCase(unittest.TestCase):
     def test_generate_endpoint_returns_parse_errors(self) -> None:
         response = self.client.post(
             "/api/generate",
-            data={"payload_yaml": "report_payload: [broken", "image_manifest": "[]"},
+            data={"payload_yaml": "authoring_payload: [broken", "image_manifest": "[]"},
         )
 
         self.assertEqual(response.status_code, 400)
@@ -170,8 +188,8 @@ class WebAppTestCase(unittest.TestCase):
             "/api/generate",
             data={
                 "payload_yaml": """
-report_payload:
-  payload_version: autoreport.payload.v1
+authoring_payload:
+  payload_version: autoreport.authoring.v1
   template_id: autoreport-editorial-v1
   title_slide:
     title: "  "
@@ -199,7 +217,7 @@ report_payload:
         ):
             response = self.client.post(
                 "/api/generate",
-                data={"payload_yaml": VALID_PAYLOAD_YAML, "image_manifest": "[]"},
+                data={"payload_yaml": VALID_AUTHORING_PAYLOAD_YAML, "image_manifest": "[]"},
             )
 
         self.assertEqual(response.status_code, 500)

@@ -27,7 +27,8 @@ the embedded demo HTML/JavaScript, and the tests that lock web behavior.
 1. Preserve route contracts.
 - Keep `/` as the HTML demo surface.
 - Keep `/healthz` as the lightweight health endpoint.
-- Keep `/api/generate` as the JSON-in, PPTX-or-JSON-out generation route unless the task explicitly changes the API.
+- Keep `/api/compile` as the authoring-to-runtime preview route when the homepage exposes compiled payload inspection.
+- Keep `/api/generate` as the form-data-in, PPTX-or-JSON-out generation route unless the task explicitly changes the API.
 
 2. Reuse the core pipeline.
 - Keep YAML parsing, validation, and PowerPoint generation delegated to shared core modules.
@@ -48,7 +49,7 @@ the embedded demo HTML/JavaScript, and the tests that lock web behavior.
 ## Current Constraints
 
 - The web app disables OpenAPI/docs routes.
-- Successful `/api/generate` responses return a `.pptx` attachment named `weekly_report.pptx`.
+- Successful `/api/generate` responses return a `.pptx` attachment named `autoreport_demo.pptx`.
 - YAML parse failures return `400`.
 - Validation failures return `422`.
 - Unexpected internal failures return `500`.
@@ -63,14 +64,15 @@ The intended web flow is:
 
 1. user selects or uploads a template
 2. the app shows the required YAML or JSON contract for that template
-3. a human or another AI fills the payload
-4. the app validates the payload and returns a generated `.pptx`
+3. a human or another AI fills an `authoring_payload`
+4. the app optionally shows the compiled `report_payload` preview
+5. the app validates the payload and returns a generated `.pptx`
 
 Current design expectations:
 
 - template inspection and contract display should be product behavior, not hidden diagnostics
 - the web layer should reuse shared contract-export and validation code instead of re-implementing schema rules
-- if the web surface exposes both weekly and generalized template-driven flows, the distinction should be explicit to the user
+- the homepage should be authoring-first, with the compiled runtime payload only in an advanced/debug view
 - error payloads for template-driven validation should stay consistent with the existing web error shape
 - if contract download or skeleton generation is added, it should be covered by web tests in the same change
 

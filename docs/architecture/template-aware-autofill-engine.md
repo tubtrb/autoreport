@@ -11,8 +11,9 @@ Autoreport now follows this public flow:
 
 1. inspect a template
 2. export a machine-readable `template_contract`
-3. fill a `report_payload`
-4. generate an editable `.pptx`
+3. fill an `authoring_payload`
+4. compile it into a runtime `report_payload`
+5. generate an editable `.pptx`
 
 The template owns layout decisions.
 Autoreport owns:
@@ -31,7 +32,9 @@ Autoreport owns:
 flowchart TD
     TEMPLATE["Built-in or user-owned template"] --> PROFILE["TemplateProfile"]
     PROFILE --> CONTRACT["template_contract"]
-    CONTRACT --> PAYLOAD["report_payload"]
+    CONTRACT --> AUTHOR["authoring_payload"]
+    AUTHOR --> COMPILE["compile_authoring_payload(...)"]
+    COMPILE --> PAYLOAD["report_payload"]
     PAYLOAD --> VALIDATE["validate_payload(...)"]
     VALIDATE --> PLAN["FillPlan"]
     PLAN --> FIT["fit / shrink / spill pass"]
@@ -45,6 +48,7 @@ flowchart TD
 - `PatternProfile`: one reusable generation pattern with ordered slots
 - `SlotDescriptor`: slot metadata, geometry, font defaults, ordering, and slot type
 - `TemplateContract`: public export model for the inspected template
+- `AuthoringPayload`: public authoring model used by humans or another AI
 - `ReportPayload`: public generation payload model
 - `FillPlan`: ordered slide plan ready to write into PowerPoint
 - `FitResult`: fit, shrink, spill, or overflow outcome for one slot
@@ -63,6 +67,10 @@ Current built-in patterns:
 - `text.editorial`
 - `metrics.editorial`
 - `text_image.editorial`
+- `text_image.editorial.two_horizontal`
+- `text_image.editorial.two_vertical`
+- `text_image.editorial.three_horizontal`
+- `text_image.editorial.three_vertical`
 
 The built-in chrome is still authored locally and written at generation time.
 Autoreport does not vendor third-party template branding into the runtime path.
@@ -87,23 +95,37 @@ Autoreport does not vendor third-party template branding into the runtime path.
 - `contents`
 - `slides`
 
+`authoring_payload`
+
+- `payload_version`
+- `template_id`
+- `deck_context`
+- `title_slide`
+- `contents`
+- `slides`
+
 Current first-phase slide kinds:
 
 - `text`
 - `metrics`
 - `text_image`
 
-`slot_overrides` are supported for exact placeholder-level replacement when the
-friendly slide fields are not specific enough.
+`authoring_payload` is now the primary public authoring contract.
+`report_payload` stays supported as the compiled runtime payload and the
+backward-compatible direct generation input.
+
+`slot_overrides` are still supported for exact placeholder-level replacement
+when the runtime payload needs placeholder-level control.
 
 ## Current policies
 
 - Template interpretation is placeholder-first for user-owned `.pptx` files.
 - The built-in editorial path is cached and does not re-profile on each web request.
+- Authoring compilation resolves a deterministic `pattern_id` before generation begins.
 - Slide titles remain the source for `Contents` generation.
 - Text still prefers the default font size, then shrinks, then spills onto continuation slides.
 - Image handling currently supports explicit `contain` and `cover` fit policies.
-- Web v1 supports uploaded image refs such as `image_1`; external template upload in the web surface is deferred.
+- Web v1 supports uploaded image refs such as `image_1`, authoring-first editing, and compiled runtime preview; external template upload in the web surface is deferred.
 
 ## What is intentionally out of scope today
 
