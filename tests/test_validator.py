@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import unittest
 
 from autoreport.models import ReportPayload, TemplateContract
@@ -69,6 +70,10 @@ class ValidatorTestCase(unittest.TestCase):
         self.assertIsInstance(payload, ReportPayload)
         self.assertEqual(payload.template_id, "autoreport-editorial-v1")
         self.assertEqual([slide.kind for slide in payload.slides], ["text", "metrics"])
+        self.assertEqual(
+            [slide.pattern_id for slide in payload.slides],
+            ["text.editorial", "metrics.editorial"],
+        )
 
     def test_validate_payload_collects_expected_errors_for_invalid_payload(self) -> None:
         with self.assertRaises(ValidationError) as context:
@@ -147,6 +152,120 @@ class ValidatorTestCase(unittest.TestCase):
             [
                 "Field 'slides[0].image.ref' does not match a provided image reference.",
                 "Field 'slides[0].slot_overrides.text_image.unknown' targets an unknown slot for the selected pattern.",
+            ],
+        )
+
+    def test_validate_payload_requires_pattern_id_when_template_has_multiple_patterns_for_kind(self) -> None:
+        contract_data = deepcopy(get_built_in_contract().to_dict())
+        text_pattern = deepcopy(contract_data["template_contract"]["slide_patterns"][0])
+        text_pattern["pattern_id"] = "text.alt"
+        text_pattern["layout_name"] = "Blank Alt"
+        contract_data["template_contract"]["slide_patterns"].append(text_pattern)
+        contract = validate_template_contract(contract_data)
+
+        with self.assertRaises(ValidationError) as context:
+            validate_payload(build_valid_payload(), contract)
+
+        self.assertEqual(
+            context.exception.errors,
+            [
+                "Field 'slides[0].pattern_id' is required because template 'autoreport-editorial-v1' defines multiple patterns for kind 'text'.",
+            ],
+        )
+
+    def test_validate_payload_rejects_metrics_fields_that_do_not_match_the_kind(self) -> None:
+        with self.assertRaises(ValidationError) as context:
+            validate_payload(
+                {
+                    "report_payload": {
+                        "payload_version": "autoreport.payload.v1",
+                        "template_id": "autoreport-editorial-v1",
+                        "title_slide": {
+                            "title": "Autoreport",
+                            "subtitle": ["Template-aware PPTX autofill engine"],
+                        },
+                        "contents": {"enabled": True},
+                        "slides": [
+                            {
+                                "kind": "metrics",
+                                "title": "Adoption Snapshot",
+                                "include_in_contents": True,
+                                "items": [
+                                    {
+                                        "label": "Templates profiled",
+                                        "value": "12",
+                                    }
+                                ],
+                                "body": ["This should not be here."],
+                                "image": {"ref": "image_1", "fit": "contain"},
+                                "caption": "This should not be here either.",
+                                "slot_overrides": {},
+                            }
+                        ],
+                    }
+                },
+                get_built_in_contract(),
+            )
+
+        self.assertEqual(
+            context.exception.errors,
+            [
+                "Field 'slides[0].items[0].value' must be an integer.",
+                "Field 'slides[0].body' is not allowed for kind 'metrics'.",
+                "Field 'slides[0].image' is not allowed for kind 'metrics'.",
+                "Field 'slides[0].caption' is not allowed for kind 'metrics'.",
+            ],
+        )
+
+    def test_validate_payload_rejects_ambiguous_text_image_image_and_slot_override_shapes(self) -> None:
+        with self.assertRaises(ValidationError) as context:
+            validate_payload(
+                {
+                    "report_payload": {
+                        "payload_version": "autoreport.payload.v1",
+                        "template_id": "autoreport-editorial-v1",
+                        "title_slide": {
+                            "title": "Autoreport",
+                            "subtitle": ["Template-aware PPTX autofill engine"],
+                        },
+                        "contents": {"enabled": True},
+                        "slides": [
+                            {
+                                "kind": "text_image",
+                                "title": "Why It Matters",
+                                "include_in_contents": True,
+                                "body": ["Teams keep their own template language."],
+                                "image": {
+                                    "path": "C:/images/example.png",
+                                    "ref": "image_1",
+                                    "fit": "contain",
+                                },
+                                "caption": "Workflow preview",
+                                "slot_overrides": {
+                                    "text_image.image_1": {"text": "bad"},
+                                    "text_image.body_1": {
+                                        "image": {
+                                            "ref": "image_1",
+                                            "fit": "contain",
+                                        }
+                                    },
+                                },
+                            }
+                        ],
+                    }
+                },
+                get_built_in_contract(),
+                available_image_refs=("image_1",),
+            )
+
+        self.assertEqual(
+            context.exception.errors,
+            [
+                "Field 'slides[0].image' must provide exactly one of 'path' or 'ref'.",
+                "Field 'slides[0].slot_overrides.text_image.image_1' must only contain 'image' for an image slot.",
+                "Field 'slides[0].slot_overrides.text_image.image_1.image' is required.",
+                "Field 'slides[0].slot_overrides.text_image.body_1' must only contain 'text' for a text slot.",
+                "Field 'slides[0].slot_overrides.text_image.body_1.text' must be a non-empty string or list of non-empty strings.",
             ],
         )
 

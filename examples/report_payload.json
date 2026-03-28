@@ -1,0 +1,61 @@
+{
+  "report_payload": {
+    "payload_version": "autoreport.payload.v1",
+    "template_id": "autoreport-editorial-v1",
+    "title_slide": {
+      "title": "Autoreport",
+      "subtitle": [
+        "Template-aware PPTX autofill engine"
+      ]
+    },
+    "contents": {
+      "enabled": true
+    },
+    "slides": [
+      {
+        "kind": "text",
+        "title": "Text Slide Example",
+        "include_in_contents": true,
+        "pattern_id": "text.editorial",
+        "body": [
+          "Provide body as a list of paragraphs for text slides.",
+          "Leave slot_overrides empty unless you need exact placeholder-level control."
+        ],
+        "slot_overrides": {}
+      },
+      {
+        "kind": "metrics",
+        "title": "Metrics Slide Example",
+        "include_in_contents": true,
+        "pattern_id": "metrics.editorial",
+        "items": [
+          {
+            "label": "Templates profiled",
+            "value": 12
+          },
+          {
+            "label": "Decks generated",
+            "value": 24
+          }
+        ],
+        "slot_overrides": {}
+      },
+      {
+        "kind": "text_image",
+        "title": "Text + Image Slide Example",
+        "include_in_contents": true,
+        "pattern_id": "text_image.editorial",
+        "body": [
+          "Provide body text plus exactly one image for text_image slides.",
+          "Use image.ref for uploaded demo assets or image.path for local files."
+        ],
+        "image": {
+          "fit": "contain",
+          "ref": "image_1"
+        },
+        "caption": "Example uses image.ref=image_1 with fit=contain. Switch to image.path to load from disk.",
+        "slot_overrides": {}
+      }
+    ]
+  }
+}

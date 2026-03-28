@@ -83,22 +83,28 @@ def inspect_template_contract(
 def scaffold_payload(contract: TemplateContract) -> ReportPayload:
     """Return a starter payload for a validated template contract."""
 
-    slides: list[PayloadSlide] = [
-        PayloadSlide(
-            kind="text",
-            title="What It Does",
-            body=[
-                "Generate editable PowerPoint decks from structured inputs.",
-                "Fill template slots instead of rebuilding layouts from scratch.",
-            ],
+    slides: list[PayloadSlide] = []
+    text_pattern_id = _find_first_pattern_id(contract, kind="text")
+    if text_pattern_id is not None:
+        slides.append(
+            PayloadSlide(
+                kind="text",
+                pattern_id=text_pattern_id,
+                title="Text Slide Example",
+                body=[
+                    "Provide body as a list of paragraphs for text slides.",
+                    "Leave slot_overrides empty unless you need exact placeholder-level control.",
+                ],
+            )
         )
-    ]
 
-    if any(pattern.kind == "metrics" for pattern in contract.slide_patterns):
+    metrics_pattern_id = _find_first_pattern_id(contract, kind="metrics")
+    if metrics_pattern_id is not None:
         slides.append(
             PayloadSlide(
                 kind="metrics",
-                title="Adoption Snapshot",
+                pattern_id=metrics_pattern_id,
+                title="Metrics Slide Example",
                 items=[
                     MetricItem(label="Templates profiled", value=12),
                     MetricItem(label="Decks generated", value=24),
@@ -106,17 +112,25 @@ def scaffold_payload(contract: TemplateContract) -> ReportPayload:
             )
         )
 
-    if any(pattern.kind == "text_image" for pattern in contract.slide_patterns):
+    text_image_pattern_id = _find_first_pattern_id(
+        contract,
+        kind="text_image",
+    )
+    if text_image_pattern_id is not None:
         slides.append(
             PayloadSlide(
                 kind="text_image",
-                title="Why It Matters",
+                pattern_id=text_image_pattern_id,
+                title="Text + Image Slide Example",
                 body=[
-                    "Teams keep their own template language.",
-                    "Autoreport handles fit, spill, and consistency.",
+                    "Provide body text plus exactly one image for text_image slides.",
+                    "Use image.ref for uploaded demo assets or image.path for local files.",
                 ],
                 image=ImageSpec(ref="image_1", fit="contain"),
-                caption="Upload an image and reference it with image_1.",
+                caption=(
+                    "Example uses image.ref=image_1 with fit=contain. "
+                    "Switch to image.path to load from disk."
+                ),
             )
         )
 
@@ -149,3 +163,14 @@ def serialize_document(document: dict[str, Any], *, fmt: str) -> str:
         sort_keys=False,
         allow_unicode=True,
     )
+
+
+def _find_first_pattern_id(
+    contract: TemplateContract,
+    *,
+    kind: str,
+) -> str | None:
+    for pattern in contract.slide_patterns:
+        if pattern.kind == kind:
+            return pattern.pattern_id
+    return None
