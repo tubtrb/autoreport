@@ -159,10 +159,62 @@ def _render_demo_html() -> str:
         padding: 18px;
       }
       .upload-list {
+        list-style: none;
         margin: 12px 0 0;
-        padding-left: 18px;
+        padding: 0;
         color: var(--muted);
         line-height: 1.6;
+        display: grid;
+        gap: 10px;
+      }
+      .upload-item {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fff;
+        padding: 12px;
+      }
+      .upload-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .upload-ref {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 74px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font: 0.82rem/1.2 "Cascadia Mono", Consolas, monospace;
+        font-weight: 700;
+      }
+      .upload-name {
+        color: var(--text);
+        font-size: 0.92rem;
+      }
+      .mini-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .mini-actions button {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .upload-snippet {
+        margin-top: 10px;
+        border-radius: 12px;
+        background: var(--panel);
+        padding: 10px 12px;
+        color: var(--muted);
+        font: 0.85rem/1.5 "Cascadia Mono", Consolas, monospace;
+        white-space: pre-wrap;
       }
       .actions {
         display: flex;
@@ -239,6 +291,11 @@ def _render_demo_html() -> str:
         padding-left: 18px;
         color: #b91c1c;
       }
+      .status-hints {
+        margin: 10px 0 0;
+        padding-left: 18px;
+        color: var(--accent);
+      }
       .footnote {
         margin-top: 18px;
         color: var(--muted);
@@ -290,8 +347,8 @@ def _render_demo_html() -> str:
           <div class="upload-box">
             <h2>Image Uploads</h2>
             <p class="hero-copy" style="text-align:left; margin:0 0 10px; max-width:none;">
-              Upload images, note the generated refs, and place them under
-              <code>slides[*].image.ref</code>.
+              Upload images, then use the helper buttons to insert a ref or a full
+              text-image slide without hunting through the YAML by hand.
             </p>
             <div class="helper-grid">
               <div class="helper-card">
@@ -313,9 +370,10 @@ def _render_demo_html() -> str:
           <div class="status-box">
             <h3>Current Status</h3>
             <div id="status-message" class="status-message">
-              The built-in editorial contract is loaded. Review the payload or upload images and generate the deck.
+              The built-in editorial contract is loaded. Review the payload, check the deck summary, or upload images and generate the deck.
             </div>
             <ul id="status-errors" class="status-errors"></ul>
+            <ul id="status-hints" class="status-hints"></ul>
             <div class="actions" style="margin-top:16px;">
               <button id="generate-button" class="primary" type="button">Generate PPTX</button>
             </div>
@@ -341,6 +399,7 @@ def _render_demo_html() -> str:
       const uploadList = document.getElementById("upload-list");
       const statusMessage = document.getElementById("status-message");
       const statusErrors = document.getElementById("status-errors");
+      const statusHints = document.getElementById("status-hints");
       const deckSummary = document.getElementById("deck-summary");
       const loadExampleButton = document.getElementById("load-example");
       const loadImageExampleButton = document.getElementById("load-image-example");
@@ -351,49 +410,335 @@ def _render_demo_html() -> str:
 
       let uploadedRefs = [];
 
+      function normalizeYamlScalar(rawValue) {
+        const value = String(rawValue || "").trim();
+        if (!value) {
+          return "";
+        }
+        const quoted = value.match(/^['"](.*)['"]$/);
+        return quoted ? quoted[1] : value;
+      }
+
+      function getPreferredImageRef() {
+        return uploadedRefs.length ? uploadedRefs[uploadedRefs.length - 1].ref : "image_1";
+      }
+
+      function insertTextAtCursor(text) {
+        const start = typeof payloadNode.selectionStart === "number"
+          ? payloadNode.selectionStart
+          : payloadNode.value.length;
+        const end = typeof payloadNode.selectionEnd === "number"
+          ? payloadNode.selectionEnd
+          : payloadNode.value.length;
+        payloadNode.focus();
+        payloadNode.setRangeText(text, start, end, "end");
+        updateDeckSummary();
+      }
+
+      function appendSummaryItem(text) {
+        const li = document.createElement("li");
+        li.textContent = text;
+        deckSummary.appendChild(li);
+      }
+
+      function parsePayloadOutline(text) {
+        const outline = {
+          title: "",
+          contentsEnabled: true,
+          slides: [],
+          warnings: [],
+        };
+        const lines = text.split("\\n");
+        let section = "";
+        let currentSlide = null;
+        let inImageBlock = false;
+
+        for (const rawLine of lines) {
+          const trimmed = rawLine.trim();
+          if (!trimmed || trimmed.startsWith("#")) {
+            continue;
+          }
+
+          if (!rawLine.startsWith(" ")) {
+            section = "";
+            currentSlide = null;
+            inImageBlock = false;
+            continue;
+          }
+
+          if (trimmed === "title_slide:") {
+            section = "title_slide";
+            currentSlide = null;
+            inImageBlock = false;
+            continue;
+          }
+          if (trimmed === "contents:") {
+            section = "contents";
+            currentSlide = null;
+            inImageBlock = false;
+            continue;
+          }
+          if (trimmed === "slides:") {
+            section = "slides";
+            currentSlide = null;
+            inImageBlock = false;
+            continue;
+          }
+
+          if (section === "title_slide" && trimmed.startsWith("title:")) {
+            outline.title = normalizeYamlScalar(trimmed.slice("title:".length));
+            continue;
+          }
+
+          if (section === "contents" && trimmed.startsWith("enabled:")) {
+            outline.contentsEnabled = normalizeYamlScalar(
+              trimmed.slice("enabled:".length)
+            ).toLowerCase() !== "false";
+            continue;
+          }
+
+          if (section !== "slides") {
+            continue;
+          }
+
+          if (trimmed.startsWith("- kind:")) {
+            currentSlide = {
+              kind: normalizeYamlScalar(trimmed.slice("- kind:".length)),
+              title: "Untitled slide",
+              imageRefs: [],
+            };
+            outline.slides.push(currentSlide);
+            inImageBlock = false;
+            continue;
+          }
+
+          if (!currentSlide) {
+            continue;
+          }
+
+          if (trimmed.startsWith("title:")) {
+            currentSlide.title = normalizeYamlScalar(trimmed.slice("title:".length));
+            continue;
+          }
+
+          if (trimmed === "image:") {
+            inImageBlock = true;
+            continue;
+          }
+
+          if (trimmed.startsWith("caption:") || trimmed.startsWith("slot_overrides:")) {
+            inImageBlock = false;
+          }
+
+          if (inImageBlock && trimmed.startsWith("ref:")) {
+            currentSlide.imageRefs.push(
+              normalizeYamlScalar(trimmed.slice("ref:".length))
+            );
+          }
+        }
+
+        if (!outline.title) {
+          outline.warnings.push("Cover title is missing or unreadable.");
+        }
+        if (!outline.slides.length) {
+          outline.warnings.push("No body slide blocks are currently detectable.");
+        }
+        return outline;
+      }
+
+      function extractFieldPath(errorText) {
+        const match = /Field '([^']+)'/.exec(errorText || "");
+        return match ? match[1] : "";
+      }
+
+      function describeFieldSection(fieldPath) {
+        if (!fieldPath) {
+          return "Payload";
+        }
+        if (fieldPath === "payload_yaml") {
+          return "Payload Root";
+        }
+        if (fieldPath.startsWith("title_slide.")) {
+          return "Title Slide";
+        }
+        if (fieldPath.startsWith("contents.")) {
+          return "Contents";
+        }
+        if (fieldPath.startsWith("image_manifest[")) {
+          return "Uploaded Images";
+        }
+        const slideMatch = fieldPath.match(/^slides\\[(\\d+)\\]/);
+        if (slideMatch) {
+          return `Slide ${Number(slideMatch[1]) + 1}`;
+        }
+        return "Payload";
+      }
+
+      function buildAuthoringFeedback(payload) {
+        const errors = Array.isArray(payload.errors) ? payload.errors : [];
+
+        if (payload.error_type === "yaml_parse_error") {
+          const lineMatch = /line (\\d+)/i.exec(payload.message || "");
+          const columnMatch = /column (\\d+)/i.exec(payload.message || "");
+          const location = lineMatch
+            ? ` near line ${lineMatch[1]}${columnMatch ? `, column ${columnMatch[1]}` : ""}`
+            : "";
+          return {
+            message: `YAML parsing failed${location}. Check indentation, colons, and list spacing before generating again.`,
+            hints: [
+              "If the payload shape drifted, restore a starter example and reapply only the content you need.",
+            ],
+          };
+        }
+
+        if (payload.error_type === "validation_error" && errors.length) {
+          const fieldPaths = errors.map(extractFieldPath).filter(Boolean);
+          const sections = [];
+          for (const fieldPath of fieldPaths) {
+            const label = describeFieldSection(fieldPath);
+            if (!sections.includes(label)) {
+              sections.push(label);
+            }
+          }
+          const hints = [];
+          if (fieldPaths.length) {
+            hints.push(`Start with ${fieldPaths[0]}.`);
+          }
+          if (fieldPaths.some((fieldPath) => fieldPath.startsWith("title_slide."))) {
+            hints.push("Title Slide issues block the whole deck, so fix those first.");
+          }
+          if (fieldPaths.some((fieldPath) => fieldPath.includes(".image.ref"))) {
+            hints.push("Use Image Uploads -> Insert Ref or Add Slide so the payload reuses a real uploaded image ref.");
+          }
+          return {
+            message: sections.length
+              ? `Validation stopped in ${sections.join(", ")}. Fix the field list below and try Generate PPTX again.`
+              : "Payload validation failed. Fix the field list below and try Generate PPTX again.",
+            hints,
+          };
+        }
+
+        return {
+          message: payload.message || "Generation failed.",
+          hints: [],
+        };
+      }
+
       function renderUploads() {
         uploadList.innerHTML = "";
         if (!uploadedRefs.length) {
           const li = document.createElement("li");
+          li.className = "upload-item";
           li.textContent = "No uploaded files yet.";
           uploadList.appendChild(li);
           return;
         }
         for (const item of uploadedRefs) {
           const li = document.createElement("li");
-          li.textContent = `${item.ref}: ${item.file.name}`;
+          li.className = "upload-item";
+
+          const meta = document.createElement("div");
+          meta.className = "upload-meta";
+
+          const ref = document.createElement("span");
+          ref.className = "upload-ref";
+          ref.textContent = item.ref;
+
+          const name = document.createElement("span");
+          name.className = "upload-name";
+          name.textContent = item.file.name;
+
+          const actions = document.createElement("div");
+          actions.className = "mini-actions";
+
+          const insertRefButton = document.createElement("button");
+          insertRefButton.type = "button";
+          insertRefButton.textContent = "Insert Ref";
+          insertRefButton.addEventListener("click", () => {
+            insertTextAtCursor(item.ref);
+            setStatus(
+              `${item.ref} was inserted at the current payload cursor.`,
+              [],
+              ["Use it under slides[*].image.ref or inside an image slot override."]
+            );
+          });
+
+          const addSlideButton = document.createElement("button");
+          addSlideButton.type = "button";
+          addSlideButton.textContent = "Add Slide";
+          addSlideButton.addEventListener("click", () => {
+            const appended = appendSlideBlock(buildTextImageSlideBlock(item.ref));
+            if (appended) {
+              setStatus(
+                `A text-image slide block using ${item.ref} was appended to the payload.`,
+                [],
+                ["Replace the draft copy, keep the ref in place, and generate again when ready."]
+              );
+            }
+          });
+
+          const snippet = document.createElement("div");
+          snippet.className = "upload-snippet";
+          snippet.textContent = `image:\\n  ref: ${item.ref}\\n  fit: contain`;
+
+          meta.append(ref, name);
+          actions.append(insertRefButton, addSlideButton);
+          li.append(meta, actions, snippet);
           uploadList.appendChild(li);
         }
       }
 
       function updateDeckSummary() {
-        const lines = payloadNode.value.split("\\n");
-        const titles = lines.filter((line) => line.trimStart().startsWith("title:"));
-        const kinds = lines
-          .filter((line) => line.trimStart().startsWith("kind:"))
-          .map((line) => line.split(":").slice(1).join(":").trim());
         deckSummary.innerHTML = "";
-        const items = [
-          `Title entries detected: ${titles.length}`,
-          `Body slide blocks detected: ${kinds.length || 0}`,
-          `Kinds in payload: ${kinds.length ? kinds.join(", ") : "none yet"}`,
-          `Uploaded image refs ready: ${uploadedRefs.length ? uploadedRefs.map((item) => item.ref).join(", ") : "none"}`,
-        ];
-        for (const item of items) {
-          const li = document.createElement("li");
-          li.textContent = item;
-          deckSummary.appendChild(li);
+        const outline = parsePayloadOutline(payloadNode.value);
+        const imageUsage = new Map();
+        for (const slide of outline.slides) {
+          for (const ref of slide.imageRefs) {
+            imageUsage.set(ref, (imageUsage.get(ref) || 0) + 1);
+          }
+        }
+        const expectedSlideCount = 1 + outline.slides.length + (outline.contentsEnabled ? 1 : 0);
+        const uploadedRefNames = uploadedRefs.map((item) => item.ref);
+        const usedImageRefs = Array.from(imageUsage.entries())
+          .map(([ref, count]) => `${ref} (${count} slide${count === 1 ? "" : "s"})`)
+          .join(", ");
+        const missingUploads = Array.from(imageUsage.keys()).filter(
+          (ref) => uploadedRefNames.length && !uploadedRefNames.includes(ref)
+        );
+        const unusedUploads = uploadedRefNames.filter((ref) => !imageUsage.has(ref));
+
+        appendSummaryItem(`Expected generated slides: ${expectedSlideCount}`);
+        appendSummaryItem(`Cover title: ${outline.title || "missing"}`);
+        appendSummaryItem(
+          `Slide titles: ${outline.slides.length ? outline.slides.map((slide, index) => `${index + 1}. ${slide.title}`).join(" | ") : "none yet"}`
+        );
+        appendSummaryItem(
+          `Slide kinds: ${outline.slides.length ? outline.slides.map((slide) => slide.kind || "unknown").join(", ") : "none yet"}`
+        );
+        appendSummaryItem(`Image refs in payload: ${usedImageRefs || "none"}`);
+        appendSummaryItem(`Uploaded image refs ready: ${uploadedRefNames.length ? uploadedRefNames.join(", ") : "none"}`);
+        appendSummaryItem(`Unused uploaded refs: ${unusedUploads.length ? unusedUploads.join(", ") : "none"}`);
+        if (missingUploads.length) {
+          appendSummaryItem(`Payload refs still missing uploads: ${missingUploads.join(", ")}`);
+        }
+        for (const warning of outline.warnings) {
+          appendSummaryItem(`Summary note: ${warning}`);
         }
       }
 
       function appendSlideBlock(block) {
         const trimmed = payloadNode.value.trimEnd();
         if (!trimmed.includes("  slides:")) {
-          setStatus("Payload must contain report_payload.slides before helper blocks can be inserted.");
-          return;
+          setStatus(
+            "Payload must contain report_payload.slides before helper blocks can be inserted.",
+            [],
+            ["Restore a starter payload or add a slides: list first."]
+          );
+          return false;
         }
         payloadNode.value = `${trimmed}\\n${block}\\n`;
         updateDeckSummary();
+        return true;
       }
 
       function buildTextSlideBlock() {
@@ -422,8 +767,7 @@ def _render_demo_html() -> str:
         ].join("\\n");
       }
 
-      function buildTextImageSlideBlock() {
-        const preferredRef = uploadedRefs[0]?.ref || "image_1";
+      function buildTextImageSlideBlock(preferredRef = getPreferredImageRef()) {
         return [
           "    - kind: text_image",
           "      title: New Text + Image Slide",
@@ -439,13 +783,19 @@ def _render_demo_html() -> str:
         ].join("\\n");
       }
 
-      function setStatus(message, errors = []) {
+      function setStatus(message, errors = [], hints = []) {
         statusMessage.textContent = message;
         statusErrors.innerHTML = "";
+        statusHints.innerHTML = "";
         for (const error of errors) {
           const li = document.createElement("li");
           li.textContent = error;
           statusErrors.appendChild(li);
+        }
+        for (const hint of hints) {
+          const li = document.createElement("li");
+          li.textContent = hint;
+          statusHints.appendChild(li);
         }
       }
 
@@ -456,13 +806,25 @@ def _render_demo_html() -> str:
 
       loadExampleButton.addEventListener("click", () => {
         payloadNode.value = EXAMPLE_PAYLOAD;
-        setStatus("Starter payload restored. You can edit it directly or upload images for image refs.");
+        setStatus(
+          "Starter payload restored. You can edit it directly or upload images for image refs.",
+          [],
+          ["The deck summary now tracks expected slide count, slide titles, and image-ref usage as you edit."]
+        );
         updateDeckSummary();
       });
 
       loadImageExampleButton.addEventListener("click", () => {
         payloadNode.value = IMAGE_EXAMPLE_PAYLOAD;
-        setStatus("Image-capable starter payload restored. Upload an image or keep the default image_1 ref.");
+        setStatus(
+          "Image-capable starter payload restored. Upload an image or keep the default image_1 ref.",
+          [],
+          ["Use Insert Ref or Add Slide from Image Uploads when you want to replace the placeholder ref quickly."]
+        );
+        updateDeckSummary();
+      });
+
+      payloadNode.addEventListener("input", () => {
         updateDeckSummary();
       });
 
@@ -473,7 +835,11 @@ def _render_demo_html() -> str:
         }));
         renderUploads();
         if (uploadedRefs.length) {
-          setStatus("Uploads are ready. Reference them from the payload with image_1, image_2, and so on.");
+          setStatus(
+            "Uploads are ready. Use Insert Ref or Add Slide to place them without manual copy/paste hunting.",
+            [],
+            [`Ready refs: ${uploadedRefs.map((item) => item.ref).join(", ")}`]
+          );
         } else {
           setStatus("No uploads selected.");
         }
@@ -481,24 +847,38 @@ def _render_demo_html() -> str:
       });
 
       insertTextSlideButton.addEventListener("click", () => {
-        appendSlideBlock(buildTextSlideBlock());
-        setStatus("A text slide block was appended to the payload.");
+        const appended = appendSlideBlock(buildTextSlideBlock());
+        if (appended) {
+          setStatus("A text slide block was appended to the payload.");
+        }
       });
 
       insertMetricsSlideButton.addEventListener("click", () => {
-        appendSlideBlock(buildMetricsSlideBlock());
-        setStatus("A metrics slide block was appended to the payload.");
+        const appended = appendSlideBlock(buildMetricsSlideBlock());
+        if (appended) {
+          setStatus("A metrics slide block was appended to the payload.");
+        }
       });
 
       insertTextImageSlideButton.addEventListener("click", () => {
-        appendSlideBlock(buildTextImageSlideBlock());
-        setStatus("A text-image slide block was appended to the payload.");
+        const appended = appendSlideBlock(buildTextImageSlideBlock());
+        if (appended) {
+          setStatus(
+            "A text-image slide block was appended to the payload.",
+            [],
+            [uploadedRefs.length ? `The latest uploaded ref (${getPreferredImageRef()}) was prefilled for you.` : "Upload an image when you want to replace the default image_1 placeholder."]
+          );
+        }
       });
 
       generateButton.addEventListener("click", async () => {
         const payloadYaml = payloadNode.value.trim();
         if (!payloadYaml) {
-          setStatus("Generation failed. Please provide payload YAML.");
+          setStatus(
+            "Generation failed. Please provide payload YAML.",
+            [],
+            ["Load a starter example if you want a contract-aligned payload scaffold."]
+          );
           return;
         }
 
@@ -525,8 +905,13 @@ def _render_demo_html() -> str:
 
           if (!response.ok) {
             const payload = await response.json();
+            const feedback = buildAuthoringFeedback(payload);
             generateButton.disabled = false;
-            setStatus(payload.message || "Generation failed.", payload.errors || []);
+            setStatus(
+              feedback.message,
+              payload.errors || [],
+              feedback.hints
+            );
             return;
           }
 
@@ -631,7 +1016,14 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
         if not isinstance(image_manifest_raw, str):
             image_manifest_raw = "[]"
 
-        image_manifest = json.loads(image_manifest_raw)
+        try:
+            image_manifest = json.loads(image_manifest_raw)
+        except json.JSONDecodeError as exc:
+            raise ValidationError(
+                [
+                    "Field 'image_manifest' must be a valid JSON list."
+                ]
+            ) from exc
         if not isinstance(image_manifest, list):
             raise ValidationError(["Field 'image_manifest' must be a JSON list."])
 

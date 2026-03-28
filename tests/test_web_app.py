@@ -85,8 +85,11 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Insert Text Slide", response.text)
         self.assertIn("Insert Metrics Slide", response.text)
         self.assertIn("Insert Text + Image Slide", response.text)
+        self.assertIn("Insert Ref", response.text)
         self.assertIn("Current Deck Summary", response.text)
         self.assertIn("This is the template's capability map.", response.text)
+        self.assertIn("Expected generated slides:", response.text)
+        self.assertIn("Validation stopped in", response.text)
         self.assertIn("image_1", response.text)
         self.assertIn("built-in editorial template", response.text)
 
@@ -134,6 +137,23 @@ class WebAppTestCase(unittest.TestCase):
             if hasattr(shape, "image")
         ]
         self.assertGreaterEqual(len(image_shapes), 1)
+
+    def test_generate_endpoint_rejects_invalid_image_manifest_json(self) -> None:
+        response = self.client.post(
+            "/api/generate",
+            data={
+                "payload_yaml": VALID_TEXT_IMAGE_PAYLOAD_YAML,
+                "image_manifest": "[",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error_type"], "validation_error")
+        self.assertEqual(response.json()["message"], "Payload validation failed.")
+        self.assertIn(
+            "Field 'image_manifest' must be a valid JSON list.",
+            response.json()["errors"],
+        )
 
     def test_generate_endpoint_returns_parse_errors(self) -> None:
         response = self.client.post(
