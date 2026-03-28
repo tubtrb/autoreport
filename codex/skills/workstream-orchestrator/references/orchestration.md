@@ -155,9 +155,16 @@ same time.
   `.codex/worker-final.json` only when the branch is ready for master review.
 - Treat `.codex/master-next.txt` as the source of truth for branch-specific
   work.
-- After updating these files, the shared worker-facing broadcast can stay
+- After updating these files, the shared worker-facing broadcast should stay
   generic: reload the latest policy/skill files, then follow local
   `.codex/master-next.txt`.
+- Once valid `.codex/master-next.txt` files exist, new master-thread turns must
+  not regenerate or paraphrase branch-specific instructions in user-facing chat
+  unless the user explicitly asks for that detail or a worktree is missing its
+  instruction file.
+- Branch-specific tasks, owned-file lists, and per-branch narrow test commands
+  belong in `.codex/master-next.txt` or `.codex/workstream.json`, not in
+  repeated chat handoffs.
 
 ## Report channel policy
 

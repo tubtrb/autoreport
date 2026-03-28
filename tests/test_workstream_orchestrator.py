@@ -77,6 +77,30 @@ class WorkstreamRuntimeTests(unittest.TestCase):
                 retired_dirs = workstream_runtime.discover_retired_sibling_directories()
             self.assertEqual([retired], retired_dirs)
 
+    def test_shared_broadcast_policy_is_present_in_bootstrap_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agents_text = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+        autoreport_skill_text = (
+            repo_root / "codex" / "skills" / "autoreport-dev" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestrator_skill_text = (
+            repo_root / "codex" / "skills" / "workstream-orchestrator" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestration_ref_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "workstream-orchestrator"
+            / "references"
+            / "orchestration.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("only authoritative branch-specific instruction channel", agents_text)
+        self.assertIn("do not restate branch-specific tasks", agents_text)
+        self.assertIn("shared broadcast", autoreport_skill_text)
+        self.assertIn("must\n  be a single shared reminder", orchestrator_skill_text)
+        self.assertIn("must\n  not regenerate or paraphrase branch-specific instructions", orchestration_ref_text)
+
 
 class CleanupRetiredWorktreesTests(unittest.TestCase):
     def test_delete_candidates_blocks_nonempty_without_flag(self) -> None:

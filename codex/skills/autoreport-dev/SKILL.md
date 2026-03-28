@@ -41,6 +41,10 @@ and routes deeper work to one primary focused skill.
 2. Pick one primary surface.
 - Keep one primary skill for the main behavior being changed.
 - Only consult adjacent skills when the task crosses subsystem boundaries.
+- If the turn is acting as the master-thread orchestrator, keep branch-specific
+  instructions inside each worktree's `.codex/master-next.txt` and keep the
+  user-facing follow-up to one shared broadcast unless the user explicitly asks
+  for the branch-by-branch detail.
 
 3. Preserve boundaries unless the user asks to redesign them.
 - Keep CLI concerns in `autoreport/cli.py`.
@@ -95,3 +99,6 @@ Current design expectations:
 - State the primary skill/surface used for the task.
 - Cite code/tests as the basis for behavior claims.
 - Call out any coverage gap when a focused skill is missing or incomplete.
+- For orchestration turns, say whether `.codex/master-next.txt` was updated and
+  use the shared-broadcast pattern rather than restating branch-specific
+  instructions in chat unless the user explicitly asks for them.

@@ -58,6 +58,10 @@
 - For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `codex/v0.3-master`, pushed, and the active task worktrees have been synchronized onto that pushed base.
 - When old sibling directories from retired `codex/v0.3-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
 - If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v0.3-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.
+- For master-thread orchestration, once branch-specific instructions have been written into each active worktree's `.codex/master-next.txt`, treat that file as the only authoritative branch-specific instruction channel.
+- After `.codex/master-next.txt` has been written, do not restate branch-specific tasks, owned-file lists, or per-branch test commands in user-facing chat unless the user explicitly asks for the branch details or a worktree is missing its instruction file.
+- The normal user-facing follow-up after instruction dispatch is one shared broadcast telling workers to reload the latest policy/skill files and then follow their local `.codex/master-next.txt`.
+- When a new master-thread starts and valid `.codex/master-next.txt` files already exist, continue from that shared-broadcast pattern instead of generating a fresh branch-by-branch handoff in chat.
 - Before any public push, PR, release, publish-ready doc handoff, or claim that the repo is safe to share publicly, load `codex/skills/public-repo-safety/SKILL.md` and run its blocker checks.
 - If `public-repo-safety` finds a blocker in a tracked file or a non-ignored untracked file, stop the public-sharing flow until the finding is removed or intentionally resolved.
 - Do not promote ignored screenshots or local artifacts into tracked docs paths without reviewing them through `public-repo-safety`.

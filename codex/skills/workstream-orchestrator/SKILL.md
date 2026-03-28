@@ -92,11 +92,14 @@ force-push decisions whenever branch history needs to stay aligned.
 - Treat `.codex/master-next.txt` as the authoritative per-thread detail
   channel. Put branch-specific priorities, sync notes, review feedback, and
   completion criteria there before asking workers to continue.
-- After the per-thread files are written, the normal user-facing follow-up is a
-  single shared reminder that tells workers to reload the latest policy/skill
-  files and then follow their local `.codex/master-next.txt`.
+- After the per-thread files are written, the normal user-facing follow-up must
+  be a single shared reminder that tells workers to reload the latest
+  policy/skill files and then follow their local `.codex/master-next.txt`.
 - Do not make the user manually redistribute long per-thread instructions when
   the same content has already been written into the worktrees.
+- Do not restate branch-specific tasks, owned-file lists, or per-branch narrow
+  test commands in user-facing chat unless the user explicitly asks for them or
+  a worktree is missing its `.codex/master-next.txt`.
 - Include a functional-evidence requirement, not just a code-status request.
 - Require workers to write checkpoint reports into `.codex/worker-status.json`.
 - Require workers to write completion reports into `.codex/worker-final.json`
@@ -120,8 +123,11 @@ force-push decisions whenever branch history needs to stay aligned.
 7. Report back to the user.
 - Summarize which worktrees were inspected, which files were written, and any
   blockers.
-- When the instruction files were already updated, prefer giving the user one
-  shared broadcast message instead of repeating every branch-specific detail.
+- When the instruction files were already updated, give the user one shared
+  broadcast message instead of repeating every branch-specific detail.
+- On later master-thread turns, if valid `.codex/master-next.txt` files are
+  already present, continue using the shared-broadcast pattern and report only
+  deltas, blockers, or requests for missing detail.
 - Call out overlap on `autoreport/templates/weekly_report.py`,
   `autoreport/templates/autofill.py`, `autoreport/engine/generator.py`,
   `tests/test_generator.py`, and `tests/test_pptx_writer.py` when relevant.
