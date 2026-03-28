@@ -510,8 +510,50 @@ def _validate_payload_slides(
                 errors,
                 min_items=1,
             )
+            _validate_disallowed_slide_field(
+                item,
+                prefix=prefix,
+                kind=kind,
+                field_name="items",
+                errors=errors,
+            )
+            _validate_disallowed_slide_field(
+                item,
+                prefix=prefix,
+                kind=kind,
+                field_name="image",
+                errors=errors,
+            )
+            _validate_disallowed_slide_field(
+                item,
+                prefix=prefix,
+                kind=kind,
+                field_name="caption",
+                errors=errors,
+            )
         elif kind == "metrics":
             items = _validate_metric_items(item, prefix, errors)
+            _validate_disallowed_slide_field(
+                item,
+                prefix=prefix,
+                kind=kind,
+                field_name="body",
+                errors=errors,
+            )
+            _validate_disallowed_slide_field(
+                item,
+                prefix=prefix,
+                kind=kind,
+                field_name="image",
+                errors=errors,
+            )
+            _validate_disallowed_slide_field(
+                item,
+                prefix=prefix,
+                kind=kind,
+                field_name="caption",
+                errors=errors,
+            )
         elif kind == "text_image":
             body = _validate_string_list_field(
                 item,
@@ -533,6 +575,13 @@ def _validate_payload_slides(
             if caption is not None and not caption.strip():
                 errors.append(f"Field '{prefix}.caption' must be a non-empty string.")
                 caption = None
+            _validate_disallowed_slide_field(
+                item,
+                prefix=prefix,
+                kind=kind,
+                field_name="items",
+                errors=errors,
+            )
 
         slot_overrides = _validate_slot_overrides(
             item,
@@ -596,6 +645,12 @@ def _resolve_pattern_for_slide(
         return None
 
     if pattern_id is None:
+        if len(candidates) > 1:
+            errors.append(
+                f"Field '{prefix}.pattern_id' is required because template "
+                f"'{contract.template_id}' defines multiple patterns for kind '{kind}'."
+            )
+            return None
         return candidates[0]
 
     for candidate in candidates:
@@ -606,6 +661,20 @@ def _resolve_pattern_for_slide(
         f"Field '{prefix}.pattern_id' is not valid for kind '{kind}'."
     )
     return None
+
+
+def _validate_disallowed_slide_field(
+    item: dict[str, Any],
+    *,
+    prefix: str,
+    kind: str,
+    field_name: str,
+    errors: list[str],
+) -> None:
+    if field_name in item:
+        errors.append(
+            f"Field '{prefix}.{field_name}' is not allowed for kind '{kind}'."
+        )
 
 
 def _validate_metric_items(

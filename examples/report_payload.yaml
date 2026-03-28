@@ -9,17 +9,17 @@ report_payload:
     enabled: true
   slides:
     - kind: text
-      pattern_id: text.editorial
       title: Text Slide Example
       include_in_contents: true
+      pattern_id: text.editorial
       body:
         - Provide body as a list of paragraphs for text slides.
         - Leave slot_overrides empty unless you need exact placeholder-level control.
       slot_overrides: {}
     - kind: metrics
-      pattern_id: metrics.editorial
       title: Metrics Slide Example
       include_in_contents: true
+      pattern_id: metrics.editorial
       items:
         - label: Templates profiled
           value: 12
@@ -27,14 +27,14 @@ report_payload:
           value: 24
       slot_overrides: {}
     - kind: text_image
-      pattern_id: text_image.editorial
       title: Text + Image Slide Example
       include_in_contents: true
+      pattern_id: text_image.editorial
       body:
         - Provide body text plus exactly one image for text_image slides.
         - Use image.ref for uploaded demo assets or image.path for local files.
       image:
-        ref: image_1
         fit: contain
+        ref: image_1
       caption: Example uses image.ref=image_1 with fit=contain. Switch to image.path to load from disk.
       slot_overrides: {}
