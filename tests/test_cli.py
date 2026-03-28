@@ -62,6 +62,36 @@ def write_runtime_payload(path: Path) -> None:
     )
 
 
+def write_report_content(path: Path) -> None:
+    path.write_text(
+        "\n".join(
+            [
+                "report_content:",
+                "  title_slide:",
+                "    pattern_id: cover.editorial",
+                "    slots:",
+                "      title: Autoreport",
+                "      subtitle_1: |",
+                "        Template-aware PPTX autofill engine",
+                "  contents_slide:",
+                "    pattern_id: contents.editorial",
+                "    slots:",
+                "      title: Contents",
+                "      body_1: |",
+                "        1. What It Does",
+                "  slides:",
+                "    - pattern_id: text.editorial",
+                "      kind: text",
+                "      slots:",
+                "        title: What It Does",
+                "        body_1: |",
+                "          Generate editable PowerPoint decks.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
 class CLITestCase(unittest.TestCase):
     """Verify CLI generation and authoring-first command flows."""
 
@@ -122,6 +152,24 @@ class CLITestCase(unittest.TestCase):
         self.assertIn("report_payload:", stdout_buffer.getvalue())
         self.assertIn("pattern_id: text.editorial", stdout_buffer.getvalue())
 
+    def test_compile_payload_command_accepts_report_content_draft(self) -> None:
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
+        test_dir = make_test_dir()
+        try:
+            payload_path = test_dir / "report_content.yaml"
+            write_report_content(payload_path)
+
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                exit_code = main(["compile-payload", str(payload_path)])
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stderr_buffer.getvalue(), "")
+        self.assertIn("report_payload:", stdout_buffer.getvalue())
+        self.assertIn("pattern_id: text.editorial", stdout_buffer.getvalue())
+
     def test_generate_command_writes_presentation_from_authoring_payload(self) -> None:
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()
@@ -160,6 +208,30 @@ class CLITestCase(unittest.TestCase):
             payload_path = test_dir / "runtime_payload.yaml"
             output_path = test_dir / "autoreport_demo.pptx"
             write_runtime_payload(payload_path)
+
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                exit_code = main(
+                    [
+                        "generate",
+                        str(payload_path),
+                        "--output",
+                        str(output_path),
+                    ]
+                )
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stderr_buffer.getvalue(), "")
+
+    def test_generate_command_accepts_report_content_draft(self) -> None:
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
+        test_dir = make_test_dir()
+        try:
+            payload_path = test_dir / "report_content.yaml"
+            output_path = test_dir / "autoreport_demo.pptx"
+            write_report_content(payload_path)
 
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                 exit_code = main(

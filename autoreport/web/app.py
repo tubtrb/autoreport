@@ -18,10 +18,10 @@ from starlette.background import BackgroundTask
 from autoreport.engine.generator import generate_report_from_mapping
 from autoreport.loader import parse_yaml_text
 from autoreport.template_flow import (
+    materialize_authoring_payload,
     detect_payload_kind,
     get_built_in_contract,
     materialize_report_payload,
-    scaffold_payload,
     serialize_document,
 )
 from autoreport.validator import ValidationError
@@ -34,35 +34,53 @@ MEDIA_TYPE_PPTX = (
 ALLOWED_UPLOAD_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 _BUILT_IN_CONTRACT = get_built_in_contract()
-_TEXT_ONLY_EXAMPLE_AUTHORING = scaffold_payload(
-    _BUILT_IN_CONTRACT,
-    include_text_image=False,
-)
-_FULL_EXAMPLE_AUTHORING = scaffold_payload(
-    _BUILT_IN_CONTRACT,
-    include_text_image=True,
-)
 
 DEFAULT_CONTRACT_YAML = serialize_document(
     _BUILT_IN_CONTRACT.to_dict(),
     fmt="yaml",
 ).strip()
-DEFAULT_PAYLOAD_YAML = serialize_document(
-    _TEXT_ONLY_EXAMPLE_AUTHORING.to_dict(),
-    fmt="yaml",
-).strip()
-FULL_EXAMPLE_PAYLOAD_YAML = serialize_document(
-    _FULL_EXAMPLE_AUTHORING.to_dict(),
-    fmt="yaml",
-).strip()
-DEFAULT_COMPILED_YAML = serialize_document(
-    materialize_report_payload(
-        _TEXT_ONLY_EXAMPLE_AUTHORING.to_dict(),
-        _BUILT_IN_CONTRACT,
-    ).to_dict(),
-    fmt="yaml",
-).strip()
-
+AI_DRAFT_PROMPT_YAML = """
+# Paste this brief into another AI and ask it to fill the report_content draft below.
+# Goal: draft slide-ready content for Autoreport. The app will normalize report_content
+# into authoring_payload and then compile the runtime report_payload automatically.
+# Rules for the other AI:
+# 1. Return YAML only. Keep the top-level key as report_content.
+# 2. Do not declare the total slide count anywhere. Autoreport infers it from slides[*].
+# 3. Choose pattern_id values from the template contract.
+# 4. Put narrative text into slots.body_1.
+# 5. For image slides, describe the desired visual in slots.image_1 / image_2 / image_3.
+# 6. Actual image files are uploaded later in the web app or passed as CLI paths.
+# 7. If the template contract exposes 2-image or 3-image patterns, use the matching pattern_id.
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Replace with the deck title
+      subtitle_1: |
+        Replace with a concise subtitle
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. Add the first section title
+        2. Add the second section title
+  slides:
+    - pattern_id: text.editorial
+      kind: text
+      slots:
+        title: First section title
+        body_1: |
+          Write the main narrative for this slide.
+    - pattern_id: text_image.editorial
+      kind: text_image
+      slots:
+        title: Visual proof
+        body_1: |
+          Explain what the visual should prove.
+        image_1: Describe the image the next AI should source or create.
+        caption_1: Optional caption
+""".strip()
 app = FastAPI(
     title="Autoreport Demo",
     docs_url=None,
@@ -73,9 +91,8 @@ app = FastAPI(
 
 def _render_demo_html() -> str:
     contract_json = json.dumps(DEFAULT_CONTRACT_YAML)
-    payload_json = json.dumps(DEFAULT_PAYLOAD_YAML)
-    image_payload_json = json.dumps(FULL_EXAMPLE_PAYLOAD_YAML)
-    compiled_json = json.dumps(DEFAULT_COMPILED_YAML)
+    draft_prompt_json = json.dumps(AI_DRAFT_PROMPT_YAML)
+    compiled_json = json.dumps("")
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -105,17 +122,18 @@ def _render_demo_html() -> str:
         color: var(--text);
         font-family: "Segoe UI", Arial, sans-serif;
       }
-      main { max-width: 1280px; margin: 0 auto; padding: 40px 18px 54px; }
+      main { max-width: 1420px; margin: 0 auto; padding: 36px 24px 56px; }
       h1 { margin: 0 0 12px; text-align: center; color: var(--accent); font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -0.04em; }
       .hero-copy { max-width: 880px; margin: 0 auto 28px; text-align: center; color: var(--muted); line-height: 1.7; }
-      .card { background: var(--surface); border: 1px solid rgba(15,23,42,0.06); border-radius: 24px; box-shadow: var(--shadow); padding: 24px; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-      .controls { display: grid; grid-template-columns: 1fr 320px; gap: 20px; margin-top: 20px; }
-      .panel h2, .status-box h2 { margin: 0 0 8px; font-size: 1rem; }
+      .card { background: var(--surface); border: 1px solid rgba(15,23,42,0.06); border-radius: 24px; box-shadow: var(--shadow); padding: 28px; }
+      .workspace { display: grid; grid-template-columns: minmax(760px, 1.6fr) 340px; gap: 20px; align-items: start; }
+      .panel, .rail-box { min-width: 0; }
+      .rail { display: grid; gap: 16px; align-self: start; position: sticky; top: 20px; }
+      .panel h2, .rail-box h2, .upload-box h2 { margin: 0 0 8px; font-size: 1rem; }
       .panel-copy, .footnote { color: var(--muted); line-height: 1.6; font-size: 0.95rem; }
       textarea {
         width: 100%;
-        min-height: 330px;
+        min-height: 420px;
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 16px;
@@ -125,9 +143,9 @@ def _render_demo_html() -> str:
         resize: vertical;
       }
       textarea[readonly] { opacity: 0.94; }
-      .actions, .quick-actions, .mini-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-      .actions { margin-top: 14px; }
-      .quick-actions { margin-top: 16px; }
+      .primary-actions, .copy-actions, .mini-actions { display: grid; gap: 10px; }
+      .primary-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }
+      .copy-actions { margin-top: 14px; }
       button {
         border: none;
         border-radius: 999px;
@@ -138,59 +156,58 @@ def _render_demo_html() -> str:
       }
       .ghost { background: var(--accent-soft); color: var(--accent); }
       .primary { width: 100%; padding: 14px 18px; border-radius: 16px; background: var(--accent); color: #fff; }
-      .upload-box, .status-box, details { border: 1px solid var(--border); border-radius: 18px; background: var(--panel); padding: 18px; }
+      .rail-box, .upload-box, details { border: 1px solid var(--border); border-radius: 18px; background: var(--panel); padding: 18px; }
+      .upload-box { margin-top: 18px; }
       details { margin-top: 18px; }
       details summary { cursor: pointer; font-weight: 700; color: var(--text); }
-      .upload-list, .summary-list, .status-errors, .status-hints { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
+      .upload-list, .status-errors, .status-hints, .howto-list { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
       .upload-list { list-style: none; padding: 0; display: grid; gap: 10px; }
       .upload-item { border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 12px; }
       .upload-ref { display: inline-flex; min-width: 74px; justify-content: center; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font: 0.82rem/1.2 "Cascadia Mono", Consolas, monospace; font-weight: 700; margin-right: 8px; }
+      .howto-list { color: var(--muted); }
       .status-errors { color: #b91c1c; }
       .status-hints { color: var(--accent); }
       code { font-family: "Cascadia Mono", Consolas, monospace; }
+      @media (max-width: 1240px) {
+        .workspace { grid-template-columns: 1fr; }
+        .rail { position: static; }
+      }
       @media (max-width: 980px) {
-        .grid, .controls { grid-template-columns: 1fr; }
+        .primary-actions { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>Author the deck, inspect the contract, and generate an Autoreport PPTX.</h1>
+      <h1>Draft the deck with AI and generate an Autoreport PPTX.</h1>
       <p class="hero-copy">
-        The homepage is now authoring-first. Start with <code>authoring_payload</code>,
-        keep the template contract visible as reference, and open the advanced panel
-        only when you want to inspect the compiled <code>report_payload</code>.
+        Give one prompt package to another AI, let it draft as many slides as needed,
+        paste the returned <code>report_content</code>, and generate the deck.
       </p>
       <section class="card">
-        <div class="grid">
+        <div class="workspace">
           <div class="panel">
-            <h2>Template Contract</h2>
+            <h2>AI Draft Input</h2>
             <p class="panel-copy">
-              This is the built-in editorial capability map. Another AI can read
-              <code>slide_patterns</code>, <code>image_count</code>, and
-              <code>image_layout</code> here to choose layouts without reverse-engineering raw slots.
+              Paste either a high-level <code>report_content</code> draft from another AI
+              or a ready-made <code>authoring_payload</code>. The app normalizes drafts into
+              <code>authoring_payload</code> automatically. You do not need to declare a total
+              slide count anywhere; the deck length is inferred from the slides you include.
             </p>
-            <textarea id="template-contract" readonly aria-label="Template contract"></textarea>
-          </div>
-          <div class="panel">
-            <h2>Authoring Payload</h2>
-            <p class="panel-copy">
-              Describe each slide by intent, context, assets, and layout request.
-              The compiler turns this into the runtime <code>report_payload</code> before generation.
-            </p>
-            <textarea id="payload-yaml" aria-label="Authoring payload"></textarea>
-            <div class="actions">
-              <button id="load-example" class="ghost" type="button">Load Starter</button>
-              <button id="load-image-example" class="ghost" type="button">Load Image Example</button>
-              <button id="refresh-compiled" class="ghost" type="button">Refresh Compiled Preview</button>
+            <textarea id="payload-yaml" aria-label="Working draft"></textarea>
+            <div class="primary-actions">
+              <button id="copy-handoff" class="ghost" type="button">Copy AI Package</button>
+              <button id="refresh-compiled" class="ghost" type="button">Normalize Draft</button>
+              <button id="generate-button" class="primary" type="button">Generate PPTX</button>
             </div>
-            <div class="quick-actions">
-              <button id="insert-text-slide" class="ghost" type="button">Insert Text Slide</button>
-              <button id="insert-metrics-slide" class="ghost" type="button">Insert Metrics Slide</button>
-              <button id="insert-one-image-slide" class="ghost" type="button">Insert 1-Image Slide</button>
-              <button id="insert-two-horizontal-slide" class="ghost" type="button">Insert 2-Image Horizontal</button>
-              <button id="insert-three-vertical-slide" class="ghost" type="button">Insert 3-Image Vertical</button>
-            </div>
+            <details>
+              <summary>Optional: View Template Contract</summary>
+              <p class="panel-copy">
+                Share this with another AI so it can choose valid <code>pattern_id</code>
+                values and image layouts.
+              </p>
+              <textarea id="template-contract" readonly aria-label="Template contract"></textarea>
+            </details>
             <details>
               <summary>Advanced Debug: Compiled Report Payload</summary>
               <p class="panel-copy">
@@ -198,41 +215,52 @@ def _render_demo_html() -> str:
               </p>
               <textarea id="compiled-payload" readonly aria-label="Compiled report payload"></textarea>
             </details>
-          </div>
-        </div>
-        <div class="controls">
-          <div class="upload-box">
-            <h2>Image Uploads</h2>
-            <p class="panel-copy">
-              Uploaded files become <code>image_1</code>-style refs. Helper actions insert those refs
-              into <code>assets.images</code> blocks so the authoring payload stays valid.
-            </p>
-            <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
-            <ul id="upload-list" class="upload-list"></ul>
-          </div>
-          <div class="status-box">
-            <h2>Current Status</h2>
-            <div id="status-message" class="panel-copy">
-              The built-in editorial contract is loaded. Edit the authoring payload, refresh the compiled preview, or generate the deck.
+            <div class="upload-box">
+              <h2>Image Uploads</h2>
+              <p class="panel-copy">
+                If the AI draft asks for images, upload the real files here and replace the
+                descriptive <code>slots.image_*</code> text with refs such as
+                <code>image_1</code>.
+              </p>
+              <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
+              <ul id="upload-list" class="upload-list"></ul>
             </div>
-            <ul id="status-errors" class="status-errors"></ul>
-            <ul id="status-hints" class="status-hints"></ul>
-            <div class="actions" style="margin-top:16px;">
-              <button id="generate-button" class="primary" type="button">Generate PPTX</button>
-            </div>
-            <h2 style="margin-top:18px;">Authoring Summary</h2>
-            <ul id="deck-summary" class="summary-list"></ul>
-            <p class="footnote">
-              Current scope: built-in editorial template, authoring-first homepage, uploaded image refs, compiled preview, instant download.
-            </p>
           </div>
+          <aside class="rail">
+            <div class="rail-box">
+              <h2>How To Use</h2>
+              <p class="panel-copy">
+                This page is meant for one simple flow, not manual slide-by-slide editing.
+              </p>
+              <ul class="howto-list">
+                <li>Copy the AI package and send it to another AI.</li>
+                <li>Ask it to return <code>report_content</code> with as many slides as you want.</li>
+                <li>Paste the YAML back into the big editor.</li>
+                <li>If visuals are needed, upload the real image files here and swap in uploaded refs.</li>
+                <li>Press <code>Generate PPTX</code>.</li>
+              </ul>
+              <div class="copy-actions">
+                <button id="reset-draft" class="ghost" type="button">Reset To AI Draft Prompt</button>
+                <button id="copy-draft-prompt" class="ghost" type="button">Copy AI Draft Prompt</button>
+                <button id="copy-contract" class="ghost" type="button">Copy Template Contract</button>
+                <button id="copy-handoff-secondary" class="ghost" type="button">Copy AI Package</button>
+              </div>
+              <div id="status-message" class="panel-copy">
+                The built-in editorial contract and AI draft prompt are loaded. Copy the package to another AI, then paste the returned draft here.
+              </div>
+              <ul id="status-errors" class="status-errors"></ul>
+              <ul id="status-hints" class="status-hints"></ul>
+              <p class="footnote">
+                Current scope: built-in editorial template, AI-draft input, dynamic slide counts, uploaded image refs, optional compiled preview, instant download.
+              </p>
+            </div>
+          </aside>
         </div>
       </section>
     </main>
     <script>
       const CONTRACT_YAML = __CONTRACT_JSON__;
-      const STARTER_PAYLOAD = __PAYLOAD_JSON__;
-      const IMAGE_PAYLOAD = __IMAGE_PAYLOAD_JSON__;
+      const AI_DRAFT_PROMPT = __DRAFT_PROMPT_JSON__;
       const DEFAULT_COMPILED = __COMPILED_JSON__;
       const contractNode = document.getElementById("template-contract");
       const payloadNode = document.getElementById("payload-yaml");
@@ -242,7 +270,6 @@ def _render_demo_html() -> str:
       const statusMessage = document.getElementById("status-message");
       const statusErrors = document.getElementById("status-errors");
       const statusHints = document.getElementById("status-hints");
-      const deckSummary = document.getElementById("deck-summary");
 
       let uploadedRefs = [];
 
@@ -262,121 +289,55 @@ def _render_demo_html() -> str:
         }
       }
 
-      function countSlides() {
-        return (payloadNode.value.match(/^\\s+- slide_no:/gm) || []).length;
-      }
-
-      function nextSlideNo() {
-        return countSlides() + 1;
-      }
-
-      function currentRefs(count) {
-        if (uploadedRefs.length >= count) {
-          return uploadedRefs.slice(0, count).map((item) => item.ref);
+      async function copyTextToClipboard(label, text) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const helper = document.createElement("textarea");
+            helper.value = text;
+            helper.setAttribute("readonly", "readonly");
+            helper.style.position = "absolute";
+            helper.style.left = "-9999px";
+            document.body.appendChild(helper);
+            helper.select();
+            document.execCommand("copy");
+            helper.remove();
+          }
+          setStatus(`${label} copied to the clipboard.`, [], ["Paste it into the next AI turn together with any required image files."]);
+        } catch (error) {
+          setStatus(`Could not copy ${label.toLowerCase()} automatically.`, [], ["Select the text manually and copy it from the page."]);
         }
-        const refs = [];
-        for (let index = 1; index <= count; index += 1) {
-          refs.push(`image_${index}`);
-        }
-        return refs;
       }
 
-      function appendSlideBlock(block) {
-        const trimmed = payloadNode.value.trimEnd();
-        if (!trimmed.includes("  slides:")) {
-          setStatus(
-            "The authoring payload must contain authoring_payload.slides before helper blocks can be inserted.",
-            [],
-            ["Restore the starter payload if the structure drifted."]
-          );
-          return false;
-        }
-        payloadNode.value = `${trimmed}\\n${block}\\n`;
-        updateSummary();
-        return true;
-      }
-
-      function buildTextSlideBlock() {
-        const slideNo = nextSlideNo();
+      function buildAiHandoffPackage() {
+        const uploadNotes = uploadedRefs.length
+          ? uploadedRefs.map((item) => `- ${item.ref}: ${item.file.name}`).join("\\n")
+          : "- none";
         return [
-          `  - slide_no: ${slideNo}`,
-          "    goal: New Text Slide",
-          "    include_in_contents: true",
-          "    context:",
-          "      summary: Add the key message for this slide.",
-          "      bullets:",
-          "        - Add one supporting proof point.",
-          "    layout_request:",
-          "      kind: text",
-          "      image_orientation: auto",
+          "# Autoreport AI Handoff",
+          "",
+          "Start with the AI draft prompt below, then include the template contract.",
+          "The other AI should return report_content. Autoreport will normalize it into authoring_payload later.",
+          "",
+          "## AI Draft Prompt",
+          "```yaml",
+          AI_DRAFT_PROMPT,
+          "```",
+          "",
+          "## Template Contract",
+          "```yaml",
+          contractNode.value.trim(),
+          "```",
+          "",
+          "## Current Working Draft",
+          "```yaml",
+          payloadNode.value.trim(),
+          "```",
+          "",
+          "## Uploaded Image Refs In This Browser Session",
+          uploadNotes,
         ].join("\\n");
-      }
-
-      function buildMetricsSlideBlock() {
-        const slideNo = nextSlideNo();
-        return [
-          `  - slide_no: ${slideNo}`,
-          "    goal: New Metrics Slide",
-          "    include_in_contents: true",
-          "    context:",
-          "      metrics:",
-          "        - label: Metric label",
-          "          value: 10",
-          "        - label: Second metric",
-          "          value: 24",
-          "    layout_request:",
-          "      kind: metrics",
-          "      image_orientation: auto",
-        ].join("\\n");
-      }
-
-      function buildImageSlideBlock(count, orientation) {
-        const slideNo = nextSlideNo();
-        const refs = currentRefs(count);
-        return [
-          `  - slide_no: ${slideNo}`,
-          "    goal: Visual Proof",
-          "    include_in_contents: true",
-          "    context:",
-          "      summary: Add the narrative that should sit with the images.",
-          "      bullets:",
-          "        - Explain why this visual matters.",
-          "      caption: Optional shared caption for the image region.",
-          "    assets:",
-          "      images:",
-          ...refs.map((ref) => `        - ref: ${ref}\\n          fit: contain`),
-          "    layout_request:",
-          "      kind: text_image",
-          `      image_count: ${count}`,
-          `      image_orientation: ${orientation}`,
-        ].join("\\n");
-      }
-
-      function parseAuthoringSummary(text) {
-        const slideNos = text.match(/^\\s+- slide_no:\\s*(\\d+)/gm) || [];
-        const goals = text.match(/^\\s+goal:\\s*(.+)$/gm) || [];
-        const refs = text.match(/^\\s+- ref:\\s*(.+)$/gm) || [];
-        return {
-          slideCount: slideNos.length,
-          goals: goals.map((line) => line.replace(/^\\s+goal:\\s*/, "")),
-          refs: refs.map((line) => line.replace(/^\\s+- ref:\\s*/, "")),
-        };
-      }
-
-      function updateSummary() {
-        deckSummary.innerHTML = "";
-        const summary = parseAuthoringSummary(payloadNode.value);
-        const items = [
-          `Authored slides: ${summary.slideCount}`,
-          `Slide goals: ${summary.goals.length ? summary.goals.join(" | ") : "none yet"}`,
-          `Image refs in payload: ${summary.refs.length ? summary.refs.join(", ") : "none yet"}`,
-          `Uploaded refs ready: ${uploadedRefs.length ? uploadedRefs.map((item) => item.ref).join(", ") : "none yet"}`,
-        ];
-        for (const item of items) {
-          const li = document.createElement("li");
-          li.textContent = item;
-          deckSummary.appendChild(li);
-        }
       }
 
       function renderUploads() {
@@ -406,20 +367,9 @@ def _render_demo_html() -> str:
             const end = payloadNode.selectionEnd ?? payloadNode.value.length;
             payloadNode.setRangeText(item.ref, start, end, "end");
             setStatus(`${item.ref} was inserted at the current cursor.`);
-            updateSummary();
           });
 
-          const addSlideButton = document.createElement("button");
-          addSlideButton.type = "button";
-          addSlideButton.className = "ghost";
-          addSlideButton.textContent = "Add 1-Image Slide";
-          addSlideButton.addEventListener("click", () => {
-            if (appendSlideBlock(buildImageSlideBlock(1, "auto"))) {
-              setStatus(`A 1-image authoring block using ${item.ref} was appended.`);
-            }
-          });
-
-          actions.append(insertRefButton, addSlideButton);
+          actions.append(insertRefButton);
           li.append(label, actions);
           uploadList.appendChild(li);
         }
@@ -442,54 +392,51 @@ def _render_demo_html() -> str:
 
       async function refreshCompiledPreview() {
         if (!payloadNode.value.trim()) {
-          setStatus("The authoring payload is empty.", [], ["Load the starter payload to begin."]);
+          setStatus("The working draft is empty.", [], ["Reset to the AI draft prompt to begin."]);
           return;
         }
-        setStatus("Compiling the authoring payload into the runtime report payload...");
+        setStatus("Normalizing the draft and compiling the runtime report payload...");
         const response = await postPayload("/api/compile");
         const payload = await response.json();
         if (!response.ok) {
           setStatus(payload.message || "Compilation failed.", payload.errors || [], payload.hints || []);
           return;
         }
+        if (payload.normalized_authoring_yaml) {
+          payloadNode.value = payload.normalized_authoring_yaml;
+        }
         compiledNode.value = payload.compiled_yaml;
         setStatus(
-          `Compiled preview refreshed from the ${payload.payload_kind} input.`,
+          payload.payload_kind === "content"
+            ? "AI draft normalized into authoring_payload successfully."
+            : `Draft accepted as ${payload.payload_kind} and compiled successfully.`,
           [],
-          [`Compiled slides: ${payload.slide_count}`]
+          payload.hints && payload.hints.length
+            ? payload.hints
+            : [`Compiled slides: ${payload.slide_count}`]
         );
       }
 
       contractNode.value = CONTRACT_YAML;
-      payloadNode.value = STARTER_PAYLOAD;
-      compiledNode.value = DEFAULT_COMPILED;
-      updateSummary();
+      payloadNode.value = AI_DRAFT_PROMPT;
+      compiledNode.value = "";
       renderUploads();
 
-      document.getElementById("load-example").addEventListener("click", () => {
-        payloadNode.value = STARTER_PAYLOAD;
-        compiledNode.value = DEFAULT_COMPILED;
-        setStatus("Starter authoring payload restored.");
-        updateSummary();
-      });
-
-      document.getElementById("load-image-example").addEventListener("click", () => {
-        payloadNode.value = IMAGE_PAYLOAD;
+      document.getElementById("reset-draft").addEventListener("click", () => {
+        payloadNode.value = AI_DRAFT_PROMPT;
+        compiledNode.value = "";
         setStatus(
-          "Image-capable authoring payload restored.",
+          "AI draft prompt restored.",
           [],
-          ["Upload matching image refs, then refresh the compiled preview or generate the deck."]
+          ["Send this prompt together with the template contract to another AI, then paste the returned report_content draft back here."]
         );
-        updateSummary();
       });
 
       document.getElementById("refresh-compiled").addEventListener("click", refreshCompiledPreview);
-      document.getElementById("insert-text-slide").addEventListener("click", () => appendSlideBlock(buildTextSlideBlock()));
-      document.getElementById("insert-metrics-slide").addEventListener("click", () => appendSlideBlock(buildMetricsSlideBlock()));
-      document.getElementById("insert-one-image-slide").addEventListener("click", () => appendSlideBlock(buildImageSlideBlock(1, "auto")));
-      document.getElementById("insert-two-horizontal-slide").addEventListener("click", () => appendSlideBlock(buildImageSlideBlock(2, "horizontal")));
-      document.getElementById("insert-three-vertical-slide").addEventListener("click", () => appendSlideBlock(buildImageSlideBlock(3, "vertical")));
-      payloadNode.addEventListener("input", updateSummary);
+      document.getElementById("copy-draft-prompt").addEventListener("click", () => copyTextToClipboard("AI draft prompt", AI_DRAFT_PROMPT));
+      document.getElementById("copy-contract").addEventListener("click", () => copyTextToClipboard("Template contract", contractNode.value.trim()));
+      document.getElementById("copy-handoff").addEventListener("click", () => copyTextToClipboard("AI handoff package", buildAiHandoffPackage()));
+      document.getElementById("copy-handoff-secondary").addEventListener("click", () => copyTextToClipboard("AI handoff package", buildAiHandoffPackage()));
 
       fileInput.addEventListener("change", () => {
         uploadedRefs = Array.from(fileInput.files || []).map((file, index) => ({
@@ -497,7 +444,6 @@ def _render_demo_html() -> str:
           file,
         }));
         renderUploads();
-        updateSummary();
         if (uploadedRefs.length) {
           setStatus(
             "Uploads are ready.",
@@ -511,7 +457,7 @@ def _render_demo_html() -> str:
 
       document.getElementById("generate-button").addEventListener("click", async () => {
         if (!payloadNode.value.trim()) {
-          setStatus("Generation failed. Please provide payload YAML.", [], ["Load the starter payload to begin."]);
+          setStatus("Generation failed. Please provide payload YAML.", [], ["Reset to the AI draft prompt to begin."]);
           return;
         }
         const button = document.getElementById("generate-button");
@@ -543,7 +489,7 @@ def _render_demo_html() -> str:
       });
     </script>
   </body>
-</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__PAYLOAD_JSON__", payload_json).replace("__IMAGE_PAYLOAD_JSON__", image_payload_json).replace("__COMPILED_JSON__", compiled_json)
+</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__DRAFT_PROMPT_JSON__", draft_prompt_json).replace("__COMPILED_JSON__", compiled_json)
 
 
 INDEX_HTML = _render_demo_html()
@@ -609,11 +555,34 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
 
     try:
         raw_data, image_refs, temp_dir_path = await _parse_request_payload(request)
-        compiled_payload = materialize_report_payload(
-            raw_data,
-            _BUILT_IN_CONTRACT,
-            available_image_refs=image_refs.keys(),
-        )
+        payload_kind = detect_payload_kind(raw_data)
+        normalized_authoring_yaml: str | None = None
+        hints: list[str] = []
+
+        if payload_kind in {"authoring", "content"}:
+            normalized_authoring, hints = materialize_authoring_payload(
+                raw_data,
+                _BUILT_IN_CONTRACT,
+                available_image_refs=image_refs.keys(),
+                enforce_image_refs=False,
+            )
+            normalized_authoring_yaml = serialize_document(
+                normalized_authoring.to_dict(),
+                fmt="yaml",
+            ).strip()
+            compiled_payload = materialize_report_payload(
+                normalized_authoring.to_dict(),
+                _BUILT_IN_CONTRACT,
+                available_image_refs=image_refs.keys(),
+                enforce_image_refs=False,
+            )
+        else:
+            compiled_payload = materialize_report_payload(
+                raw_data,
+                _BUILT_IN_CONTRACT,
+                available_image_refs=image_refs.keys(),
+                enforce_image_refs=False,
+            )
     except yaml.YAMLError as exc:
         _log_result(request_id=request_id, result="error", started_at=started_at, error_type="yaml_parse_error")
         if temp_dir_path is not None:
@@ -646,9 +615,11 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
     _log_result(request_id=request_id, result="success", started_at=started_at)
     return JSONResponse(
         {
-            "payload_kind": detect_payload_kind(raw_data),
+            "payload_kind": payload_kind,
+            "normalized_authoring_yaml": normalized_authoring_yaml,
             "compiled_yaml": serialize_document(compiled_payload.to_dict(), fmt="yaml").strip(),
             "slide_count": len(compiled_payload.slides),
+            "hints": hints,
         }
     )
 

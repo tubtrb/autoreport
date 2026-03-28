@@ -140,9 +140,11 @@ class MetricItem:
     """One user-facing metric row for a metrics slide."""
 
     label: str
-    value: int
+    value: int | str
 
     def as_text(self) -> str:
+        if isinstance(self.value, str) and not self.value:
+            return self.label
         return f"{self.label}: {self.value}"
 
 

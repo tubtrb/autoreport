@@ -11,9 +11,10 @@ Autoreport now follows this public flow:
 
 1. inspect a template
 2. export a machine-readable `template_contract`
-3. fill an `authoring_payload`
-4. compile it into a runtime `report_payload`
-5. generate an editable `.pptx`
+3. ask another AI or a human to draft `report_content`
+4. normalize that into `authoring_payload`
+5. compile it into a runtime `report_payload`
+6. generate an editable `.pptx`
 
 The template owns layout decisions.
 Autoreport owns:
@@ -32,7 +33,8 @@ Autoreport owns:
 flowchart TD
     TEMPLATE["Built-in or user-owned template"] --> PROFILE["TemplateProfile"]
     PROFILE --> CONTRACT["template_contract"]
-    CONTRACT --> AUTHOR["authoring_payload"]
+    CONTRACT --> DRAFT["report_content"]
+    DRAFT --> AUTHOR["authoring_payload"]
     AUTHOR --> COMPILE["compile_authoring_payload(...)"]
     COMPILE --> PAYLOAD["report_payload"]
     PAYLOAD --> VALIDATE["validate_payload(...)"]
@@ -104,13 +106,20 @@ Autoreport does not vendor third-party template branding into the runtime path.
 - `contents`
 - `slides`
 
+`report_content`
+
+- `title_slide`
+- `contents_slide`
+- `slides`
+
 Current first-phase slide kinds:
 
 - `text`
 - `metrics`
 - `text_image`
 
-`authoring_payload` is now the primary public authoring contract.
+`report_content` is the primary AI-facing draft contract.
+`authoring_payload` is the normalized public authoring contract.
 `report_payload` stays supported as the compiled runtime payload and the
 backward-compatible direct generation input.
 
@@ -125,7 +134,9 @@ when the runtime payload needs placeholder-level control.
 - Slide titles remain the source for `Contents` generation.
 - Text still prefers the default font size, then shrinks, then spills onto continuation slides.
 - Image handling currently supports explicit `contain` and `cover` fit policies.
-- Web v1 supports uploaded image refs such as `image_1`, authoring-first editing, and compiled runtime preview; external template upload in the web surface is deferred.
+- The user-facing web app defaults to an AI-friendly `report_content` prompt and keeps compile/runtime inspection secondary.
+- The developer-facing debug web app is the place for explicit contract, normalization, and compiled runtime inspection.
+- Both web apps reuse the same compile/generate route behavior; external template upload in the web surface is deferred.
 
 ## What is intentionally out of scope today
 

@@ -1,8 +1,9 @@
 # autoreport
 
 Autoreport is a template-contract-first PPTX generation engine.
-It inspects a PowerPoint template, exports the fillable contract, accepts a
-high-level `authoring_payload` that another AI or a human can fill, compiles
+It inspects a PowerPoint template, exports the fillable contract, accepts either
+a high-level `report_content` draft from another AI or a ready-made
+`authoring_payload`, compiles
 that into the runtime `report_payload`, and returns an editable PowerPoint deck.
 
 The current built-in baseline is `autoreport_editorial`, an Autoreport-owned
@@ -11,13 +12,14 @@ editorial template designed for fast contract-first generation.
 ## Product flow
 
 1. inspect a template and export its contract
-2. scaffold or fill an `authoring_payload`
+2. scaffold or fill an `authoring_payload`, or ask another AI to draft `report_content`
 3. optionally compile it into a `report_payload` for debugging
 4. generate an editable `.pptx`
 
 Autoreport does not call an LLM during generation.
-The AI-friendly layer is the exported contract plus the public
-`authoring_payload`, so deck generation stays deterministic and near-instant.
+The AI-friendly layer is the exported contract plus the public draft surfaces
+`report_content` and `authoring_payload`, so deck generation stays deterministic
+and near-instant.
 
 ## Quickstart
 
@@ -39,7 +41,8 @@ autoreport scaffold-payload output/template_contract.yaml --output output/author
 ```
 
 Compile the authored input into the runtime `report_payload` when you want to
-inspect the exact execution payload:
+inspect the exact execution payload. `compile-payload` also accepts a
+`report_content` draft and normalizes it first:
 
 ```bash
 autoreport compile-payload output/authoring_payload.yaml --output output/report_payload.yaml
@@ -74,10 +77,29 @@ uvicorn autoreport.web.app:app --host 0.0.0.0 --port 8000
 ```
 
 The web demo currently targets the built-in editorial template only.
-It shows the contract, lets you edit an `authoring_payload`, exposes a compiled
-`report_payload` preview in an advanced/debug panel, supports uploaded image
-refs such as `image_1`, and returns a generated `.pptx` for immediate download.
+It opens with an AI draft prompt by default, keeps the template contract visible,
+lets you paste either a `report_content` AI draft or an `authoring_payload`,
+normalizes drafts into `authoring_payload`, exposes a compiled `report_payload`
+preview in an advanced/debug panel, supports uploaded image refs such as
+`image_1`, and returns a generated `.pptx` for immediate download.
+Slide counts are inferred dynamically from the authored slides list rather than
+entered as a separate field.
 Arbitrary PowerPoint template upload is currently a CLI-only path.
+
+The user-facing app is intentionally simple:
+
+1. copy the AI package
+2. ask another AI for a `report_content` draft
+3. paste the returned YAML
+4. optionally upload real image files
+5. generate the deck
+
+When you want a developer-facing surface with more panes for contract inspection,
+normalization, and compiled runtime debugging, run the separate debug app:
+
+```bash
+uvicorn autoreport.web.debug_app:app --host 0.0.0.0 --port 8010
+```
 
 ## Example documents
 
@@ -96,6 +118,6 @@ generated files after download and does not retain payload contents by default.
 ## Current Release Boundaries
 
 - Contract inspection, authoring-payload scaffolding, authoring-to-runtime compilation, and PPTX generation are available through the CLI.
-- The public web demo covers the built-in editorial template, pasted `authoring_payload` YAML, compiled runtime preview, image refs, and immediate PPTX download.
+- The public web demo covers the built-in editorial template, pasted `report_content` or `authoring_payload` YAML, authoring normalization, compiled runtime preview, image refs, and immediate PPTX download.
 - Generation remains deterministic and local to Python plus `python-pptx`; there is no server-side LLM call in the generation path.
 - Version bumping, tagging, and release publication are intentionally handled outside this branch.

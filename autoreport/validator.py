@@ -114,6 +114,7 @@ def validate_authoring_payload(
     contract: TemplateContract,
     *,
     available_image_refs: Iterable[str] = (),
+    enforce_image_refs: bool = True,
 ) -> AuthoringPayload:
     """Validate one authoring payload against an active template contract."""
 
@@ -144,6 +145,7 @@ def validate_authoring_payload(
         root,
         contract=contract,
         available_image_refs=available_refs,
+        enforce_image_refs=enforce_image_refs,
         errors=errors,
     )
 
@@ -176,6 +178,7 @@ def validate_payload(
     contract: TemplateContract,
     *,
     available_image_refs: Iterable[str] = (),
+    enforce_image_refs: bool = True,
 ) -> ReportPayload:
     """Validate one runtime report payload against an active template contract."""
 
@@ -205,6 +208,7 @@ def validate_payload(
         root,
         contract=contract,
         available_image_refs=available_refs,
+        enforce_image_refs=enforce_image_refs,
         errors=errors,
     )
 
@@ -576,6 +580,7 @@ def _validate_authoring_slides(
     *,
     contract: TemplateContract,
     available_image_refs: set[str],
+    enforce_image_refs: bool,
     errors: list[str],
 ) -> list[AuthoringSlide]:
     raw = root.get("slides")
@@ -624,6 +629,7 @@ def _validate_authoring_slides(
             prefix=prefix,
             errors=errors,
             available_image_refs=available_image_refs,
+            enforce_image_refs=enforce_image_refs,
         )
         layout_request = _validate_layout_request(item, prefix=prefix, errors=errors)
 
@@ -717,6 +723,7 @@ def _validate_authoring_assets(
     prefix: str,
     errors: list[str],
     available_image_refs: set[str],
+    enforce_image_refs: bool,
 ) -> AuthoringSlideAssets:
     raw = item.get("assets", {})
     if raw is None:
@@ -732,6 +739,7 @@ def _validate_authoring_assets(
             field_name=f"{prefix}.assets.images",
             errors=errors,
             available_image_refs=available_image_refs,
+            enforce_image_refs=enforce_image_refs,
         )
 
     for key in raw:
@@ -900,6 +908,7 @@ def _validate_payload_slides(
     *,
     contract: TemplateContract,
     available_image_refs: set[str],
+    enforce_image_refs: bool,
     errors: list[str],
 ) -> list[PayloadSlide]:
     raw = root.get("slides")
@@ -954,6 +963,7 @@ def _validate_payload_slides(
             prefix=prefix,
             pattern_slots=pattern_slots,
             available_image_refs=available_image_refs,
+            enforce_image_refs=enforce_image_refs,
             errors=errors,
         )
 
@@ -1026,6 +1036,7 @@ def _validate_payload_slides(
                     field_name=f"{prefix}.image",
                     errors=errors,
                     available_image_refs=available_image_refs,
+                    enforce_image_refs=enforce_image_refs,
                 )
             caption = _validate_optional_string(
                 item,
@@ -1312,9 +1323,23 @@ def _validate_optional_metric_items(
             errors,
         )
         value = metric_raw.get("value")
-        if isinstance(value, bool) or not isinstance(value, int):
-            errors.append(f"Field '{metric_prefix}.value' must be an integer.")
-            value = 0
+        if isinstance(value, bool):
+            errors.append(
+                f"Field '{metric_prefix}.value' must be an integer or non-empty string."
+            )
+            value = ""
+        elif isinstance(value, str):
+            value = value.strip()
+            if not value:
+                errors.append(
+                    f"Field '{metric_prefix}.value' must be an integer or non-empty string."
+                )
+                value = ""
+        elif not isinstance(value, int):
+            errors.append(
+                f"Field '{metric_prefix}.value' must be an integer or non-empty string."
+            )
+            value = ""
         for key in metric_raw:
             if key not in {"label", "value"}:
                 errors.append(f"Field '{metric_prefix}.{key}' is not allowed.")
@@ -1329,6 +1354,7 @@ def _validate_slot_overrides(
     prefix: str,
     pattern_slots: dict[str, TemplateSlotContract],
     available_image_refs: set[str],
+    enforce_image_refs: bool,
     errors: list[str],
 ) -> dict[str, SlotOverride]:
     raw = item.get("slot_overrides", {})
@@ -1364,6 +1390,7 @@ def _validate_slot_overrides(
                 field_name=f"{slot_prefix}.image",
                 errors=errors,
                 available_image_refs=available_image_refs,
+                enforce_image_refs=enforce_image_refs,
             )
         else:
             if set(override_raw) != {"text"}:
@@ -1411,6 +1438,7 @@ def _validate_image_spec_list(
     field_name: str,
     errors: list[str],
     available_image_refs: set[str],
+    enforce_image_refs: bool,
 ) -> list[ImageSpec]:
     if not isinstance(raw, list):
         errors.append(f"Field '{field_name}' must be a list.")
@@ -1423,6 +1451,7 @@ def _validate_image_spec_list(
             field_name=f"{field_name}[{index}]",
             errors=errors,
             available_image_refs=available_image_refs,
+            enforce_image_refs=enforce_image_refs,
         )
         if image is not None:
             images.append(image)
@@ -1436,6 +1465,7 @@ def _validate_image_spec(
     field_name: str,
     errors: list[str],
     available_image_refs: set[str],
+    enforce_image_refs: bool,
 ) -> ImageSpec | None:
     if raw is None:
         errors.append(f"Field '{field_name}' is required.")
@@ -1456,7 +1486,7 @@ def _validate_image_spec(
         errors.append(
             f"Field '{field_name}.fit' must be either 'contain' or 'cover'."
         )
-    if ref_value and ref_value not in available_image_refs:
+    if enforce_image_refs and ref_value and ref_value not in available_image_refs:
         errors.append(
             f"Field '{field_name}.ref' does not match a provided image reference."
         )

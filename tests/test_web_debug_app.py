@@ -1,0 +1,57 @@
+"""Tests for the developer-facing Autoreport debug web app."""
+
+from __future__ import annotations
+
+import unittest
+
+from fastapi.testclient import TestClient
+
+from autoreport.web.debug_app import app
+
+
+VALID_REPORT_CONTENT_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Debug Deck
+      subtitle_1: |
+        Debug subtitle
+  slides:
+    - pattern_id: text.editorial
+      kind: text
+      slots:
+        title: Debug slide
+        body_1: |
+          Debug content
+""".strip()
+
+
+class WebDebugAppTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.client = TestClient(app)
+
+    def test_debug_page_renders_debug_surface(self) -> None:
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Autoreport Debug Demo", response.text)
+        self.assertIn("Debug Controls", response.text)
+        self.assertIn("Normalized Authoring Payload", response.text)
+        self.assertIn("Compiled Report Payload", response.text)
+        self.assertIn("Load Starter Authoring", response.text)
+        self.assertIn("Load AI Draft Prompt", response.text)
+
+    def test_debug_compile_route_is_wired(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={"payload_yaml": VALID_REPORT_CONTENT_YAML, "image_manifest": "[]"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["payload_kind"], "content")
+        self.assertIn("report_payload:", response.json()["compiled_yaml"])
+
+
+if __name__ == "__main__":
+    unittest.main()

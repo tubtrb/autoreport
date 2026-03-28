@@ -6,7 +6,7 @@
 - Personal state, task tickets, and attestation/proof artifacts stay local under `.codex/`.
 
 ## Project Frame
-- `autoreport` is currently a deterministic contract-first PowerPoint deck generator with both CLI and FastAPI web demo entry points.
+- `autoreport` is currently a deterministic contract-first PowerPoint deck generator with CLI, a user-facing FastAPI app, and a separate developer-facing debug FastAPI app.
 - The product is user-facing; this file is contributor/bootstrap guidance only.
 - Prefer current code and tests over roadmap prose when they differ.
 
@@ -20,7 +20,8 @@
 - `autoreport/cli.py`: CLI command parsing and user-visible failure mapping.
 - `autoreport/loader.py`, `autoreport/models.py`, `autoreport/validator.py`: YAML loading, contract models, and payload validation.
 - `autoreport/template_flow.py`, `autoreport/templates/weekly_report.py`, `autoreport/engine/generator.py`, `autoreport/outputs/pptx_writer.py`: template contract export, authoring-to-runtime compilation, shaping, generation orchestration, and `.pptx` writing.
-- `autoreport/web/app.py`: public demo HTML and generation API.
+- `autoreport/web/app.py`: user-facing web app for the streamlined AI-draft-to-PPTX flow.
+- `autoreport/web/debug_app.py`: developer-facing debug app for contract, normalization, compiled payload, and upload inspection.
 - `tests/`: executable contract for CLI, schema, PowerPoint, and web behavior.
 
 ## Verification Defaults
@@ -28,7 +29,8 @@
 - CLI or entrypoint changes: `.\venv\Scripts\python.exe -m unittest tests.test_cli`
 - Loader or schema changes: `.\venv\Scripts\python.exe -m unittest tests.test_loader tests.test_validator`
 - Generation or writer changes: `.\venv\Scripts\python.exe -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer`
-- Web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_app`
+- User web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_app`
+- Debug web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_debug_app`
 - Cross-cutting changes: run the narrow focused tests first, then expand to the relevant combination above.
 
 ## Generated Artifacts
@@ -43,7 +45,7 @@
 - YAML loading, models, validator rules, template/report payload examples, schema tests -> `report-schema`
 - Template shaping, generation orchestration, writer behavior, template compatibility -> `pptx-output`
 - Active `codex/v0.3-*` task worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
-- FastAPI routes, HTML demo surface, API error shape, web tests -> `web-demo`
+- FastAPI user app, debug app, shared web API routes, HTML surfaces, API error shape, web tests -> `web-demo`
 - Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`
 - README, release notes, packaging metadata, public wording alignment -> `release-docs`
@@ -63,6 +65,10 @@
 - When shipped behavior, public contracts, cleanup rules, verification flow, or orchestration expectations change, update the relevant repo-local skills and bootstrap guidance in the same task so future turns inherit the latest repo reality.
 - Stale agent or skill guidance is a blocker for signoff for the same reason stale code is a blocker: it causes later tasks to resurrect dead paths and wrong assumptions.
 - Use git history and tags for recovery, not stale bootstrap guidance left in tracked files after the product has already moved on.
+- Keep the user-facing web app and the developer-facing debug app as separate tracked surfaces.
+- The user app should stay optimized for the single "copy AI package -> paste draft -> generate" flow.
+- If a task needs extra panes, inspection widgets, manual helpers, or internal compile/normalize visibility, add or refine them in the debug app before cluttering the user app.
+- Shared compile/generate route behavior may be reused between the two apps, but the debug app must not become a hidden second implementation of the generation pipeline.
 - For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `codex/v0.3-master`, pushed, and the active task worktrees have been synchronized onto that pushed base.
 - When old sibling directories from retired `codex/v0.3-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
 - If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v0.3-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.

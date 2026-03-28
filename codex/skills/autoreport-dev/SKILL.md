@@ -18,6 +18,7 @@ and routes deeper work to one primary focused skill.
 - Start with `references/current-repo.md`.
 - If the task touches the `v0.3` template-aware direction, also read:
   - `../../../docs/architecture/template-aware-autofill-engine.md`
+  - `../../../docs/architecture/web-surface-split.md` when web UX and debug-surface boundaries matter
   - `../../../docs/architecture/v0.3-template-workstreams.md`
 - Identify the primary surface before editing:
   - Parallel worktree monitoring/orchestration -> `../workstream-orchestrator/SKILL.md`

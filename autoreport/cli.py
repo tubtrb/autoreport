@@ -91,11 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     compile_parser = subparsers.add_parser(
         "compile-payload",
-        help="Compile an authoring payload into the runtime report payload.",
+        help="Compile an authoring payload or report_content draft into the runtime report payload.",
     )
     compile_parser.add_argument(
         "payload_path",
-        help="Path to the authoring payload YAML or JSON file.",
+        help="Path to the authoring payload or report_content YAML/JSON file.",
     )
     compile_group = compile_parser.add_mutually_exclusive_group()
     compile_group.add_argument(
@@ -124,7 +124,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     generate_parser = subparsers.add_parser(
         "generate",
-        help="Generate an Autoreport deck from an authoring or report payload file.",
+        help="Generate an Autoreport deck from authoring, report_content, or runtime payload input.",
     )
     generate_parser.add_argument(
         "payload_path",
