@@ -2,7 +2,7 @@
 
 ## Project Shape
 
-- `autoreport` currently packages a deterministic weekly report generator.
+- `autoreport` currently packages a deterministic contract-first PowerPoint deck generator.
 - Package metadata and the current version live in `pyproject.toml`; treat that file as the source of truth instead of copying version numbers into skill docs.
 - Public entry points are the `autoreport` CLI and the FastAPI demo app in `autoreport/web/app.py`.
 
@@ -16,6 +16,7 @@
 ## Main Code Paths
 
 - `autoreport/cli.py` builds the parser and maps exceptions to exit codes and stderr text.
+- `autoreport/template_flow.py` exports template contracts and starter payloads.
 - `autoreport/engine/generator.py` loads raw YAML, validates it, builds template context, and writes the `.pptx`.
 - `autoreport/outputs/pptx_writer.py` loads a template or default presentation, validates layout compatibility, clears seed slides, and writes slides.
 - `autoreport/web/app.py` reuses the same core parse/validate/generate flow for the public demo API.

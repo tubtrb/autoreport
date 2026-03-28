@@ -1,14 +1,14 @@
 ---
 name: workstream-orchestrator
-description: Monitor and orchestrate the autoreport v0.3 parallel worktrees. Use when acting as the master thread to inspect sibling worktrees, verify branch and narrow-test health, decide each thread's next action, and write per-thread instructions into `.codex/master-next.txt`.
+description: Monitor and orchestrate active autoreport v0.3 task worktrees. Use when acting as the master thread to inspect discovered sibling worktrees, verify branch and narrow-test health, decide each thread's next action, and write per-thread instructions into `.codex/master-next.txt`.
 ---
 
 # Workstream Orchestrator
 
 ## Overview
 
-Use this skill for the master-thread role that coordinates the sibling
-`autoreport_v0.3-*` worktrees. Keep contract ownership and merge order aligned
+Use this skill for the master-thread role that coordinates the active
+`codex/v0.3-*` task worktrees. Keep contract ownership and merge order aligned
 while pushing short, concrete next-step instructions into each worktree's
 private `.codex/` state. Instruction files stay text-based, while worker
 progress and completion reports live in JSON under the same `.codex/` folder.
@@ -30,12 +30,14 @@ force-push decisions whenever branch history needs to stay aligned.
 
 ## Workflow
 
-1. Snapshot the sibling worktrees.
+1. Snapshot the active task worktrees.
 - Run the snapshot script before giving instructions.
 - Add `--run-tests` when you need fresh health checks rather than relying on the
   last reported result.
 - Treat the snapshot as the source for branch status, last commit, and the
   narrow verification command for each thread.
+- The script should discover active task worktrees from `git worktree list`
+  instead of relying on a fixed folder list.
 
 2. Decide the next action per thread.
 - Freeze shared contracts before downstream consumers: `template_contract`,
@@ -50,7 +52,7 @@ force-push decisions whenever branch history needs to stay aligned.
 - Treat policy updates to tracked shared files such as `AGENTS.md`,
   `codex/skills/`, and shared architecture docs as master-owned changes.
 - After a policy change lands on the shared base, the master thread should
-  inspect each sibling worktree, make any needed checkpoint commit, rebase onto
+  inspect each active task worktree, make any needed checkpoint commit, rebase onto
   the shared base, rerun the narrow tests, and push the branch.
 - Do not assume `.codex/master-next.txt` is the authoritative channel until the
   branch history actually contains the updated skill/policy files.
@@ -59,7 +61,7 @@ force-push decisions whenever branch history needs to stay aligned.
 
 4. Write the next-step instructions.
 - Keep each instruction short, concrete, and copy-pastable.
-- Default target file is `.codex/master-next.txt` inside each sibling worktree.
+- Default target file is `.codex/master-next.txt` inside each active task worktree.
 - Use the dispatch script with a JSON object that maps workstream keys to
   instruction text.
 - Treat `.codex/master-next.txt` as the authoritative per-thread detail
@@ -124,7 +126,7 @@ force-push decisions whenever branch history needs to stay aligned.
 
 ```bash
 @'
-{"template-contract-export":"...","generic-payload-schema":"..."}
+{"contract-hardening":"...","web-authoring-ux":"..."}
 '@ | .\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\write_master_next.py --stdin-json
 ```
 

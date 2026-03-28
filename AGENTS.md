@@ -6,7 +6,7 @@
 - Personal state, task tickets, and attestation/proof artifacts stay local under `.codex/`.
 
 ## Project Frame
-- `autoreport` is currently a deterministic weekly report generator with both CLI and FastAPI web demo entry points.
+- `autoreport` is currently a deterministic contract-first PowerPoint deck generator with both CLI and FastAPI web demo entry points.
 - The product is user-facing; this file is contributor/bootstrap guidance only.
 - Prefer current code and tests over roadmap prose when they differ.
 
@@ -14,12 +14,12 @@
 - Runtime behavior and error contracts: repository code plus tests.
 - Packaging and entrypoint metadata: `pyproject.toml`.
 - Public framing and usage examples: `README.md`.
-- Example weekly report payload: `examples/weekly_report.yaml`.
+- Public contract examples: `examples/autoreport_editorial_template_contract.yaml`, `examples/autoreport_editorial_report_payload.yaml`.
 
 ## Repo Map
 - `autoreport/cli.py`: CLI command parsing and user-visible failure mapping.
-- `autoreport/loader.py`, `autoreport/models.py`, `autoreport/validator.py`: YAML loading and strict weekly schema validation.
-- `autoreport/templates/weekly_report.py`, `autoreport/engine/generator.py`, `autoreport/outputs/pptx_writer.py`: template shaping, generation orchestration, and `.pptx` writing.
+- `autoreport/loader.py`, `autoreport/models.py`, `autoreport/validator.py`: YAML loading, contract models, and payload validation.
+- `autoreport/template_flow.py`, `autoreport/templates/weekly_report.py`, `autoreport/engine/generator.py`, `autoreport/outputs/pptx_writer.py`: template contract export, shaping, generation orchestration, and `.pptx` writing.
 - `autoreport/web/app.py`: public demo HTML and generation API.
 - `tests/`: executable contract for CLI, schema, PowerPoint, and web behavior.
 
@@ -40,9 +40,9 @@
 - Load `codex/skills/autoreport-dev/SKILL.md` first for repository context.
 - Then load one primary focused skill based on the main surface being changed:
 - CLI, argparse, exit codes, user-visible command output -> `autoreport-cli`
-- YAML loading, models, validator rules, example payload, schema tests -> `report-schema`
+- YAML loading, models, validator rules, template/report payload examples, schema tests -> `report-schema`
 - Template shaping, generation orchestration, writer behavior, template compatibility -> `pptx-output`
-- Parallel v0.3 worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
+- Active `codex/v0.3-*` task worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
 - FastAPI routes, HTML demo surface, API error shape, web tests -> `web-demo`
 - Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`

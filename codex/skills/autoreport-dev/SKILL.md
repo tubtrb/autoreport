@@ -52,7 +52,7 @@ and routes deeper work to one primary focused skill.
 - Keep web request handling in `autoreport/web/app.py`.
 
 4. Update supporting artifacts together.
-- Schema changes should update example YAML and tests.
+- Contract or payload changes should update the public example files and tests.
 - User-visible behavior changes should update the nearest tests in the same change.
 - Public wording changes should keep README and package metadata aligned with real behavior.
 - Any task that could make files public should run `public-repo-safety` before signoff.
@@ -64,7 +64,7 @@ and routes deeper work to one primary focused skill.
 
 ## Current Constraints
 
-- The repository currently targets weekly report generation only.
+- The public surface is now contract-first and Autoreport-branded, even though some internal module names still mention `weekly_report`.
 - The CLI and web demo both feed the same core generation path.
 - Some strings and comments still carry older `v0.1` wording; preserve them unless intentionally updating the contract across code/tests/docs.
 - The web demo HTML currently contains tested literal copy from `autoreport/web/app.py`; treat it as contract until deliberately changed.
@@ -87,7 +87,7 @@ Current design expectations:
 - template selection and contract display are first-class product behavior, not just internal debugging helpers
 - slide titles should drive the generated `Contents` slide so the outline stays in sync with the real deck
 - text and image placement should be template-slot driven, including horizontal and vertical arrangements when the template exposes them
-- generalized template contracts should be added beside the current weekly-report path, then migrated deliberately instead of replacing everything at once
+- generalized template contracts, payload scaffolds, and built-in editorial flows are now the primary product path; legacy weekly-only wording should be treated as migration debt unless tests still lock it
 - when the design frame changes, update both the architecture docs and the relevant repo-local skill in the same task when practical
 
 ## Output Contract

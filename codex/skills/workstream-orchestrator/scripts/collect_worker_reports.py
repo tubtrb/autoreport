@@ -3,27 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-
-@dataclass(frozen=True)
-class Workstream:
-    key: str
-    folder: str
-
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
-WORKSPACE_ROOT = REPO_ROOT.parent
-WORKSTREAMS = (
-    Workstream("template-contract-export", "autoreport_v0.3-template-contract-export"),
-    Workstream("generic-payload-schema", "autoreport_v0.3-generic-payload-schema"),
-    Workstream("text-layout-engine", "autoreport_v0.3-text-layout-engine"),
-    Workstream("image-layout-engine", "autoreport_v0.3-image-layout-engine"),
-    Workstream("cli-web-template-flow", "autoreport_v0.3-cli-web-template-flow"),
-)
+from workstream_runtime import REPO_ROOT, WORKSPACE_ROOT, Workstream, discover_workstreams
 
 STATUS_VALUES = {"in_progress", "blocked", "ready_for_review"}
 STATUS_REQUIRED_FIELDS = {
@@ -60,7 +44,7 @@ STATUS_EVIDENCE_REQUIRED_FIELDS = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Collect worker checkpoint/final reports from sibling autoreport worktrees."
+        description="Collect worker checkpoint/final reports from discovered autoreport v0.3 task worktrees."
     )
     parser.add_argument(
         "--pretty",
@@ -292,9 +276,10 @@ def collect_final_report(path: Path) -> dict[str, Any]:
 
 
 def collect_workstream(workstream: Workstream, stale_after: timedelta) -> dict[str, Any]:
-    worktree = WORKSPACE_ROOT / workstream.folder
+    worktree = workstream.path
     data: dict[str, Any] = {
         "key": workstream.key,
+        "branch": workstream.branch,
         "path": str(worktree),
         "exists": worktree.exists(),
         "report_missing": True,
@@ -330,7 +315,7 @@ def collect_workstream(workstream: Workstream, stale_after: timedelta) -> dict[s
 def main() -> int:
     args = parse_args()
     stale_after = timedelta(hours=args.stale_hours)
-    workstreams = [collect_workstream(workstream, stale_after) for workstream in WORKSTREAMS]
+    workstreams = [collect_workstream(workstream, stale_after) for workstream in discover_workstreams()]
     summary = {
         "total": len(workstreams),
         "report_missing": [item["key"] for item in workstreams if item["report_missing"]],

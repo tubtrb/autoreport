@@ -1,6 +1,6 @@
 ---
 name: report-schema
-description: Handle YAML loading, report models, schema validation, example payloads, and schema-facing tests for the weekly report format.
+description: Handle YAML loading, report models, contract/payload validation, example payloads, and schema-facing tests for the current Autoreport format.
 ---
 
 # Report Schema
@@ -8,7 +8,7 @@ description: Handle YAML loading, report models, schema validation, example payl
 ## Overview
 
 Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
-`autoreport/validator.py`, `examples/weekly_report.yaml`, and the loader/schema tests.
+`autoreport/validator.py`, the public example contract/payload files, and the loader/schema tests.
 
 ## Mandatory Preload
 
@@ -19,7 +19,8 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
   - `../../../docs/architecture/template-aware-autofill-engine.md`
   - `../../../docs/architecture/v0.3-template-workstreams.md`
 - Read `../../../autoreport/loader.py`, `../../../autoreport/models.py`, and `../../../autoreport/validator.py`.
-- Read `../../../examples/weekly_report.yaml`.
+- Read `../../../examples/autoreport_editorial_template_contract.yaml`.
+- Read `../../../examples/autoreport_editorial_report_payload.yaml`.
 - Read `../../../tests/test_loader.py` and `../../../tests/test_validator.py`.
 - If schema changes affect generation or web responses, inspect `../../../tests/test_cli.py` and `../../../tests/test_web_app.py`.
 
@@ -34,8 +35,8 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 - Add new rules carefully so existing errors do not reorder by accident.
 
 3. Update schema surfaces together.
-- Keep `WeeklyReport` and validator expectations aligned.
-- Update `examples/weekly_report.yaml` whenever required fields or metric keys change.
+- Keep the contract and payload models aligned with validator expectations.
+- Update the public example contract/payload files whenever required fields or slot rules change.
 - Update tests in the same change when error wording or allowed keys change.
 
 4. Treat legacy wording intentionally.
@@ -44,12 +45,9 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 
 ## Current Constraints
 
-- The accepted payload is a YAML mapping for a weekly report.
-- Required top-level keys are `title`, `team`, `week`, `highlights`, `metrics`, `risks`, and `next_steps`.
-- Allowed metrics are `tasks_completed` and `open_issues`.
-- Metric values must be integers greater than or equal to `0`, and booleans are rejected.
-- Extra top-level fields and extra metric keys are rejected.
-- `week` is currently validated only as a non-empty string.
+- The public payload is now `report_payload`, not the old weekly-only mapping.
+- The built-in editorial template contract and payload examples are part of the public surface.
+- Metric items, text-image refs, and slot override validation are all contract-sensitive and should be updated deliberately.
 
 ## Current Design Frame
 
@@ -66,8 +64,8 @@ The intended template-driven schema flow is:
 
 Current design expectations:
 
-- the current weekly-report schema is still the live source of truth for shipped behavior until a migration path is explicit
-- generalized template-driven payloads should be additive first, not a silent replacement of the weekly contract
+- the contract-first payload is the live public source of truth for shipped behavior
+- legacy weekly-only wording should be treated as compatibility debt, not the primary product frame
 - payload fields should stay easy for another AI to fill without reverse-engineering internal slot heuristics
 - contract and payload validation errors should identify missing, extra, or malformed fields in a deterministic order
 - when template-driven payload contracts change, examples and validator-facing tests should change in the same task

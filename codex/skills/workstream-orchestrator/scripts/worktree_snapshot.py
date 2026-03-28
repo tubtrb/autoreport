@@ -4,51 +4,9 @@ import argparse
 import json
 import subprocess
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
-
-@dataclass(frozen=True)
-class Workstream:
-    key: str
-    folder: str
-    test_modules: tuple[str, ...]
-
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
-WORKSPACE_ROOT = REPO_ROOT.parent
-SHARED_PYTHON = REPO_ROOT / "venv" / "Scripts" / "python.exe"
-WORKSTREAMS = (
-    Workstream(
-        key="template-contract-export",
-        folder="autoreport_v0.3-template-contract-export",
-        test_modules=("tests.test_generator", "tests.test_pptx_writer"),
-    ),
-    Workstream(
-        key="generic-payload-schema",
-        folder="autoreport_v0.3-generic-payload-schema",
-        test_modules=("tests.test_validator", "tests.test_loader"),
-    ),
-    Workstream(
-        key="text-layout-engine",
-        folder="autoreport_v0.3-text-layout-engine",
-        test_modules=(
-            "tests.test_autofill",
-            "tests.test_generator",
-            "tests.test_pptx_writer",
-        ),
-    ),
-    Workstream(
-        key="image-layout-engine",
-        folder="autoreport_v0.3-image-layout-engine",
-        test_modules=("tests.test_generator", "tests.test_pptx_writer"),
-    ),
-    Workstream(
-        key="cli-web-template-flow",
-        folder="autoreport_v0.3-cli-web-template-flow",
-        test_modules=("tests.test_cli", "tests.test_web_app"),
-    ),
-)
+from workstream_runtime import REPO_ROOT, SHARED_PYTHON, WORKSPACE_ROOT, Workstream, discover_workstreams, recommended_test_command
 
 
 def run_command(args: list[str], cwd: Path) -> tuple[int, str, str]:
@@ -70,13 +28,12 @@ def command_output(args: list[str], cwd: Path) -> str:
 
 
 def snapshot_workstream(workstream: Workstream, run_tests: bool) -> dict[str, object]:
-    worktree = WORKSPACE_ROOT / workstream.folder
+    worktree = workstream.path
     data: dict[str, object] = {
         "key": workstream.key,
+        "branch": workstream.branch,
         "path": str(worktree),
-        "recommended_test_command": " ".join(
-            [str(SHARED_PYTHON), "-m", "unittest", *workstream.test_modules]
-        ),
+        "recommended_test_command": recommended_test_command(workstream),
     }
     if not worktree.exists():
         data["exists"] = False
@@ -107,7 +64,12 @@ def snapshot_workstream(workstream: Workstream, run_tests: bool) -> dict[str, ob
             "modules": list(workstream.test_modules),
             "python": str(SHARED_PYTHON),
         }
-        if SHARED_PYTHON.exists():
+        if not workstream.test_modules:
+            test_data["exit_code"] = None
+            test_data["ok"] = None
+            test_data["stdout"] = ""
+            test_data["stderr"] = "No narrow test modules configured for this workstream."
+        elif SHARED_PYTHON.exists():
             args = [str(SHARED_PYTHON), "-m", "unittest", *workstream.test_modules]
             code, stdout, stderr = run_command(args, worktree)
             test_data["exit_code"] = code
@@ -126,12 +88,12 @@ def snapshot_workstream(workstream: Workstream, run_tests: bool) -> dict[str, ob
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Snapshot autoreport sibling worktrees for master-thread orchestration."
+        description="Snapshot discovered autoreport v0.3 task worktrees for master-thread orchestration."
     )
     parser.add_argument(
         "--run-tests",
         action="store_true",
-        help="Run the narrow recommended test suite for each known workstream.",
+        help="Run the narrow recommended test suite for each discovered workstream.",
     )
     parser.add_argument(
         "--pretty",
@@ -148,7 +110,7 @@ def main() -> int:
         "workspace_root": str(WORKSPACE_ROOT),
         "workstreams": [
             snapshot_workstream(workstream, args.run_tests)
-            for workstream in WORKSTREAMS
+            for workstream in discover_workstreams()
         ],
     }
     json.dump(snapshot, sys.stdout, indent=2 if args.pretty else None)

@@ -5,21 +5,11 @@ import json
 import sys
 from pathlib import Path
 
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
-WORKSPACE_ROOT = REPO_ROOT.parent
-WORKSTREAM_FOLDERS = {
-    "template-contract-export": "autoreport_v0.3-template-contract-export",
-    "generic-payload-schema": "autoreport_v0.3-generic-payload-schema",
-    "text-layout-engine": "autoreport_v0.3-text-layout-engine",
-    "image-layout-engine": "autoreport_v0.3-image-layout-engine",
-    "cli-web-template-flow": "autoreport_v0.3-cli-web-template-flow",
-}
-
+from workstream_runtime import discover_workstreams
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Write master-thread next-step instructions into sibling worktree .codex files."
+        description="Write master-thread next-step instructions into discovered task worktree .codex files."
     )
     parser.add_argument(
         "--stdin-json",
@@ -52,9 +42,10 @@ def load_payload(args: argparse.Namespace) -> dict[str, str]:
     if not isinstance(payload, dict):
         raise SystemExit("Instruction payload must be a JSON object.")
 
+    workstreams = {item.key: item for item in discover_workstreams()}
     normalized: dict[str, str] = {}
     for key, value in payload.items():
-        if key not in WORKSTREAM_FOLDERS:
+        if key not in workstreams:
             raise SystemExit(f"Unknown workstream key: {key}")
         if not isinstance(value, str):
             raise SystemExit(f"Instruction for {key} must be a string.")
@@ -64,16 +55,17 @@ def load_payload(args: argparse.Namespace) -> dict[str, str]:
 
 def list_targets(filename: str) -> list[dict[str, str]]:
     targets: list[dict[str, str]] = []
-    for key, folder in WORKSTREAM_FOLDERS.items():
-        target = WORKSPACE_ROOT / folder / ".codex" / filename
-        targets.append({"key": key, "path": str(target)})
+    for workstream in discover_workstreams():
+        target = workstream.path / ".codex" / filename
+        targets.append({"key": workstream.key, "branch": workstream.branch, "path": str(target)})
     return targets
 
 
 def write_payload(payload: dict[str, str], filename: str) -> list[dict[str, object]]:
     writes: list[dict[str, object]] = []
+    workstreams = {item.key: item for item in discover_workstreams()}
     for key, text in payload.items():
-        worktree = WORKSPACE_ROOT / WORKSTREAM_FOLDERS[key]
+        worktree = workstreams[key].path
         if not worktree.exists():
             raise SystemExit(f"Missing worktree: {worktree}")
         codex_dir = worktree / ".codex"
@@ -83,6 +75,7 @@ def write_payload(payload: dict[str, str], filename: str) -> list[dict[str, obje
         writes.append(
             {
                 "key": key,
+                "branch": workstreams[key].branch,
                 "path": str(target),
                 "bytes": len(text.encode("utf-8")),
             }

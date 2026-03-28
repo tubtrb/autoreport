@@ -1,44 +1,68 @@
 # Workstream Orchestration Reference
 
-## Workstream keys
+## Discovery model
 
-- `template-contract-export` -> `autoreport_v0.3-template-contract-export`
-- `generic-payload-schema` -> `autoreport_v0.3-generic-payload-schema`
-- `text-layout-engine` -> `autoreport_v0.3-text-layout-engine`
-- `image-layout-engine` -> `autoreport_v0.3-image-layout-engine`
-- `cli-web-template-flow` -> `autoreport_v0.3-cli-web-template-flow`
+- Discover active task worktrees from `git worktree list --porcelain`.
+- Default branch scope is `codex/v0.3-*`.
+- Default exclusions:
+  - `codex/v0.3-master`
+  - `codex/v0.3-bootstrap-*`
+  - `codex/v0.3-salvage-*`
+- Any active task worktree may optionally define local orchestration metadata in
+  `.codex/workstream.json`.
 
-These worktrees live beside the main repo under the same workspace root.
+Suggested local shape:
 
-## Narrow test commands
+```json
+{
+  "key": "web-authoring-ux",
+  "test_modules": ["tests.test_web_app"],
+  "orchestration_enabled": true
+}
+```
 
-- `template-contract-export`
-  `python -m unittest tests.test_generator tests.test_pptx_writer`
-- `generic-payload-schema`
-  `python -m unittest tests.test_validator tests.test_loader`
-- `text-layout-engine`
-  `python -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer`
-- `image-layout-engine`
-  `python -m unittest tests.test_generator tests.test_pptx_writer`
-- `cli-web-template-flow`
-  `python -m unittest tests.test_cli tests.test_web_app`
+If local metadata is missing, the scripts should derive the workstream key from
+the branch suffix and infer a narrow test recipe from the branch name.
+
+## Current active task branches
+
+- `codex/v0.3-contract-hardening`
+- `codex/v0.3-web-authoring-ux`
+- `codex/v0.3-generation-preview`
+- `codex/v0.3-release-prep`
+
+These branches may or may not all have live sibling worktrees at a given
+moment; orchestration scripts should operate on the discovered worktree set, not
+the branch list alone.
+
+## Narrow test defaults
+
+The discovery helper may infer narrow verification commands from branch names:
+
+- `contract*`, `schema*`, `payload*`
+  - `python -m unittest tests.test_loader tests.test_validator`
+- `web*`, `cli*`
+  - `python -m unittest tests.test_cli tests.test_web_app`
+- `generation*`, `preview*`, `layout*`, `template*`, `image*`, `text*`
+  - `python -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer`
+- `release*`
+  - `python -m unittest tests.test_cli tests.test_web_app`
+
+If a worktree provides `.codex/workstream.json`, its `test_modules` list should
+override the inferred default.
 
 Use the shared repo virtualenv at `.\venv\Scripts\python.exe` from the repo
 root unless the user explicitly sets another interpreter.
-If you are running from a sibling worktree that does not have its own `.\venv`,
-use the main repo interpreter through a relative path such as
-`..\autoreport\venv\Scripts\python.exe` or another confirmed shared path.
 
 ## Merge order
 
-1. `template-contract-export`
-2. `generic-payload-schema`
-3. `text-layout-engine`
-4. `image-layout-engine`
-5. `cli-web-template-flow`
+1. `codex/v0.3-contract-hardening`
+2. `codex/v0.3-generation-preview`
+3. `codex/v0.3-web-authoring-ux`
+4. `codex/v0.3-release-prep`
 
-`text-layout-engine` and `image-layout-engine` can move in parallel only after
-the contract-export and payload-schema surfaces are stable enough.
+`generation-preview` and `web-authoring-ux` may move in parallel once contract
+field names and slot rules are stable enough.
 
 ## Git ownership policy
 
@@ -47,17 +71,17 @@ the contract-export and payload-schema surfaces are stable enough.
   the goal is to preserve a clean shared integration history.
 - For tracked shared policy changes under files such as `AGENTS.md`,
   `codex/skills/`, or shared architecture docs, the master thread should land
-  the change on the shared base first and then propagate it to sibling
-  worktrees by rebase.
+  the change on the shared base first and then propagate it to active task
+  worktrees by rebase or forward merges.
 
 ## Policy sync mode
 
 Use this mode when the master thread changes tracked shared operating rules.
 
-1. Commit and push the policy change on the shared base.
-2. Inspect each sibling worktree for local changes.
+1. Commit and push the policy change on `codex/v0.3-master`.
+2. Inspect each active task worktree for local changes.
 3. Create a checkpoint commit if the worktree is dirty.
-4. Rebase the branch onto `origin/codex/v0.3-template-engine`.
+4. Rebase the task branch onto `origin/codex/v0.3-master`.
 5. Run the branch's narrow verification command.
 6. Push the rebased branch.
 
@@ -67,11 +91,17 @@ history.
 
 ## Overlap hotspots
 
+- `autoreport/template_flow.py`
+- `autoreport/models.py`
+- `autoreport/validator.py`
 - `autoreport/templates/weekly_report.py`
 - `autoreport/templates/autofill.py`
 - `autoreport/engine/generator.py`
+- `autoreport/outputs/pptx_writer.py`
+- `autoreport/web/app.py`
 - `tests/test_generator.py`
 - `tests/test_pptx_writer.py`
+- `tests/test_web_app.py`
 
 Raise these files explicitly when you see multiple threads changing them at the
 same time.
@@ -84,12 +114,11 @@ same time.
   append-only log.
 - Tell workers to keep `.codex/worker-status.json` current and to create
   `.codex/worker-final.json` only when the branch is ready for master review.
-- Treat the file as the source of truth for branch-specific work.
-- After updating these files, the normal shared worker-facing message should be
-  short and generic: reload the latest policy/skill files, then follow local
+- Treat `.codex/master-next.txt` as the source of truth for branch-specific
+  work.
+- After updating these files, the shared worker-facing broadcast can stay
+  generic: reload the latest policy/skill files, then follow local
   `.codex/master-next.txt`.
-- Avoid duplicating long per-branch instructions in user-facing chat once they
-  are already present in the worktrees.
 
 ## Report channel policy
 
@@ -98,7 +127,8 @@ collect and validate progress programmatically.
 
 ### `.codex/worker-status.json`
 
-Use this file for the latest checkpoint status. Overwrite it at each checkpoint.
+Use this file for the latest checkpoint status. Overwrite it at each
+checkpoint.
 
 Required fields:
 
@@ -118,31 +148,6 @@ Required fields:
 - `evidence.visible_result`
 - `evidence.remaining_gap`
 - `sync_notes`
-
-Suggested shape:
-
-```json
-{
-  "workstream_key": "text-layout-engine",
-  "branch": "codex/v0.3-text-layout-engine",
-  "head": "03e3ed24ac8216acfbf474ada971e84cbc5f5995",
-  "updated_at": "2026-03-28T14:32:00+09:00",
-  "status": "in_progress",
-  "task_summary": "Two-column text slot distribution now follows contract order.",
-  "last_green_test_command": ".\\venv\\Scripts\\python.exe -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer",
-  "working_tree_clean": false,
-  "evidence": {
-    "input": "tests/_tmp/two_column_payload.yaml + fixtures/template-two-column.pptx",
-    "command": ".\\venv\\Scripts\\python.exe -m autoreport.cli generate --template fixtures/template-two-column.pptx --input tests/_tmp/two_column_payload.yaml --output tests/_tmp/two-column-output.pptx",
-    "artifact_paths": [
-      "C:\\worktrees\\autoreport_v0.3-text-layout-engine\\tests\\_tmp\\two-column-output.pptx"
-    ],
-    "visible_result": "The two body items land left-to-right and the Contents slide matches slide titles.",
-    "remaining_gap": "Need to lock the vertical stack overflow case."
-  },
-  "sync_notes": "Do not rebase until template-contract-export freezes the slot naming."
-}
-```
 
 ### `.codex/worker-final.json`
 
@@ -164,27 +169,6 @@ Required fields:
 - `known_gaps`
 - `ready_for_master_review`
   Must be `true`
-
-Suggested shape:
-
-```json
-{
-  "workstream_key": "image-layout-engine",
-  "branch": "codex/v0.3-image-layout-engine",
-  "head": "2ed749941021458ffceeebce140fa6279dfbb6e3",
-  "completed_at": "2026-03-28T16:05:00+09:00",
-  "completion_summary": "Contain and cover image placement are now deterministic across portrait and landscape fixtures.",
-  "last_green_test_command": ".\\venv\\Scripts\\python.exe -m unittest tests.test_generator tests.test_pptx_writer",
-  "primary_artifact_path": "C:\\worktrees\\autoreport_v0.3-image-layout-engine\\tests\\_tmp\\image-layout-output.pptx",
-  "artifact_paths": [
-    "C:\\worktrees\\autoreport_v0.3-image-layout-engine\\tests\\_tmp\\image-layout-output.pptx",
-    "C:\\worktrees\\autoreport_v0.3-image-layout-engine\\tests\\_tmp\\cover-vs-contain.png"
-  ],
-  "visible_result": "Portrait and landscape images both land in the intended slots and captions follow the matching image.",
-  "known_gaps": "No remaining functional gaps for the scoped workstream.",
-  "ready_for_master_review": true
-}
-```
 
 ## Collector policy
 
@@ -212,9 +196,4 @@ Require each checkpoint report to include:
 
 Require each completion report to include at least one absolute filesystem path
 that the user can open directly for visual verification. Prefer the generated
-`.pptx` itself when available. Supporting screenshots or exported contract files
-are helpful, but they do not replace the final artifact path.
-
-Keep non-committed proof artifacts under `tests/_tmp/` or another clearly local
-path. Do not promote proof artifacts into tracked docs or product paths unless
-the user explicitly asks for that.
+`.pptx` itself when available.
