@@ -20,6 +20,7 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
   - `../../../docs/architecture/v0.3-template-workstreams.md`
 - Read `../../../autoreport/loader.py`, `../../../autoreport/models.py`, and `../../../autoreport/validator.py`.
 - Read `../../../examples/autoreport_editorial_template_contract.yaml`.
+- Read `../../../examples/autoreport_editorial_report_content.yaml`.
 - Read `../../../examples/autoreport_editorial_authoring_payload.yaml`.
 - Read `../../../examples/autoreport_editorial_report_payload.yaml`.
 - Read `../../../tests/test_loader.py` and `../../../tests/test_validator.py`.
@@ -46,9 +47,13 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 
 ## Current Constraints
 
+- `report_content` is the primary AI-facing draft contract.
 - The primary public authoring contract is `authoring_payload`; `report_payload` remains the compiled runtime payload and backward-compatible input.
 - The built-in editorial template contract plus the authoring/runtime example files are part of the public surface.
 - Metric items, text-image refs, layout-request matching, and slot override validation are all contract-sensitive and should be updated deliberately.
+- The safest AI response shape is one fenced `yaml` code block containing one complete `report_content` document.
+- Plain YAML is still accepted for compatibility, but mixed partial YAML where one section is plain text and another is fenced should be treated as invalid broken AI output.
+- Representative AI-output regressions belong in loader/web tests so prompt-quality assumptions stay executable.
 
 ## Current Design Frame
 
@@ -59,16 +64,19 @@ paired architecture docs together when practical.
 The intended template-driven schema flow is:
 
 1. template inspection produces a machine-readable contract
-2. `autoreport` exposes that contract as YAML or JSON skeletons
-3. a human or another AI fills an `authoring_payload`
-4. `autoreport` compiles it into a `report_payload`
-5. validation checks the runtime payload before generation begins
+2. `autoreport` exposes that contract plus an AI-facing `report_content` example
+3. another AI returns one complete `report_content` YAML document
+4. `autoreport` normalizes that into `authoring_payload`
+5. `autoreport` compiles it into a `report_payload`
+6. validation checks the runtime payload before generation begins
 
 Current design expectations:
 
-- `authoring_payload` is the live public source of truth for shipped authoring behavior, and `report_payload` is the compiled runtime contract
+- `report_content` is the live AI-facing draft source of truth for external prompting behavior
+- `authoring_payload` is the live normalized authoring contract, and `report_payload` is the compiled runtime contract
 - legacy weekly-only wording should be treated as compatibility debt, not the primary product frame
 - payload fields should stay easy for another AI to fill without reverse-engineering internal slot heuristics
+- prompt-facing constraints such as fenced-code-block output shape should be documented in examples/skills and backed by tests, not left as tribal knowledge
 - contract and payload validation errors should identify missing, extra, or malformed fields in a deterministic order
 - when template-driven payload contracts change, examples and validator-facing tests should change in the same task
 

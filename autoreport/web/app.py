@@ -43,14 +43,22 @@ AI_DRAFT_PROMPT_YAML = """
 # Paste this brief into another AI and ask it to fill the report_content draft below.
 # Goal: draft slide-ready content for Autoreport. The app will normalize report_content
 # into authoring_payload and then compile the runtime report_payload automatically.
+# How Autoreport uses this draft:
+# - Each item in report_content.slides becomes one deck slide.
+# - The number of slide entries is the number of content slides in the deck.
+# - pattern_id selects the PPT layout pattern, so it must come from template_contract.
+# - slots.title / slots.body_1 / slots.image_* / slots.caption_* map to template placeholders.
 # Rules for the other AI:
-# 1. Return YAML only. Keep the top-level key as report_content.
-# 2. Do not declare the total slide count anywhere. Autoreport infers it from slides[*].
-# 3. Choose pattern_id values from the template contract.
-# 4. Put narrative text into slots.body_1.
-# 5. For image slides, describe the desired visual in slots.image_1 / image_2 / image_3.
-# 6. Actual image files are uploaded later in the web app or passed as CLI paths.
-# 7. If the template contract exposes 2-image or 3-image patterns, use the matching pattern_id.
+# 1. Return the final answer as one fenced ```yaml code block.
+# 2. Inside that code block, keep the top-level key as report_content.
+# 3. Do not write any prose before or after the fenced YAML block.
+# 4. Do not open a second code block and do not split the YAML across plain text and code.
+# 5. Do not declare the total slide count anywhere. Autoreport infers it from slides[*].
+# 6. Choose pattern_id values from the template contract.
+# 7. Put narrative text into slots.body_1.
+# 8. For image slides, describe the desired visual in slots.image_1 / image_2 / image_3.
+# 9. Actual image files are uploaded later in the web app or passed as CLI paths.
+# 10. If the template contract exposes 2-image or 3-image patterns, use the matching pattern_id.
 report_content:
   title_slide:
     pattern_id: cover.editorial

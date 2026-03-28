@@ -1,0 +1,32 @@
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport
+      subtitle_1: |
+        Template-aware PPTX autofill engine
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. What It Does
+        2. Why It Matters
+  slides:
+    - pattern_id: text.editorial
+      kind: text
+      slots:
+        title: What It Does
+        body_1: |
+          Autoreport accepts a high-level AI draft and maps it into an editable
+          PowerPoint deck. Each item in slides becomes one content slide in the
+          generated presentation.
+    - pattern_id: text_image.editorial
+      kind: text_image
+      slots:
+        title: Why It Matters
+        body_1: |
+          Another AI can describe the intended visual here, and the real image
+          can be uploaded later through the web app or passed as a CLI path.
+        image_1: Product workflow illustration showing contract -> draft -> PPTX generation.
+        caption_1: Example AI-facing report_content draft

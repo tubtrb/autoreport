@@ -38,6 +38,7 @@ User-app UI contract:
 - Treat total slide count as dynamic; infer it from the draft, not from a separate input field.
 - Keep helper panes optional. Contract view and compiled runtime view may exist, but must stay secondary to the main authoring flow.
 - Avoid manual slide-by-slide builder controls in the user app when the intended flow is "ask another AI for N slides, paste, generate."
+- The AI package should instruct the external AI to return exactly one fenced `yaml` code block with no prose before or after it.
 
 ## Debug App Contract
 
@@ -76,6 +77,8 @@ Expected behavior:
 - `report_content` is a high-level AI-facing draft surface.
 - `authoring_payload` is the normalized public authoring surface.
 - `report_payload` is the compiled runtime surface and remains supported for compatibility.
+- Plain YAML and one complete fenced `yaml` block are both accepted.
+- Mixed outputs that split YAML across unfenced text and a later fenced block should be rejected as broken AI output.
 
 For image-backed slides:
 

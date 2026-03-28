@@ -14,7 +14,7 @@
 - Runtime behavior and error contracts: repository code plus tests.
 - Packaging and entrypoint metadata: `pyproject.toml`.
 - Public framing and usage examples: `README.md`.
-- Public contract examples: `examples/autoreport_editorial_template_contract.yaml`, `examples/autoreport_editorial_authoring_payload.yaml`, `examples/autoreport_editorial_report_payload.yaml`.
+- Public contract examples: `examples/autoreport_editorial_template_contract.yaml`, `examples/autoreport_editorial_report_content.yaml`, `examples/autoreport_editorial_authoring_payload.yaml`, `examples/autoreport_editorial_report_payload.yaml`.
 
 ## Repo Map
 - `autoreport/cli.py`: CLI command parsing and user-visible failure mapping.

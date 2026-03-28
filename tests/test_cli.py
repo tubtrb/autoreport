@@ -170,6 +170,29 @@ class CLITestCase(unittest.TestCase):
         self.assertIn("report_payload:", stdout_buffer.getvalue())
         self.assertIn("pattern_id: text.editorial", stdout_buffer.getvalue())
 
+    def test_compile_payload_command_accepts_fenced_report_content_draft(self) -> None:
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
+        test_dir = make_test_dir()
+        try:
+            payload_path = test_dir / "report_content_fenced.yaml"
+            raw_path = test_dir / "report_content_raw.yaml"
+            write_report_content(raw_path)
+            payload_path.write_text(
+                f"```yaml\n{raw_path.read_text(encoding='utf-8')}\n```",
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                exit_code = main(["compile-payload", str(payload_path)])
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stderr_buffer.getvalue(), "")
+        self.assertIn("report_payload:", stdout_buffer.getvalue())
+        self.assertIn("pattern_id: text.editorial", stdout_buffer.getvalue())
+
     def test_generate_command_writes_presentation_from_authoring_payload(self) -> None:
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()

@@ -170,6 +170,32 @@ class WorkstreamRuntimeTests(unittest.TestCase):
         self.assertIn("user app should stay single-flow", web_skill_text)
         self.assertIn("Do not collapse these two surfaces back into one crowded homepage", web_contract_text)
 
+    def test_ai_draft_response_contract_is_present_in_skill_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        report_schema_skill_text = (
+            repo_root / "codex" / "skills" / "report-schema" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        report_schema_ref_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "report-schema"
+            / "references"
+            / "weekly-report-schema.md"
+        ).read_text(encoding="utf-8")
+        web_contract_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "web-demo"
+            / "references"
+            / "web-contract.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("one fenced `yaml` code block", report_schema_skill_text)
+        self.assertIn("Mixed AI output", report_schema_ref_text)
+        self.assertIn("exactly one fenced `yaml` code block", web_contract_text)
+
     def test_report_example_templates_cover_required_fields(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         status_template = json.loads(

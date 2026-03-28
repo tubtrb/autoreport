@@ -15,6 +15,40 @@ from autoreport.loader import load_yaml, parse_yaml_text
 
 TEST_TEMP_ROOT = Path("tests") / "_tmp"
 
+GEMINI_STYLE_REPORT_CONTENT = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: 지정학적 위기
+      subtitle_1: |
+        중동 지역 긴장 상태 분석
+  slides:
+    - pattern_id: text.editorial
+      kind: text
+      slots:
+        title: 갈등의 근원
+        body_1: |
+          미국과 이란의 긴장은 장기적으로 누적되어 왔습니다.
+""".strip()
+
+MIXED_CHATGPT_STYLE_REPORT_CONTENT = """
+report_content:
+title_slide:
+pattern_id: cover.editorial
+slots:
+title: 미국-이란 충돌과 중동 정세
+
+```yaml
+- pattern_id: text.editorial
+  kind: text
+  slots:
+    title: 최근 전개와 핵심 쟁점
+    body_1: |
+      최근 충돌은 복합적으로 전개되고 있다.
+```
+""".strip()
+
 
 def make_test_dir() -> Path:
     """Create a writable test directory inside the repository."""
@@ -83,6 +117,53 @@ class LoaderTestCase(unittest.TestCase):
                 "team": "Platform Team",
             },
         )
+
+    def test_parse_yaml_text_accepts_fenced_yaml_code_block(self) -> None:
+        loaded = parse_yaml_text(
+            """```yaml
+title: Weekly Report
+team: Platform Team
+```"""
+        )
+
+        self.assertEqual(
+            loaded,
+            {
+                "title": "Weekly Report",
+                "team": "Platform Team",
+            },
+        )
+
+    def test_parse_yaml_text_extracts_yaml_code_block_from_wrapped_text(self) -> None:
+        loaded = parse_yaml_text(
+            """Here is the draft:
+
+```yaml
+title: Weekly Report
+team: Platform Team
+```
+
+Use it directly.
+"""
+        )
+
+        self.assertEqual(
+            loaded,
+            {
+                "title": "Weekly Report",
+                "team": "Platform Team",
+            },
+        )
+
+    def test_parse_yaml_text_accepts_gemini_style_ai_report_content(self) -> None:
+        loaded = parse_yaml_text(GEMINI_STYLE_REPORT_CONTENT)
+
+        self.assertEqual(loaded["report_content"]["title_slide"]["pattern_id"], "cover.editorial")
+        self.assertEqual(len(loaded["report_content"]["slides"]), 1)
+
+    def test_parse_yaml_text_rejects_mixed_chatgpt_style_partial_fence_output(self) -> None:
+        with self.assertRaises(yaml.YAMLError):
+            parse_yaml_text(MIXED_CHATGPT_STYLE_REPORT_CONTENT)
 
     def test_parse_yaml_text_raises_yaml_error_for_invalid_content(self) -> None:
         with self.assertRaises(yaml.YAMLError):

@@ -91,6 +91,23 @@ report_content:
           Generate editable PowerPoint decks from structured inputs.
 """.strip()
 
+MIXED_CHATGPT_STYLE_REPORT_CONTENT = """
+report_content:
+title_slide:
+pattern_id: cover.editorial
+slots:
+title: 미국-이란 충돌과 중동 정세
+
+```yaml
+- pattern_id: text.editorial
+  kind: text
+  slots:
+    title: 최근 전개와 핵심 쟁점
+    body_1: |
+      최근 충돌은 복합적으로 전개되고 있다.
+```
+""".strip()
+
 
 class WebAppTestCase(unittest.TestCase):
     """Verify the demo page, compile endpoint, and generation API behavior."""
@@ -125,6 +142,9 @@ class WebAppTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("# Paste this brief into another AI and ask it to fill the report_content draft below.", response.text)
+        self.assertIn("# 1. Return the final answer as one fenced ```yaml code block.", response.text)
+        self.assertIn("# 3. Do not write any prose before or after the fenced YAML block.", response.text)
+        self.assertIn("# - Each item in report_content.slides becomes one deck slide.", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")
@@ -161,6 +181,32 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("authoring_payload:", response.json()["normalized_authoring_yaml"])
         self.assertIn("goal: What It Does", response.json()["normalized_authoring_yaml"])
         self.assertIn("report_payload:", response.json()["compiled_yaml"])
+
+    def test_compile_endpoint_accepts_fenced_report_content(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": f"```yaml\n{VALID_REPORT_CONTENT_YAML}\n```",
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["payload_kind"], "content")
+        self.assertIn("authoring_payload:", response.json()["normalized_authoring_yaml"])
+
+    def test_compile_endpoint_rejects_mixed_partial_fence_ai_output(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": MIXED_CHATGPT_STYLE_REPORT_CONTENT,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error_type"], "yaml_parse_error")
+        self.assertIn("Mixed fenced and unfenced YAML content", response.json()["message"])
 
     def test_generate_endpoint_returns_pptx_attachment_from_authoring_payload(self) -> None:
         response = self.client.post(

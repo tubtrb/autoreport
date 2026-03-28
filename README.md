@@ -12,7 +12,7 @@ editorial template designed for fast contract-first generation.
 ## Product flow
 
 1. inspect a template and export its contract
-2. scaffold or fill an `authoring_payload`, or ask another AI to draft `report_content`
+2. ask another AI to draft `report_content`, or scaffold/fill an `authoring_payload`
 3. optionally compile it into a `report_payload` for debugging
 4. generate an editable `.pptx`
 
@@ -20,6 +20,15 @@ Autoreport does not call an LLM during generation.
 The AI-friendly layer is the exported contract plus the public draft surfaces
 `report_content` and `authoring_payload`, so deck generation stays deterministic
 and near-instant.
+
+When another AI writes `report_content`, the safest response shape is:
+
+1. return exactly one fenced `yaml` code block
+2. keep the top-level key as `report_content`
+3. do not write prose before or after the code block
+4. do not split the YAML across multiple code blocks
+5. choose `pattern_id` values only from the exported `template_contract`
+6. let the number of `slides` entries determine the deck length
 
 ## Quickstart
 
@@ -104,6 +113,7 @@ uvicorn autoreport.web.debug_app:app --host 0.0.0.0 --port 8010
 ## Example documents
 
 - `examples/autoreport_editorial_template_contract.yaml`: built-in editorial contract export
+- `examples/autoreport_editorial_report_content.yaml`: AI-facing draft example for another model to fill
 - `examples/autoreport_editorial_authoring_payload.yaml`: built-in editorial authoring example, including the `text_image` example that uses `image_1`
 - `examples/autoreport_editorial_report_payload.yaml`: compiled runtime payload reference for the built-in editorial template
 
