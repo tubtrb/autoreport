@@ -81,6 +81,12 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Template Contract", response.text)
         self.assertIn("Report Payload", response.text)
         self.assertIn("Image Uploads", response.text)
+        self.assertIn("Load Image Example", response.text)
+        self.assertIn("Insert Text Slide", response.text)
+        self.assertIn("Insert Metrics Slide", response.text)
+        self.assertIn("Insert Text + Image Slide", response.text)
+        self.assertIn("Current Deck Summary", response.text)
+        self.assertIn("This is the template's capability map.", response.text)
         self.assertIn("image_1", response.text)
         self.assertIn("built-in editorial template", response.text)
 

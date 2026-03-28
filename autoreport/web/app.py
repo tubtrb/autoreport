@@ -33,12 +33,17 @@ ALLOWED_UPLOAD_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 _BUILT_IN_CONTRACT = get_built_in_contract()
 DEFAULT_CONTRACT_YAML = serialize_document(_BUILT_IN_CONTRACT.to_dict(), fmt="yaml").strip()
-_WEB_EXAMPLE_PAYLOAD = scaffold_payload(_BUILT_IN_CONTRACT)
-_WEB_EXAMPLE_PAYLOAD.slides = [
-    slide for slide in _WEB_EXAMPLE_PAYLOAD.slides if slide.kind != "text_image"
+_FULL_EXAMPLE_PAYLOAD = scaffold_payload(_BUILT_IN_CONTRACT)
+_TEXT_ONLY_EXAMPLE_PAYLOAD = scaffold_payload(_BUILT_IN_CONTRACT)
+_TEXT_ONLY_EXAMPLE_PAYLOAD.slides = [
+    slide for slide in _TEXT_ONLY_EXAMPLE_PAYLOAD.slides if slide.kind != "text_image"
 ]
 DEFAULT_PAYLOAD_YAML = serialize_document(
-    _WEB_EXAMPLE_PAYLOAD.to_dict(),
+    _TEXT_ONLY_EXAMPLE_PAYLOAD.to_dict(),
+    fmt="yaml",
+).strip()
+FULL_EXAMPLE_PAYLOAD_YAML = serialize_document(
+    _FULL_EXAMPLE_PAYLOAD.to_dict(),
     fmt="yaml",
 ).strip()
 
@@ -53,6 +58,7 @@ app = FastAPI(
 def _render_demo_html() -> str:
     contract_json = json.dumps(DEFAULT_CONTRACT_YAML)
     payload_json = json.dumps(DEFAULT_PAYLOAD_YAML)
+    image_payload_json = json.dumps(FULL_EXAMPLE_PAYLOAD_YAML)
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -120,6 +126,12 @@ def _render_demo_html() -> str:
         margin: 0 0 10px;
         font-size: 1rem;
       }
+      .panel-copy {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
       textarea {
         width: 100%;
         min-height: 320px;
@@ -154,8 +166,37 @@ def _render_demo_html() -> str:
       }
       .actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         margin-top: 14px;
+      }
+      .helper-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .helper-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+        padding: 14px;
+      }
+      .helper-card h3 {
+        margin: 0 0 8px;
+        font-size: 0.95rem;
+      }
+      .helper-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 16px;
       }
       button {
         border: none;
@@ -182,6 +223,12 @@ def _render_demo_html() -> str:
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: var(--muted);
+      }
+      .summary-list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        line-height: 1.6;
       }
       .status-message {
         line-height: 1.7;
@@ -215,13 +262,27 @@ def _render_demo_html() -> str:
         <div class="grid">
           <div class="panel">
             <h2>Template Contract</h2>
+            <p class="panel-copy">
+              This is the template's capability map. It tells you which slide patterns
+              exist and which slots each pattern accepts.
+            </p>
             <textarea id="template-contract" readonly aria-label="Template contract"></textarea>
           </div>
           <div class="panel">
             <h2>Report Payload</h2>
+            <p class="panel-copy">
+              This is the content you want the deck to say. Edit the title slide, add
+              slides, and point any text-image slide at an uploaded image ref.
+            </p>
             <textarea id="payload-yaml" aria-label="Report payload"></textarea>
             <div class="actions">
               <button id="load-example" class="ghost" type="button">Load Example</button>
+              <button id="load-image-example" class="ghost" type="button">Load Image Example</button>
+            </div>
+            <div class="quick-actions">
+              <button id="insert-text-slide" class="ghost" type="button">Insert Text Slide</button>
+              <button id="insert-metrics-slide" class="ghost" type="button">Insert Metrics Slide</button>
+              <button id="insert-text-image-slide" class="ghost" type="button">Insert Text + Image Slide</button>
             </div>
           </div>
         </div>
@@ -232,6 +293,20 @@ def _render_demo_html() -> str:
               Upload images, note the generated refs, and place them under
               <code>slides[*].image.ref</code>.
             </p>
+            <div class="helper-grid">
+              <div class="helper-card">
+                <h3>Template Contract</h3>
+                <p>Read this first when another AI needs to know what the template can accept.</p>
+              </div>
+              <div class="helper-card">
+                <h3>Report Payload</h3>
+                <p>Use slide blocks to describe what each slide should say, not how to draw it.</p>
+              </div>
+              <div class="helper-card">
+                <h3>Image Uploads</h3>
+                <p>Each upload gets an <code>image_1</code>-style ref. Use that ref in a text-image slide.</p>
+              </div>
+            </div>
             <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
             <ul id="upload-list" class="upload-list"></ul>
           </div>
@@ -244,6 +319,8 @@ def _render_demo_html() -> str:
             <div class="actions" style="margin-top:16px;">
               <button id="generate-button" class="primary" type="button">Generate PPTX</button>
             </div>
+            <h3 style="margin-top:18px;">Current Deck Summary</h3>
+            <ul id="deck-summary" class="summary-list"></ul>
             <p class="footnote">
               Current scope: built-in editorial template, contract-first payload editing, uploaded image refs, instant download.
             </p>
@@ -257,14 +334,20 @@ def _render_demo_html() -> str:
     <script>
       const CONTRACT_YAML = __CONTRACT_JSON__;
       const EXAMPLE_PAYLOAD = __PAYLOAD_JSON__;
+      const IMAGE_EXAMPLE_PAYLOAD = __IMAGE_PAYLOAD_JSON__;
       const contractNode = document.getElementById("template-contract");
       const payloadNode = document.getElementById("payload-yaml");
       const fileInput = document.getElementById("image-files");
       const uploadList = document.getElementById("upload-list");
       const statusMessage = document.getElementById("status-message");
       const statusErrors = document.getElementById("status-errors");
+      const deckSummary = document.getElementById("deck-summary");
       const loadExampleButton = document.getElementById("load-example");
+      const loadImageExampleButton = document.getElementById("load-image-example");
       const generateButton = document.getElementById("generate-button");
+      const insertTextSlideButton = document.getElementById("insert-text-slide");
+      const insertMetricsSlideButton = document.getElementById("insert-metrics-slide");
+      const insertTextImageSlideButton = document.getElementById("insert-text-image-slide");
 
       let uploadedRefs = [];
 
@@ -283,6 +366,79 @@ def _render_demo_html() -> str:
         }
       }
 
+      function updateDeckSummary() {
+        const lines = payloadNode.value.split("\\n");
+        const titles = lines.filter((line) => line.trimStart().startsWith("title:"));
+        const kinds = lines
+          .filter((line) => line.trimStart().startsWith("kind:"))
+          .map((line) => line.split(":").slice(1).join(":").trim());
+        deckSummary.innerHTML = "";
+        const items = [
+          `Title entries detected: ${titles.length}`,
+          `Body slide blocks detected: ${kinds.length || 0}`,
+          `Kinds in payload: ${kinds.length ? kinds.join(", ") : "none yet"}`,
+          `Uploaded image refs ready: ${uploadedRefs.length ? uploadedRefs.map((item) => item.ref).join(", ") : "none"}`,
+        ];
+        for (const item of items) {
+          const li = document.createElement("li");
+          li.textContent = item;
+          deckSummary.appendChild(li);
+        }
+      }
+
+      function appendSlideBlock(block) {
+        const trimmed = payloadNode.value.trimEnd();
+        if (!trimmed.includes("  slides:")) {
+          setStatus("Payload must contain report_payload.slides before helper blocks can be inserted.");
+          return;
+        }
+        payloadNode.value = `${trimmed}\\n${block}\\n`;
+        updateDeckSummary();
+      }
+
+      function buildTextSlideBlock() {
+        return [
+          "    - kind: text",
+          "      title: New Text Slide",
+          "      include_in_contents: true",
+          "      body:",
+          "        - Add the key message for this slide.",
+          "        - Add a supporting detail or second bullet.",
+          "      slot_overrides: {}",
+        ].join("\\n");
+      }
+
+      function buildMetricsSlideBlock() {
+        return [
+          "    - kind: metrics",
+          "      title: New Metrics Slide",
+          "      include_in_contents: true",
+          "      items:",
+          "        - label: Metric label",
+          "          value: 10",
+          "        - label: Second metric",
+          "          value: 24",
+          "      slot_overrides: {}",
+        ].join("\\n");
+      }
+
+      function buildTextImageSlideBlock() {
+        const preferredRef = uploadedRefs[0]?.ref || "image_1";
+        return [
+          "    - kind: text_image",
+          "      title: New Text + Image Slide",
+          "      include_in_contents: true",
+          "      body:",
+          "        - Add the message that should sit beside the image.",
+          "        - Add one supporting proof point.",
+          "      image:",
+          `        ref: ${preferredRef}`,
+          "        fit: contain",
+          `      caption: ${preferredRef} visual`,
+          "      slot_overrides: {}",
+        ].join("\\n");
+      }
+
       function setStatus(message, errors = []) {
         statusMessage.textContent = message;
         statusErrors.innerHTML = "";
@@ -296,10 +452,18 @@ def _render_demo_html() -> str:
       contractNode.value = CONTRACT_YAML;
       payloadNode.value = EXAMPLE_PAYLOAD;
       renderUploads();
+      updateDeckSummary();
 
       loadExampleButton.addEventListener("click", () => {
         payloadNode.value = EXAMPLE_PAYLOAD;
         setStatus("Starter payload restored. You can edit it directly or upload images for image refs.");
+        updateDeckSummary();
+      });
+
+      loadImageExampleButton.addEventListener("click", () => {
+        payloadNode.value = IMAGE_EXAMPLE_PAYLOAD;
+        setStatus("Image-capable starter payload restored. Upload an image or keep the default image_1 ref.");
+        updateDeckSummary();
       });
 
       fileInput.addEventListener("change", () => {
@@ -313,6 +477,22 @@ def _render_demo_html() -> str:
         } else {
           setStatus("No uploads selected.");
         }
+        updateDeckSummary();
+      });
+
+      insertTextSlideButton.addEventListener("click", () => {
+        appendSlideBlock(buildTextSlideBlock());
+        setStatus("A text slide block was appended to the payload.");
+      });
+
+      insertMetricsSlideButton.addEventListener("click", () => {
+        appendSlideBlock(buildMetricsSlideBlock());
+        setStatus("A metrics slide block was appended to the payload.");
+      });
+
+      insertTextImageSlideButton.addEventListener("click", () => {
+        appendSlideBlock(buildTextImageSlideBlock());
+        setStatus("A text-image slide block was appended to the payload.");
       });
 
       generateButton.addEventListener("click", async () => {
@@ -368,7 +548,7 @@ def _render_demo_html() -> str:
       });
     </script>
   </body>
-</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__PAYLOAD_JSON__", payload_json)
+</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__PAYLOAD_JSON__", payload_json).replace("__IMAGE_PAYLOAD_JSON__", image_payload_json)
 
 
 INDEX_HTML = _render_demo_html()
