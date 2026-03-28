@@ -69,7 +69,18 @@ force-push decisions whenever branch history needs to stay aligned.
 - Use workers for implementation checkpoints; use the master thread for final
   integration history.
 
-4. Write the next-step instructions.
+4. Clean retired sibling directories after branch/worktree retirement.
+- When old `autoreport_v0.3-*` sibling directories are left behind after a
+  branch or worktree is removed, treat their cleanup as master-owned hygiene.
+- Use the cleanup script to compare the workspace root against the current git
+  worktree registry.
+- Delete retired directories only after confirming they are no longer active
+  worktrees.
+- By default, only empty retired directories should be removed automatically.
+  Non-empty retired directories should be surfaced as blockers unless the user
+  explicitly wants the stronger cleanup mode.
+
+5. Write the next-step instructions.
 - Keep each instruction short, concrete, and copy-pastable.
 - Default target file is `.codex/master-next.txt` inside each active task worktree.
 - Use the dispatch script with a JSON object that maps workstream keys to
@@ -93,7 +104,7 @@ force-push decisions whenever branch history needs to stay aligned.
   `.pptx`, contract file, skeleton file, or screenshot. Prefer the final
   `.pptx` when available.
 
-5. Collect worker reports before deciding whether a branch is ready.
+6. Collect worker reports before deciding whether a branch is ready.
 - Run the report collector after or alongside the git snapshot.
 - Treat `.codex/worker-status.json` as the latest checkpoint state and
   `.codex/worker-final.json` as the completion handoff.
@@ -102,7 +113,7 @@ force-push decisions whenever branch history needs to stay aligned.
 - Open `primary_artifact_path` from `worker-final.json` for the final visual
   check instead of relying on tests alone.
 
-6. Report back to the user.
+7. Report back to the user.
 - Summarize which worktrees were inspected, which files were written, and any
   blockers.
 - When the instruction files were already updated, prefer giving the user one
@@ -136,6 +147,10 @@ force-push decisions whenever branch history needs to stay aligned.
 
 ```bash
 .\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\sync_policy_worktrees.py --base-branch codex/v0.3-master --checkpoint-dirty --push --pretty
+```
+
+```bash
+.\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\cleanup_retired_worktrees.py --delete --pretty
 ```
 
 ```bash

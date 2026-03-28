@@ -24,6 +24,20 @@ Suggested local shape:
 If local metadata is missing, the scripts should derive the workstream key from
 the branch suffix and infer a narrow test recipe from the branch name.
 
+## Retired sibling directory cleanup
+
+- After worktree or branch retirement, the workspace may still contain old
+  sibling directories such as `autoreport_v0.3-*`.
+- These directories are not authoritative; the git worktree registry is.
+- Use `cleanup_retired_worktrees.py` to compare the workspace root against the
+  current git worktree list.
+- Default cleanup policy:
+  - delete retired empty directories automatically
+  - report retired non-empty directories as blockers unless the user explicitly
+    opts into `--allow-nonempty`
+- Keep cleanup scoped to the workspace root so it cannot reach unrelated
+  directories.
+
 ## Current active task branches
 
 - `codex/v0.3-contract-hardening`
@@ -98,6 +112,8 @@ Detailed sync sequence:
      rewrites history
 6. Leave branches with no unique commits beyond the base unpushed unless the
    user explicitly wants placeholder remotes.
+7. After the sync succeeds, run retired sibling cleanup when old `autoreport_v0.3-*`
+   directories remain in the workspace.
 
 Do not consider a policy change "done" while it is only local to a bootstrap or
 maintenance branch.

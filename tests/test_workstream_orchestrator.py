@@ -12,6 +12,7 @@ SCRIPT_DIR = Path(__file__).resolve().parents[1] / "codex" / "skills" / "workstr
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+import cleanup_retired_worktrees  # noqa: E402
 import sync_policy_worktrees  # noqa: E402
 import workstream_runtime  # noqa: E402
 
@@ -60,6 +61,42 @@ class WorkstreamRuntimeTests(unittest.TestCase):
             self.assertEqual(1, len(workstreams))
             self.assertEqual("ux", workstreams[0].key)
             self.assertEqual(("tests.test_web_app",), workstreams[0].test_modules)
+
+    def test_discover_retired_sibling_directories_ignores_registered_worktrees(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace_root = Path(tmp)
+            active = (workspace_root / "autoreport_v0.3-web-authoring-ux").resolve()
+            retired = (workspace_root / "autoreport_v0.3-old-branch").resolve()
+            unrelated = (workspace_root / "something_else").resolve()
+            active.mkdir()
+            retired.mkdir()
+            unrelated.mkdir()
+            with mock.patch.object(workstream_runtime, "WORKSPACE_ROOT", workspace_root), mock.patch.object(
+                workstream_runtime, "registered_worktree_paths", return_value={active}
+            ):
+                retired_dirs = workstream_runtime.discover_retired_sibling_directories()
+            self.assertEqual([retired], retired_dirs)
+
+
+class CleanupRetiredWorktreesTests(unittest.TestCase):
+    def test_delete_candidates_blocks_nonempty_without_flag(self) -> None:
+        records = [
+            {"path": "C:/tmp/empty", "item_count": 0, "empty": True},
+            {"path": "C:/tmp/nonempty", "item_count": 2, "empty": False},
+        ]
+        with mock.patch.object(cleanup_retired_worktrees, "delete_directory") as delete_directory:
+            deleted, blocked = cleanup_retired_worktrees.delete_candidates(records, allow_nonempty=False)
+        self.assertEqual(1, len(deleted))
+        self.assertEqual(1, len(blocked))
+        delete_directory.assert_called_once_with(Path("C:/tmp/empty"))
+
+    def test_delete_candidates_reports_delete_error_as_blocker(self) -> None:
+        records = [{"path": "C:/tmp/locked", "item_count": 0, "empty": True}]
+        with mock.patch.object(cleanup_retired_worktrees, "delete_directory", side_effect=PermissionError("locked")):
+            deleted, blocked = cleanup_retired_worktrees.delete_candidates(records, allow_nonempty=False)
+        self.assertEqual([], deleted)
+        self.assertEqual(1, len(blocked))
+        self.assertIn("Deletion failed", blocked[0]["reason"])
 
 
 class SyncPolicyWorktreesTests(unittest.TestCase):

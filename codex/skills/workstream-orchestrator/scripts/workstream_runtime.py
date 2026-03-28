@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -161,3 +162,46 @@ def recommended_test_command(workstream: Workstream) -> str:
     if not workstream.test_modules:
         return ""
     return " ".join([str(SHARED_PYTHON), "-m", "unittest", *workstream.test_modules])
+
+
+def registered_worktree_paths() -> set[Path]:
+    completed = run_git(["worktree", "list", "--porcelain"])
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stderr.strip() or "Failed to list git worktrees.")
+    return {Path(entry["worktree"]).resolve() for entry in parse_worktree_list(completed.stdout)}
+
+
+def discover_retired_sibling_directories(prefix: str = "autoreport_v0.3-") -> list[Path]:
+    active_paths = registered_worktree_paths()
+    retired: list[Path] = []
+    for candidate in WORKSPACE_ROOT.iterdir():
+        if not candidate.is_dir():
+            continue
+        if not candidate.name.startswith(prefix):
+            continue
+        resolved = candidate.resolve()
+        if resolved in active_paths:
+            continue
+        retired.append(resolved)
+    return sorted(retired)
+
+
+def ensure_within_workspace(path: Path) -> Path:
+    resolved = path.resolve()
+    workspace_root = WORKSPACE_ROOT.resolve()
+    if workspace_root not in resolved.parents:
+        raise RuntimeError(f"Refusing to operate outside workspace root: {resolved}")
+    return resolved
+
+
+def directory_item_count(path: Path) -> int:
+    resolved = ensure_within_workspace(path)
+    try:
+        return sum(1 for _ in resolved.iterdir())
+    except FileNotFoundError:
+        return 0
+
+
+def delete_directory(path: Path) -> None:
+    resolved = ensure_within_workspace(path)
+    shutil.rmtree(resolved)
