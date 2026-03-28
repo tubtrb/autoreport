@@ -79,3 +79,25 @@ same time.
 - Keep these files local/private and out of tracked product docs.
 - Overwrite the file with the newest instruction unless the user asks for an
   append-only log.
+
+## Functional evidence policy
+
+When the user cares about whether the product behavior really works, do not ask
+workers to report only code status.
+
+Require each checkpoint report to include:
+
+1. the input used for the check, such as template path, YAML, JSON, or image
+2. the execution command
+3. the output artifact path
+4. the visible or behavioral result
+5. the remaining gap
+
+Require each completion report to include at least one absolute filesystem path
+that the user can open directly for visual verification. Prefer the generated
+`.pptx` itself when available. Supporting screenshots or exported contract files
+are helpful, but they do not replace the final artifact path.
+
+Keep non-committed proof artifacts under `tests/_tmp/` or another clearly local
+path. Do not promote proof artifacts into tracked docs or product paths unless
+the user explicitly asks for that.

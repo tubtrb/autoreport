@@ -61,6 +61,12 @@ force-push decisions whenever branch history needs to stay aligned.
 - Default target file is `.codex/master-next.txt` inside each sibling worktree.
 - Use the dispatch script with a JSON object that maps workstream keys to
   instruction text.
+- Include a functional-evidence requirement, not just a code-status request.
+- Require checkpoint reports to name the input, execution command, output
+  artifact path, visible/behavioral result, and remaining gap.
+- Require completion reports to include at least one absolute output path that
+  the user can open directly for visual verification, such as a generated
+  `.pptx`, contract file, skeleton file, or screenshot.
 
 5. Report back to the user.
 - Summarize which worktrees were inspected, which files were written, and any
@@ -68,6 +74,8 @@ force-push decisions whenever branch history needs to stay aligned.
 - Call out overlap on `autoreport/templates/weekly_report.py`,
   `autoreport/templates/autofill.py`, `autoreport/engine/generator.py`,
   `tests/test_generator.py`, and `tests/test_pptx_writer.py` when relevant.
+- Distinguish code health from product evidence. A green test suite is useful,
+  but it does not replace a final artifact path that the user can open.
 
 ## Commands
 
