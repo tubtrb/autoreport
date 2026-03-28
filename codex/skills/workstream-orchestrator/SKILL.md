@@ -61,6 +61,9 @@ force-push decisions whenever branch history needs to stay aligned.
   inspect each active task worktree, make any needed checkpoint commit, rebase
   onto the shared base, rerun the narrow tests, and push the branch when
   appropriate.
+- When a task branch already exists on origin, the sync push should use
+  `--force-with-lease` rather than a plain push because the branch history has
+  just been rewritten by rebase.
 - Do not assume `.codex/master-next.txt` is the authoritative channel until the
   branch history actually contains the updated skill/policy files.
 - Use workers for implementation checkpoints; use the master thread for final

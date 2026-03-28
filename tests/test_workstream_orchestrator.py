@@ -106,6 +106,12 @@ class SyncPolicyWorktreesTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertTrue(result["push"]["skipped"])
 
+    def test_push_branch_uses_force_with_lease_for_existing_remote(self) -> None:
+        workstream = self.make_workstream()
+        with mock.patch.object(sync_policy_worktrees, "branch_has_remote", return_value=True):
+            result = sync_policy_worktrees.push_branch(workstream, dry_run=True)
+        self.assertEqual("git push --force-with-lease", result["command"])
+
 
 if __name__ == "__main__":
     unittest.main()

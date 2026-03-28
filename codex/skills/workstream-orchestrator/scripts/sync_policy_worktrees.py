@@ -107,11 +107,9 @@ def push_branch(workstream: Workstream, dry_run: bool) -> dict[str, Any]:
         return {
             "remote_exists": remote_exists,
             "pushed": True,
-            "command": f"git push{' -u origin ' + workstream.branch if not remote_exists else ''}",
+            "command": "git push --force-with-lease" if remote_exists else f"git push -u origin {workstream.branch}",
         }
-    args = ["git", "push"]
-    if not remote_exists:
-        args.extend(["-u", "origin", workstream.branch])
+    args = ["git", "push", "--force-with-lease"] if remote_exists else ["git", "push", "-u", "origin", workstream.branch]
     completed = run_command(args, workstream.path)
     return {
         "remote_exists": remote_exists,

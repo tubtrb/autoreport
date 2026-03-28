@@ -94,6 +94,8 @@ Detailed sync sequence:
 4. Run the branch's narrow verification command.
 5. Push the rebased branch when it already exists remotely or when it has
    unique task commits beyond the base.
+   - use `--force-with-lease` for already-remote branches because rebase
+     rewrites history
 6. Leave branches with no unique commits beyond the base unpushed unless the
    user explicitly wants placeholder remotes.
 
