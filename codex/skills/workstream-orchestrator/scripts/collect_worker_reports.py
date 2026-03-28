@@ -47,6 +47,12 @@ def parse_args() -> argparse.Namespace:
         description="Collect worker checkpoint/final reports from discovered autoreport v0.3 task worktrees."
     )
     parser.add_argument(
+        "--key",
+        action="append",
+        dest="keys",
+        help="Limit collection to one or more workstream keys. Repeatable.",
+    )
+    parser.add_argument(
         "--pretty",
         action="store_true",
         help="Pretty-print the JSON output.",
@@ -56,6 +62,16 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=12.0,
         help="Flag worker-status.json as stale when updated_at is older than this many hours. Default: 12.",
+    )
+    parser.add_argument(
+        "--fail-on-errors",
+        action="store_true",
+        help="Exit nonzero when any selected workstream has report parsing, contract, or artifact errors.",
+    )
+    parser.add_argument(
+        "--fail-unless-ready",
+        action="store_true",
+        help="Exit nonzero unless every selected workstream has a valid ready-for-review final report.",
     )
     return parser.parse_args()
 
@@ -75,12 +91,17 @@ def is_absolute_path(raw: str) -> bool:
 def validate_artifact_paths(
     artifact_paths: Any,
     field_name: str,
+    *,
+    require_nonempty: bool = False,
 ) -> tuple[list[str], list[dict[str, str]]]:
     errors: list[dict[str, str]] = []
     normalized_paths: list[str] = []
 
     if not isinstance(artifact_paths, list):
         errors.append({"field": field_name, "message": "Expected a list of artifact paths."})
+        return normalized_paths, errors
+    if require_nonempty and not artifact_paths:
+        errors.append({"field": field_name, "message": "Expected at least one artifact path."})
         return normalized_paths, errors
 
     for index, item in enumerate(artifact_paths):
@@ -101,12 +122,15 @@ def validate_artifact_paths(
 def validate_mapping_fields(
     payload: Any,
     required_fields: dict[str, type],
+    *,
+    nonempty_string_fields: set[str] | None = None,
 ) -> list[dict[str, str]]:
     errors: list[dict[str, str]] = []
     if not isinstance(payload, dict):
         errors.append({"field": "$", "message": "Expected a JSON object."})
         return errors
 
+    nonempty_string_fields = nonempty_string_fields or set()
     for field, expected_type in required_fields.items():
         if field not in payload:
             errors.append({"field": field, "message": "Missing required field."})
@@ -120,6 +144,8 @@ def validate_mapping_fields(
                 errors.append({"field": field, "message": "Expected a list."})
         elif not isinstance(value, expected_type):
             errors.append({"field": field, "message": f"Expected {expected_type.__name__}."})
+        elif expected_type is str and field in nonempty_string_fields and not value.strip():
+            errors.append({"field": field, "message": "Expected a non-empty string."})
     return errors
 
 
@@ -147,7 +173,20 @@ def collect_status_report(path: Path, stale_after: timedelta) -> dict[str, Any]:
     if payload is None:
         return report
 
-    errors = validate_mapping_fields(payload, STATUS_REQUIRED_FIELDS)
+    errors = validate_mapping_fields(
+        payload,
+        STATUS_REQUIRED_FIELDS,
+        nonempty_string_fields={
+            "workstream_key",
+            "branch",
+            "head",
+            "updated_at",
+            "status",
+            "task_summary",
+            "last_green_test_command",
+            "sync_notes",
+        },
+    )
     evidence = payload.get("evidence")
     if not isinstance(evidence, dict):
         errors.append({"field": "evidence", "message": "Missing required object."})
@@ -155,11 +194,22 @@ def collect_status_report(path: Path, stale_after: timedelta) -> dict[str, Any]:
     else:
         errors.extend(
             {"field": f"evidence.{item['field']}", "message": item["message"]}
-            for item in validate_mapping_fields(evidence, STATUS_EVIDENCE_REQUIRED_FIELDS)
+            for item in validate_mapping_fields(
+                evidence,
+                STATUS_EVIDENCE_REQUIRED_FIELDS,
+                nonempty_string_fields={
+                    "input",
+                    "command",
+                    "visible_result",
+                    "remaining_gap",
+                },
+            )
         )
 
     artifact_paths, artifact_errors = validate_artifact_paths(
-        evidence.get("artifact_paths", []), "evidence.artifact_paths"
+        evidence.get("artifact_paths", []),
+        "evidence.artifact_paths",
+        require_nonempty=True,
     )
     errors.extend(artifact_errors)
 
@@ -213,9 +263,25 @@ def collect_final_report(path: Path) -> dict[str, Any]:
     if payload is None:
         return report
 
-    errors = validate_mapping_fields(payload, FINAL_REQUIRED_FIELDS)
+    errors = validate_mapping_fields(
+        payload,
+        FINAL_REQUIRED_FIELDS,
+        nonempty_string_fields={
+            "workstream_key",
+            "branch",
+            "head",
+            "completed_at",
+            "completion_summary",
+            "last_green_test_command",
+            "primary_artifact_path",
+            "visible_result",
+            "known_gaps",
+        },
+    )
     artifact_paths, artifact_errors = validate_artifact_paths(
-        payload.get("artifact_paths", []), "artifact_paths"
+        payload.get("artifact_paths", []),
+        "artifact_paths",
+        require_nonempty=True,
     )
     errors.extend(artifact_errors)
 
@@ -312,10 +378,29 @@ def collect_workstream(workstream: Workstream, stale_after: timedelta) -> dict[s
     return data
 
 
+def filter_workstreams_by_key(
+    workstreams: list[Workstream],
+    keys: list[str] | None,
+) -> tuple[list[Workstream], list[str]]:
+    if not keys:
+        return workstreams, []
+    requested = list(dict.fromkeys(keys))
+    selected = [workstream for workstream in workstreams if workstream.key in requested]
+    missing = [key for key in requested if key not in {item.key for item in selected}]
+    return selected, missing
+
+
+def workstream_has_report_errors(item: dict[str, Any]) -> bool:
+    status_errors = item.get("status_report", {}).get("errors", [])
+    final_errors = item.get("final_report", {}).get("errors", [])
+    return bool(status_errors or final_errors)
+
+
 def main() -> int:
     args = parse_args()
     stale_after = timedelta(hours=args.stale_hours)
-    workstreams = [collect_workstream(workstream, stale_after) for workstream in discover_workstreams()]
+    discovered, missing_keys = filter_workstreams_by_key(discover_workstreams(), args.keys)
+    workstreams = [collect_workstream(workstream, stale_after) for workstream in discovered]
     summary = {
         "total": len(workstreams),
         "report_missing": [item["key"] for item in workstreams if item["report_missing"]],
@@ -327,11 +412,22 @@ def main() -> int:
         "repo_root": str(REPO_ROOT),
         "workspace_root": str(WORKSPACE_ROOT),
         "stale_after_hours": args.stale_hours,
+        "selected_keys": args.keys or [],
+        "missing_keys": missing_keys,
         "summary": summary,
         "workstreams": workstreams,
     }
     json.dump(payload, sys.stdout, indent=2 if args.pretty else None)
     sys.stdout.write("\n")
+
+    has_report_errors = any(workstream_has_report_errors(item) for item in workstreams)
+    all_ready = bool(workstreams) and all(item["ready_for_review"] for item in workstreams)
+    if missing_keys:
+        return 1
+    if args.fail_on_errors and has_report_errors:
+        return 1
+    if args.fail_unless_ready and not all_ready:
+        return 1
     return 0
 
 

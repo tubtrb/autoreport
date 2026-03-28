@@ -62,6 +62,8 @@
 - After `.codex/master-next.txt` has been written, do not restate branch-specific tasks, owned-file lists, or per-branch test commands in user-facing chat unless the user explicitly asks for the branch details or a worktree is missing its instruction file.
 - The normal user-facing follow-up after instruction dispatch is one shared broadcast telling workers to reload the latest policy/skill files and then follow their local `.codex/master-next.txt`.
 - When a new master-thread starts and valid `.codex/master-next.txt` files already exist, continue from that shared-broadcast pattern instead of generating a fresh branch-by-branch handoff in chat.
+- For workstream report-channel files under `.codex/worker-status.json` and `.codex/worker-final.json`, do not invent ad-hoc JSON shapes. Use the canonical report contract from `codex/skills/workstream-orchestrator/references/orchestration.md` and the example JSON templates under that same reference folder.
+- Before a worker claims `ready_for_review` or writes `.codex/worker-final.json`, rerun the collector against that workstream and treat report-contract errors as blockers rather than optional cleanup.
 - Before any public push, PR, release, publish-ready doc handoff, or claim that the repo is safe to share publicly, load `codex/skills/public-repo-safety/SKILL.md` and run its blocker checks.
 - If `public-repo-safety` finds a blocker in a tracked file or a non-ignored untracked file, stop the public-sharing flow until the finding is removed or intentionally resolved.
 - Do not promote ignored screenshots or local artifacts into tracked docs paths without reviewing them through `public-repo-safety`.

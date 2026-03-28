@@ -171,6 +171,13 @@ same time.
 Use JSON as the source of truth for worker reports so the master thread can
 collect and validate progress programmatically.
 
+Canonical starter templates live at:
+
+- `references/worker-status.example.json`
+- `references/worker-final.example.json`
+
+Workers should copy these shapes instead of inventing ad-hoc keys.
+
 ### `.codex/worker-status.json`
 
 Use this file for the latest checkpoint status. Overwrite it at each
@@ -195,6 +202,12 @@ Required fields:
 - `evidence.remaining_gap`
 - `sync_notes`
 
+Required value quality:
+
+- every required string field must be present and non-empty
+- `evidence.artifact_paths` must contain at least one absolute path
+- every listed artifact path must exist when the report is collected
+
 ### `.codex/worker-final.json`
 
 Use this file only when the workstream is ready for master review.
@@ -216,16 +229,27 @@ Required fields:
 - `ready_for_master_review`
   Must be `true`
 
+Required value quality:
+
+- every required string field must be present and non-empty
+- `artifact_paths` must contain at least one absolute path
+- `primary_artifact_path` must be absolute, must exist, and should also appear
+  inside `artifact_paths`
+
 ## Collector policy
 
 - Run `collect_worker_reports.py` after `worktree_snapshot.py` when you need the
   latest orchestration picture.
 - The collector should validate JSON parsing, required fields, absolute paths,
   and artifact existence.
+- The collector should reject empty required string fields and empty artifact
+  path lists, not just missing keys.
 - The collector summary should make these booleans easy to scan per workstream:
   `report_missing`, `status_stale`, `ready_for_review`, `final_present`.
 - Final review still requires opening `primary_artifact_path` for visual
   verification.
+- Workers should self-check their own handoff before asking for master review:
+  `..\autoreport\venv\Scripts\python.exe ..\autoreport\codex\skills\workstream-orchestrator\scripts\collect_worker_reports.py --key <workstream-key> --fail-on-errors --fail-unless-ready --pretty`
 
 ## Functional evidence policy
 

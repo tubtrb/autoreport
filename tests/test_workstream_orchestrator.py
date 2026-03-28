@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+from datetime import timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -13,6 +14,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import cleanup_retired_worktrees  # noqa: E402
+import collect_worker_reports  # noqa: E402
 import sync_policy_worktrees  # noqa: E402
 import workstream_runtime  # noqa: E402
 
@@ -100,6 +102,132 @@ class WorkstreamRuntimeTests(unittest.TestCase):
         self.assertIn("shared broadcast", autoreport_skill_text)
         self.assertIn("must\n  be a single shared reminder", orchestrator_skill_text)
         self.assertIn("must\n  not regenerate or paraphrase branch-specific instructions", orchestration_ref_text)
+
+    def test_report_example_templates_cover_required_fields(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        status_template = json.loads(
+            (
+                repo_root
+                / "codex"
+                / "skills"
+                / "workstream-orchestrator"
+                / "references"
+                / "worker-status.example.json"
+            ).read_text(encoding="utf-8")
+        )
+        final_template = json.loads(
+            (
+                repo_root
+                / "codex"
+                / "skills"
+                / "workstream-orchestrator"
+                / "references"
+                / "worker-final.example.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertTrue(set(collect_worker_reports.STATUS_REQUIRED_FIELDS).issubset(status_template))
+        self.assertIn("evidence", status_template)
+        self.assertTrue(
+            set(collect_worker_reports.STATUS_EVIDENCE_REQUIRED_FIELDS).issubset(
+                status_template["evidence"]
+            )
+        )
+        self.assertTrue(set(collect_worker_reports.FINAL_REQUIRED_FIELDS).issubset(final_template))
+
+
+class CollectorContractTests(unittest.TestCase):
+    def test_collect_status_report_rejects_empty_required_strings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "worker-status.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "workstream_key": "generation-preview",
+                        "branch": "codex/v0.3-generation-preview",
+                        "head": "abc123",
+                        "updated_at": "2026-03-29T01:00:00+09:00",
+                        "status": "in_progress",
+                        "task_summary": "",
+                        "last_green_test_command": "",
+                        "working_tree_clean": False,
+                        "evidence": {
+                            "input": "",
+                            "command": "",
+                            "artifact_paths": [],
+                            "visible_result": "",
+                            "remaining_gap": "",
+                        },
+                        "sync_notes": "",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report = collect_worker_reports.collect_status_report(path, timedelta(hours=12))
+
+        fields = {item["field"] for item in report["errors"]}
+        self.assertIn("task_summary", fields)
+        self.assertIn("last_green_test_command", fields)
+        self.assertIn("evidence.input", fields)
+        self.assertIn("evidence.command", fields)
+        self.assertIn("evidence.artifact_paths", fields)
+        self.assertIn("sync_notes", fields)
+
+    def test_collect_final_report_rejects_empty_required_strings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "worker-final.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "workstream_key": "release-prep",
+                        "branch": "codex/v0.3-release-prep",
+                        "head": "abc123",
+                        "completed_at": "",
+                        "completion_summary": "",
+                        "last_green_test_command": "",
+                        "primary_artifact_path": "",
+                        "artifact_paths": [],
+                        "visible_result": "",
+                        "known_gaps": "",
+                        "ready_for_master_review": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report = collect_worker_reports.collect_final_report(path)
+
+        fields = {item["field"] for item in report["errors"]}
+        self.assertIn("completed_at", fields)
+        self.assertIn("completion_summary", fields)
+        self.assertIn("last_green_test_command", fields)
+        self.assertIn("primary_artifact_path", fields)
+        self.assertIn("artifact_paths", fields)
+        self.assertIn("visible_result", fields)
+        self.assertIn("known_gaps", fields)
+
+    def test_filter_workstreams_by_key_reports_missing_keys(self) -> None:
+        workstreams = [
+            workstream_runtime.Workstream(
+                key="generation-preview",
+                branch="codex/v0.3-generation-preview",
+                path=Path("C:/fake/generation-preview"),
+                test_modules=("tests.test_generator",),
+            ),
+            workstream_runtime.Workstream(
+                key="release-prep",
+                branch="codex/v0.3-release-prep",
+                path=Path("C:/fake/release-prep"),
+                test_modules=("tests.test_cli",),
+            ),
+        ]
+
+        selected, missing = collect_worker_reports.filter_workstreams_by_key(
+            workstreams,
+            ["release-prep", "unknown-key"],
+        )
+
+        self.assertEqual(["release-prep"], [item.key for item in selected])
+        self.assertEqual(["unknown-key"], missing)
 
 
 class CleanupRetiredWorktreesTests(unittest.TestCase):

@@ -119,6 +119,14 @@ force-push decisions whenever branch history needs to stay aligned.
   missing artifact files, or a ready-for-review branch.
 - Open `primary_artifact_path` from `worker-final.json` for the final visual
   check instead of relying on tests alone.
+- Workers should start from the canonical example JSON files in
+  `references/worker-status.example.json` and
+  `references/worker-final.example.json` rather than inventing new key shapes.
+- Before a worker claims `ready_for_review`, have them rerun the collector for
+  their own workstream with a strict command such as:
+  `..\autoreport\venv\Scripts\python.exe ..\autoreport\codex\skills\workstream-orchestrator\scripts\collect_worker_reports.py --key <workstream-key> --fail-on-errors --fail-unless-ready --pretty`
+- Treat collector contract errors as blockers for handoff, not as optional
+  post-review cleanup.
 
 7. Report back to the user.
 - Summarize which worktrees were inspected, which files were written, and any
