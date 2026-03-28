@@ -34,11 +34,6 @@ MEDIA_TYPE_PPTX = (
 ALLOWED_UPLOAD_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 _BUILT_IN_CONTRACT = get_built_in_contract()
-
-DEFAULT_CONTRACT_YAML = serialize_document(
-    _BUILT_IN_CONTRACT.to_dict(),
-    fmt="yaml",
-).strip()
 AI_DRAFT_PROMPT_YAML = """
 # Paste this brief into another AI and ask it to fill the report_content draft below.
 # Goal: draft slide-ready content for Autoreport. The app will normalize report_content
@@ -176,11 +171,7 @@ app = FastAPI(
 
 
 def _render_demo_html() -> str:
-    contract_json = json.dumps(DEFAULT_CONTRACT_YAML)
-    draft_prompt_json = json.dumps(AI_DRAFT_PROMPT_YAML)
-    intro_example_json = json.dumps(WEBSITE_INTRO_EXAMPLE_YAML)
     visual_example_json = json.dumps(WEBSITE_VISUAL_EXAMPLE_YAML)
-    compiled_json = json.dumps("")
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -231,9 +222,8 @@ def _render_demo_html() -> str:
         resize: vertical;
       }
       textarea[readonly] { opacity: 0.94; }
-      .primary-actions, .copy-actions, .mini-actions { display: grid; gap: 10px; }
-      .primary-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }
-      .copy-actions { margin-top: 14px; }
+      .primary-actions, .mini-actions { display: grid; gap: 10px; }
+      .primary-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
       button {
         border: none;
         border-radius: 999px;
@@ -267,49 +257,32 @@ def _render_demo_html() -> str:
   </head>
   <body>
     <main>
-      <h1>Draft the deck with AI and generate an Autoreport PPTX.</h1>
+      <h1>Edit the starter deck and generate an Autoreport PPTX.</h1>
       <p class="hero-copy">
-        Give one prompt package to another AI, let it draft as many slides as needed,
-        paste the returned <code>report_content</code>, and generate the deck.
+        Start from the built-in website example, upload a real screenshot if you want the
+        visual slide, edit the YAML directly, and generate the deck.
       </p>
       <section class="card">
         <div class="workspace">
           <div class="panel">
-            <h2>AI Draft Input</h2>
+            <h2>Starter Deck YAML</h2>
             <p class="panel-copy">
-              Paste either a high-level <code>report_content</code> draft from another AI
-              or a ready-made <code>authoring_payload</code>. The app normalizes drafts into
-              <code>authoring_payload</code> automatically. You do not need to declare a total
-              slide count anywhere; the deck length is inferred from the slides you include.
+              Start from the built-in website visual example below.
+              Edit the text directly, keep <code>image_1</code> if you plan to upload a real
+              screenshot, or turn that slide into <code>text.editorial</code> if you do not
+              want a visual.
             </p>
             <textarea id="payload-yaml" aria-label="Working draft"></textarea>
             <div class="primary-actions">
-              <button id="copy-handoff" class="ghost" type="button">Copy AI Package</button>
-              <button id="refresh-compiled" class="ghost" type="button">Normalize Draft</button>
+              <button id="reset-starter" class="ghost" type="button">Reset Starter Example</button>
               <button id="generate-button" class="primary" type="button">Generate PPTX</button>
             </div>
-            <details>
-              <summary>Optional: View Template Contract</summary>
-              <p class="panel-copy">
-                Share this with another AI so it can choose valid <code>pattern_id</code>
-                values and image layouts.
-              </p>
-              <textarea id="template-contract" readonly aria-label="Template contract"></textarea>
-            </details>
-            <details>
-              <summary>Advanced Debug: Compiled Report Payload</summary>
-              <p class="panel-copy">
-                This preview shows the compiled runtime payload that the engine will execute.
-              </p>
-              <textarea id="compiled-payload" readonly aria-label="Compiled report payload"></textarea>
-            </details>
             <div class="upload-box">
               <h2>Image Uploads</h2>
               <p class="panel-copy">
-                If the AI draft asks for images, upload the real files here and replace the
-                descriptive <code>slots.image_*</code> text with refs such as
-                <code>image_1</code>. You can add more uploads later or remove a ref before
-                generating.
+                Upload real screenshots or visuals here.
+                The starter example already expects <code>image_1</code> for its visual slide,
+                and you can add or remove uploads before generating.
               </p>
               <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
               <ul id="upload-list" class="upload-list"></ul>
@@ -319,30 +292,24 @@ def _render_demo_html() -> str:
             <div class="rail-box">
               <h2>How To Use</h2>
               <p class="panel-copy">
-                This page is meant for one simple flow, not manual slide-by-slide editing.
+                This page is intentionally simple. Edit one starter example, optionally upload
+                a real screenshot, and generate the deck.
               </p>
               <ul class="howto-list">
-                <li>Copy the AI package and send it to another AI.</li>
-                <li>Ask it to return <code>report_content</code> with as many slides as you want.</li>
-                <li>Paste the YAML back into the big editor.</li>
-                <li>If visuals are needed, upload the real image files here and swap in uploaded refs.</li>
+                <li>Edit the built-in website example in the main editor.</li>
+                <li>If you keep the visual slide, upload one real screenshot for <code>image_1</code>.</li>
+                <li>You can add or remove uploads before generating.</li>
                 <li>Press <code>Generate PPTX</code>.</li>
               </ul>
-              <div class="copy-actions">
-                <button id="reset-draft" class="ghost" type="button">Reset To AI Draft Prompt</button>
-                <button id="load-intro-example" class="ghost" type="button">Load Website Intro Example</button>
-                <button id="load-visual-example" class="ghost" type="button">Load Website Visual Example</button>
-                <button id="copy-draft-prompt" class="ghost" type="button">Copy AI Draft Prompt</button>
-                <button id="copy-contract" class="ghost" type="button">Copy Template Contract</button>
-                <button id="copy-handoff-secondary" class="ghost" type="button">Copy AI Package</button>
-              </div>
               <div id="status-message" class="panel-copy">
-                The built-in editorial contract and AI draft prompt are loaded. Copy the package to another AI, then paste the returned draft here.
+                The website visual starter example is loaded. Upload one screenshot for
+                <code>image_1</code>, or turn that slide into text-only content before generating.
               </div>
               <ul id="status-errors" class="status-errors"></ul>
               <ul id="status-hints" class="status-hints"></ul>
               <p class="footnote">
-                Current scope: built-in editorial template, AI-draft input, dynamic slide counts, uploaded image refs, optional compiled preview, instant download.
+                Current scope: built-in editorial template, starter-example editing, uploaded
+                image refs, and instant PPTX download.
               </p>
             </div>
           </aside>
@@ -350,14 +317,8 @@ def _render_demo_html() -> str:
       </section>
     </main>
     <script>
-      const CONTRACT_YAML = __CONTRACT_JSON__;
-      const AI_DRAFT_PROMPT = __DRAFT_PROMPT_JSON__;
-      const WEBSITE_INTRO_EXAMPLE = __INTRO_EXAMPLE_JSON__;
       const WEBSITE_VISUAL_EXAMPLE = __VISUAL_EXAMPLE_JSON__;
-      const DEFAULT_COMPILED = __COMPILED_JSON__;
-      const contractNode = document.getElementById("template-contract");
       const payloadNode = document.getElementById("payload-yaml");
-      const compiledNode = document.getElementById("compiled-payload");
       const uploadList = document.getElementById("upload-list");
       const fileInput = document.getElementById("image-files");
       const statusMessage = document.getElementById("status-message");
@@ -380,57 +341,6 @@ def _render_demo_html() -> str:
           li.textContent = hint;
           statusHints.appendChild(li);
         }
-      }
-
-      async function copyTextToClipboard(label, text) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-          } else {
-            const helper = document.createElement("textarea");
-            helper.value = text;
-            helper.setAttribute("readonly", "readonly");
-            helper.style.position = "absolute";
-            helper.style.left = "-9999px";
-            document.body.appendChild(helper);
-            helper.select();
-            document.execCommand("copy");
-            helper.remove();
-          }
-          setStatus(`${label} copied to the clipboard.`, [], ["Paste it into the next AI turn together with any required image files."]);
-        } catch (error) {
-          setStatus(`Could not copy ${label.toLowerCase()} automatically.`, [], ["Select the text manually and copy it from the page."]);
-        }
-      }
-
-      function buildAiHandoffPackage() {
-        const uploadNotes = uploadedRefs.length
-          ? uploadedRefs.map((item) => `- ${item.ref}: ${item.file.name}`).join("\\n")
-          : "- none";
-        return [
-          "# Autoreport AI Handoff",
-          "",
-          "Start with the AI draft prompt below, then include the template contract.",
-          "The other AI should return report_content. Autoreport will normalize it into authoring_payload later.",
-          "",
-          "## AI Draft Prompt",
-          "```yaml",
-          AI_DRAFT_PROMPT,
-          "```",
-          "",
-          "## Template Contract",
-          "```yaml",
-          contractNode.value.trim(),
-          "```",
-          "",
-          "## Current Working Draft",
-          "```yaml",
-          payloadNode.value.trim(),
-          "```",
-          "",
-          "## Uploaded Image Refs In This Browser Session",
-          uploadNotes,
-        ].join("\\n");
       }
 
       function renderUploads() {
@@ -507,71 +417,17 @@ def _render_demo_html() -> str:
         return fetch(url, { method: "POST", body: formData });
       }
 
-      async function refreshCompiledPreview() {
-        if (!payloadNode.value.trim()) {
-          setStatus("The working draft is empty.", [], ["Reset to the AI draft prompt to begin."]);
-          return;
-        }
-        setStatus("Normalizing the draft and compiling the runtime report payload...");
-        const response = await postPayload("/api/compile");
-        const payload = await response.json();
-        if (!response.ok) {
-          setStatus(payload.message || "Compilation failed.", payload.errors || [], payload.hints || []);
-          return;
-        }
-        if (payload.normalized_authoring_yaml) {
-          payloadNode.value = payload.normalized_authoring_yaml;
-        }
-        compiledNode.value = payload.compiled_yaml;
-        setStatus(
-          payload.payload_kind === "content"
-            ? "AI draft normalized into authoring_payload successfully."
-            : `Draft accepted as ${payload.payload_kind} and compiled successfully.`,
-          [],
-          payload.hints && payload.hints.length
-            ? payload.hints
-            : [`Compiled slides: ${payload.slide_count}`]
-        );
-      }
-
-      contractNode.value = CONTRACT_YAML;
-      payloadNode.value = AI_DRAFT_PROMPT;
-      compiledNode.value = "";
+      payloadNode.value = WEBSITE_VISUAL_EXAMPLE;
       renderUploads();
 
-      document.getElementById("reset-draft").addEventListener("click", () => {
-        payloadNode.value = AI_DRAFT_PROMPT;
-        compiledNode.value = "";
-        setStatus(
-          "AI draft prompt restored.",
-          [],
-          ["Send this prompt together with the template contract to another AI, then paste the returned report_content draft back here."]
-        );
-      });
-      document.getElementById("load-intro-example").addEventListener("click", () => {
-        payloadNode.value = WEBSITE_INTRO_EXAMPLE;
-        compiledNode.value = "";
-        setStatus(
-          "Website intro example loaded.",
-          [],
-          ["Edit this starter deck in the main editor, then normalize or generate it."]
-        );
-      });
-      document.getElementById("load-visual-example").addEventListener("click", () => {
+      document.getElementById("reset-starter").addEventListener("click", () => {
         payloadNode.value = WEBSITE_VISUAL_EXAMPLE;
-        compiledNode.value = "";
         setStatus(
-          "Website visual example loaded.",
+          "Starter example restored.",
           [],
-          ["Upload one screenshot so image_1 resolves, or replace image_1 with another uploaded ref before generating."]
+          ["Upload one screenshot for image_1, or rewrite the visual slide as text before generating."]
         );
       });
-
-      document.getElementById("refresh-compiled").addEventListener("click", refreshCompiledPreview);
-      document.getElementById("copy-draft-prompt").addEventListener("click", () => copyTextToClipboard("AI draft prompt", AI_DRAFT_PROMPT));
-      document.getElementById("copy-contract").addEventListener("click", () => copyTextToClipboard("Template contract", contractNode.value.trim()));
-      document.getElementById("copy-handoff").addEventListener("click", () => copyTextToClipboard("AI handoff package", buildAiHandoffPackage()));
-      document.getElementById("copy-handoff-secondary").addEventListener("click", () => copyTextToClipboard("AI handoff package", buildAiHandoffPackage()));
 
       fileInput.addEventListener("change", () => {
         const newUploads = Array.from(fileInput.files || []).map((file) => ({
@@ -594,7 +450,7 @@ def _render_demo_html() -> str:
 
       document.getElementById("generate-button").addEventListener("click", async () => {
         if (!payloadNode.value.trim()) {
-          setStatus("Generation failed. Please provide payload YAML.", [], ["Reset to the AI draft prompt to begin."]);
+          setStatus("Generation failed. Please provide payload YAML.", [], ["Reset the starter example to begin again."]);
           return;
         }
         const button = document.getElementById("generate-button");
@@ -626,7 +482,7 @@ def _render_demo_html() -> str:
       });
     </script>
   </body>
-</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__DRAFT_PROMPT_JSON__", draft_prompt_json).replace("__INTRO_EXAMPLE_JSON__", intro_example_json).replace("__VISUAL_EXAMPLE_JSON__", visual_example_json).replace("__COMPILED_JSON__", compiled_json)
+</html>""".replace("__VISUAL_EXAMPLE_JSON__", visual_example_json)
 
 
 INDEX_HTML = _render_demo_html()

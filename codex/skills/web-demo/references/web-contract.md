@@ -33,14 +33,13 @@ Routes:
 
 User-app UI contract:
 
-- Start from an AI-friendly `report_content` prompt by default.
+- Start from one built-in editable starter example by default.
 - Keep one large working input area as the primary surface.
 - Treat total slide count as dynamic; infer it from the draft, not from a separate input field.
-- Keep helper panes optional. Contract view and compiled runtime view may exist, but must stay secondary to the main authoring flow.
-- Avoid manual slide-by-slide builder controls in the user app when the intended flow is "ask another AI for N slides, paste, generate."
-- The AI package should instruct the external AI to return exactly one fenced `yaml` code block with no prose before or after it.
-- The AI package should tell the external AI to prefer non-image patterns unless the user explicitly has a real visual to upload later.
-- If no real image is available, the prompt should tell the external AI not to invent `slots.image_*` fields or image slides just because a visual might be nice.
+- Keep the user app minimal: reset the starter example, edit YAML, upload real images, and generate.
+- Avoid helper panes such as template-contract or compiled-runtime inspection in the default user app when they do not directly improve the main flow.
+- Avoid manual slide-by-slide builder controls in the user app.
+- If the starter example includes a visual slide, make the upload flow obvious and let the user add or remove uploads before generating.
 
 ## Debug App Contract
 
@@ -79,6 +78,7 @@ Expected behavior:
 - `report_content` is a high-level AI-facing draft surface.
 - `authoring_payload` is the normalized public authoring surface.
 - `report_payload` is the compiled runtime surface and remains supported for compatibility.
+- When another AI is asked to draft `report_content`, the safest response shape is exactly one fenced `yaml` code block with no prose before or after it.
 - In `report_content`, `pattern_id` is the primary layout selector and `kind` is optional when the pattern already exists in the active template contract.
 - Plain YAML and one complete fenced `yaml` block are both accepted.
 - Mixed outputs that split YAML across unfenced text and a later fenced block should be rejected as broken AI output.

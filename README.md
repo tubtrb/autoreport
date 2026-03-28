@@ -86,22 +86,19 @@ uvicorn autoreport.web.app:app --host 0.0.0.0 --port 8000
 ```
 
 The web demo currently targets the built-in editorial template only.
-It opens with an AI draft prompt by default, keeps the template contract visible,
-lets you paste either a `report_content` AI draft or an `authoring_payload`,
-normalizes drafts into `authoring_payload`, exposes a compiled `report_payload`
-preview in an advanced/debug panel, supports uploaded image refs such as
-`image_1`, and returns a generated `.pptx` for immediate download.
+It opens with a built-in website starter example by default, lets you edit the
+YAML directly, supports uploaded image refs such as `image_1`, and returns a
+generated `.pptx` for immediate download.
 Slide counts are inferred dynamically from the authored slides list rather than
 entered as a separate field.
 Arbitrary PowerPoint template upload is currently a CLI-only path.
 
 The user-facing app is intentionally simple:
 
-1. copy the AI package
-2. ask another AI for a `report_content` draft
-3. paste the returned YAML
-4. optionally upload real image files
-5. generate the deck
+1. start from the built-in starter example
+2. edit the YAML directly
+3. optionally upload real image files
+4. generate the deck
 
 When you want a developer-facing surface with more panes for contract inspection,
 normalization, and compiled runtime debugging, run the separate debug app:

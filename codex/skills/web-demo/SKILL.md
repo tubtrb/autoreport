@@ -68,8 +68,8 @@ architecture docs together when practical.
 
 The intended web flow is:
 
-1. in the user app, the user copies one AI package, asks another AI to draft `report_content`, pastes it back, and generates the deck
-2. the user app may expose contract and compiled payload views, but only as secondary optional panels
+1. in the user app, the user starts from one built-in starter example, edits the YAML directly, optionally uploads real images, and generates the deck
+2. the user app should stay minimal and avoid contract/debug panes unless the design is intentionally expanded again
 3. in the debug app, a developer can inspect the full contract, normalized `authoring_payload`, compiled `report_payload`, and upload refs in parallel panes
 4. both apps still validate and generate through the same shared routes and core pipeline
 
@@ -77,9 +77,9 @@ Current design expectations:
 
 - the user app should stay single-flow and user-facing rather than becoming a manual slide-builder
 - the debug app is the right place for extra panes, debug controls, and internal inspection helpers
-- template inspection and contract display should be available, but the user app should hide them behind optional secondary panels when they are not part of the main action
+- template inspection and compiled runtime debugging belong primarily to the debug app, not the default user app
 - the web layer should reuse shared contract-export and validation code instead of re-implementing schema rules
-- the homepage should default to the AI-facing `report_content` prompt, not to a manual builder workflow
+- the homepage should default to one editable starter example rather than an AI prompt package or a manual builder workflow
 - compiled runtime payload inspection belongs primarily to the debug app and only secondarily to the user app
 - error payloads for template-driven validation should stay consistent with the existing web error shape
 - if contract download or skeleton generation is added, it should be covered by web tests in the same change

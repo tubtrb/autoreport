@@ -9,11 +9,10 @@ The product flow and the debugging flow serve different users.
 
 The product flow is:
 
-1. copy one prompt package
-2. ask another AI for a `report_content` draft with however many slides are needed
-3. paste the returned YAML
-4. optionally upload real image files
-5. generate the deck
+1. start from one built-in starter example
+2. edit the YAML directly
+3. optionally upload real image files
+4. generate the deck
 
 The debugging flow is:
 
@@ -37,16 +36,16 @@ File:
 Intent:
 
 - optimize for one clean user flow
-- default to an AI-facing `report_content` prompt
+- default to one editable starter example
 - keep slide count dynamic and derived from the draft itself
-- keep contract inspection and compiled runtime inspection secondary and optional
+- keep contract inspection and compiled runtime inspection out of the default user surface
 
 Allowed UI:
 
 - one large input area
 - one or two primary actions
-- optional collapsed views for template contract and compiled runtime payload
 - upload controls for real image files
+- simple upload add/remove affordances when visuals are part of the starter flow
 
 Avoid in the user app:
 
