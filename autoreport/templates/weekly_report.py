@@ -781,7 +781,6 @@ def _plan_text_image_slides(
     diagnostics: DiagnosticReport,
     image_refs: dict[str, Path],
 ) -> list[PlannedSlide]:
-    title_slot = pattern.slots_by_type("title")[0]
     caption_slots = list(pattern.slots_by_type("caption"))
     image_slots = list(pattern.slots_by_type("image"))
     slot_overrides = payload_slide.slot_overrides
@@ -835,11 +834,14 @@ def _plan_text_image_slides(
         kind=payload_slide.kind,
         slot_overrides=slot_overrides,
     )
-    for slide in slides:
+    if slides:
+        # Keep the image-caption pair anchored to the primary slide so
+        # continuation slides only show the remaining narrative content.
+        primary_slide = slides[0]
         if image_fill is not None:
-            slide.image_fills.append(image_fill)
+            primary_slide.image_fills.append(image_fill)
         if caption_fill is not None:
-            slide.text_fills.append(caption_fill)
+            primary_slide.text_fills.append(caption_fill)
     return slides
 
 

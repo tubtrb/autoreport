@@ -14,7 +14,12 @@ from autoreport.template_flow import (
     get_built_in_contract,
     get_built_in_profile,
 )
-from autoreport.templates.autofill import DiagnosticReport, FillPlan, TemplateProfile
+from autoreport.templates.autofill import (
+    DiagnosticReport,
+    FillPlan,
+    PlannedTextFill,
+    TemplateProfile,
+)
 from autoreport.templates.weekly_report import (
     build_report_fill_plan,
     export_template_contract,
@@ -32,6 +37,28 @@ class GenerationArtifacts:
     report_payload: ReportPayload
     fill_plan: FillPlan
     diagnostic_report: DiagnosticReport
+    generation_summary: "GenerationSummary"
+
+
+@dataclass(slots=True)
+class GenerationSlideSummary:
+    """Lightweight internal summary for one planned slide."""
+
+    slide_title: str
+    kind: str
+    pattern_id: str
+    layout_name: str
+    continuation: bool
+    text_slot_names: tuple[str, ...]
+    image_slot_names: tuple[str, ...]
+    visible_text: tuple[str, ...]
+
+
+@dataclass(slots=True)
+class GenerationSummary:
+    """Internal deck summary that preview surfaces can consume."""
+
+    slides: tuple[GenerationSlideSummary, ...]
 
 
 def generate_report(request: ReportRequest) -> Path:
@@ -110,6 +137,7 @@ def prepare_generation_artifacts_from_mapping(
         report_payload=payload,
         fill_plan=fill_plan,
         diagnostic_report=diagnostic_report,
+        generation_summary=_build_generation_summary(fill_plan),
     )
 
 
@@ -139,3 +167,42 @@ def _prepare_presentation(
     if template_path is not None:
         return writer._load_presentation(template_path)
     return writer._load_presentation(None)
+
+
+def _build_generation_summary(fill_plan: FillPlan) -> GenerationSummary:
+    return GenerationSummary(
+        slides=tuple(
+            GenerationSlideSummary(
+                slide_title=slide.slide_title,
+                kind=slide.kind,
+                pattern_id=slide.pattern_id,
+                layout_name=slide.layout_name,
+                continuation=slide.continuation,
+                text_slot_names=tuple(
+                    fill.slot.slot_name for fill in slide.text_fills
+                ),
+                image_slot_names=tuple(
+                    fill.slot.slot_name for fill in slide.image_fills
+                ),
+                visible_text=_collect_visible_text(slide.text_fills),
+            )
+            for slide in fill_plan.slides
+        )
+    )
+
+
+def _collect_visible_text(
+    text_fills: list[PlannedTextFill],
+) -> tuple[str, ...]:
+    visible_text: list[str] = []
+    for fill in text_fills:
+        resolved = _resolve_visible_text(fill)
+        if resolved:
+            visible_text.append(resolved)
+    return tuple(visible_text)
+
+
+def _resolve_visible_text(fill: PlannedTextFill) -> str:
+    if fill.text is not None:
+        return fill.text
+    return "\n".join(fill.items)
