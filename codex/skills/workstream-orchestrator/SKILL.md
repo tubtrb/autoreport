@@ -52,6 +52,11 @@ force-push decisions whenever branch history needs to stay aligned.
   duplicate old/new flows left behind by the change.
 - Treat leftover tracked code trash as a blocker unless the old path is an
   intentional compatibility surface with explicit tests.
+- In the same review pass, check whether the touched behavior changed the
+  repository bootstrap story in `AGENTS.md` or the relevant repo-local skill.
+- Treat stale tracked skill guidance as a blocker for landing, because the next
+  agent turn will inherit those wrong assumptions even if the code itself is
+  correct.
 
 3. Apply master-owned git orchestration when policy or shared history changes.
 - Treat policy updates to tracked shared files such as `AGENTS.md`,
@@ -146,6 +151,8 @@ force-push decisions whenever branch history needs to stay aligned.
   `tests/test_generator.py`, and `tests/test_pptx_writer.py` when relevant.
 - Call out stale predecessor code or duplicate old/new product surfaces as
   blockers instead of deferring them to a later cleanup pass.
+- Call out stale agent or repo-local skill guidance the same way, rather than
+  treating it as optional documentation polish.
 - Distinguish code health from product evidence. A green test suite is useful,
   but it does not replace a final artifact path that the user can open.
 

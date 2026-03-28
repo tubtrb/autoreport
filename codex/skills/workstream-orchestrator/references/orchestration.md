@@ -89,6 +89,9 @@ field names and slot rules are stable enough.
 - Treat stale tracked code, stale sample payloads, stale copy, or duplicate
   old/new product flows as blockers instead of leaving them for a later cleanup
   sweep.
+- Apply the same rule to `AGENTS.md` and repo-local skills under `codex/skills/`:
+  if the product or workflow changed, bootstrap guidance should move in the same
+  task so later agents do not inherit stale repo assumptions.
 - The only valid reason to keep both old and new paths is intentional
   compatibility, and that compatibility should be explicit in docs and tests.
 - Git history and tags are the rollback mechanism; they are not a reason to

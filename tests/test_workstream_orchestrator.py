@@ -127,6 +127,30 @@ class WorkstreamRuntimeTests(unittest.TestCase):
         self.assertIn("stale predecessor code", orchestrator_skill_text)
         self.assertIn("Treat stale tracked code", orchestration_ref_text)
 
+    def test_skill_freshness_policy_is_present_in_bootstrap_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agents_text = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+        autoreport_skill_text = (
+            repo_root / "codex" / "skills" / "autoreport-dev" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestrator_skill_text = (
+            repo_root / "codex" / "skills" / "workstream-orchestrator" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestration_ref_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "workstream-orchestrator"
+            / "references"
+            / "orchestration.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("repo-local skills under `codex/skills/` as part of the live operating surface", agents_text)
+        self.assertIn("Stale agent or skill guidance is a blocker", agents_text)
+        self.assertIn("refresh the relevant skill text in the same task", autoreport_skill_text)
+        self.assertIn("stale tracked skill guidance as a blocker for landing", orchestrator_skill_text)
+        self.assertIn("bootstrap guidance should move", orchestration_ref_text)
+
     def test_report_example_templates_cover_required_fields(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         status_template = json.loads(
