@@ -15,6 +15,9 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 - Read `../../../AGENTS.md`.
 - Read `../autoreport-dev/SKILL.md`.
 - Read `references/weekly-report-schema.md`.
+- If the task affects generalized template-driven payloads, also read:
+  - `../../../docs/architecture/template-aware-autofill-engine.md`
+  - `../../../docs/architecture/v0.3-template-workstreams.md`
 - Read `../../../autoreport/loader.py`, `../../../autoreport/models.py`, and `../../../autoreport/validator.py`.
 - Read `../../../examples/weekly_report.yaml`.
 - Read `../../../tests/test_loader.py` and `../../../tests/test_validator.py`.
@@ -47,6 +50,27 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 - Metric values must be integers greater than or equal to `0`, and booleans are rejected.
 - Extra top-level fields and extra metric keys are rejected.
 - `week` is currently validated only as a non-empty string.
+
+## Current Design Frame
+
+Treat this section as living schema guidance for the `v0.3` direction.
+If the generalized template-driven contract changes, update this skill and the
+paired architecture docs together when practical.
+
+The intended template-driven schema flow is:
+
+1. template inspection produces a machine-readable contract
+2. `autoreport` exposes that contract as YAML or JSON skeletons
+3. a human or another AI fills the payload
+4. validation checks the payload before generation begins
+
+Current design expectations:
+
+- the current weekly-report schema is still the live source of truth for shipped behavior until a migration path is explicit
+- generalized template-driven payloads should be additive first, not a silent replacement of the weekly contract
+- payload fields should stay easy for another AI to fill without reverse-engineering internal slot heuristics
+- contract and payload validation errors should identify missing, extra, or malformed fields in a deterministic order
+- when template-driven payload contracts change, examples and validator-facing tests should change in the same task
 
 ## Output Contract
 

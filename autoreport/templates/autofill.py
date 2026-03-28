@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import math
 from pathlib import Path
 
 
@@ -45,7 +46,7 @@ class SlotDescriptor:
 
     slot_name: str
     layout_index: int
-    placeholder_index: int
+    placeholder_index: int | None
     x: int
     y: int
     width: int
@@ -82,6 +83,8 @@ class TemplateProfile:
     subtitle_slot: SlotDescriptor
     body_title_slot: SlotDescriptor
     body_content_slot: SlotDescriptor
+    title_secondary_slots: tuple[SlotDescriptor, ...] = ()
+    body_content_slots: tuple[SlotDescriptor, ...] = ()
 
 
 @dataclass(slots=True)
@@ -107,6 +110,30 @@ class FitResult:
 
 
 @dataclass(slots=True)
+class SlideDecoration:
+    """A neutral non-text shape drawn as part of a planned slide."""
+
+    shape_type: str
+    x: int
+    y: int
+    width: int
+    height: int
+    fill_rgb: tuple[int, int, int]
+    line_rgb: tuple[int, int, int] | None = None
+
+
+@dataclass(slots=True)
+class PlannedTextFill:
+    """One text assignment targeting a specific slot on a slide."""
+
+    slot: SlotDescriptor
+    items: list[str] = field(default_factory=list)
+    text: str | None = None
+    font_size: int | None = None
+    fit_result: FitResult | None = None
+
+
+@dataclass(slots=True)
 class PlannedSlide:
     """A slide ready to be written into a PowerPoint presentation."""
 
@@ -123,6 +150,8 @@ class PlannedSlide:
     body_font_size: int | None = None
     fit_result: FitResult | None = None
     continuation: bool = False
+    decorations: list[SlideDecoration] = field(default_factory=list)
+    body_fills: list[PlannedTextFill] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -246,6 +275,29 @@ def estimate_text_load(items: list[str]) -> int:
     return total
 
 
+def estimate_wrapped_line_count(text: str, chars_per_line: int) -> int:
+    """Estimate wrapped line usage for one logical text item."""
+
+    safe_chars_per_line = max(chars_per_line, 1)
+    raw_lines = text.splitlines() or [text]
+    wrapped_lines = 0
+    for raw_line in raw_lines:
+        wrapped_lines += max(1, math.ceil(len(raw_line) / safe_chars_per_line))
+    return wrapped_lines
+
+
+def estimate_item_line_usage(
+    items: list[str],
+    chars_per_line: int,
+) -> int:
+    """Estimate total wrapped lines used by a list of items."""
+
+    return sum(
+        estimate_wrapped_line_count(item, chars_per_line)
+        for item in items
+    )
+
+
 def iter_font_sizes(preferred_font_size: int, min_font_size: int) -> list[int]:
     """Return the font sizes to try, from preferred size down to the minimum."""
 
@@ -264,13 +316,13 @@ def fit_text_items_to_slot(
 ) -> FitResult:
     """Choose a font size or split point for a list of text items."""
 
-    total_load = estimate_text_load(items)
     for font_size in iter_font_sizes(
         slot.preferred_font_size,
         slot.min_font_size,
     ):
-        budget = slot.estimated_char_budget(font_size)
-        if total_load <= budget:
+        chars_per_line, line_count, _ = calc_text_box(font_size, slot)
+        used_lines = estimate_item_line_usage(items, chars_per_line)
+        if used_lines <= line_count:
             status = (
                 FitStatus.FIT
                 if font_size == slot.preferred_font_size
@@ -283,23 +335,23 @@ def fit_text_items_to_slot(
                 remaining_items=0,
             )
 
-    min_budget = slot.estimated_char_budget(slot.min_font_size)
+    chars_per_line, line_count, _ = calc_text_box(slot.min_font_size, slot)
     consumed_items: list[str] = []
-    consumed_load = 0
+    consumed_lines = 0
     out_of_bounds_risk = False
 
     for item in items:
-        item_load = estimate_text_load([item])
-        if not consumed_items and item_load > min_budget:
+        item_lines = estimate_wrapped_line_count(item, chars_per_line)
+        if not consumed_items and item_lines > line_count:
             consumed_items.append(item)
             out_of_bounds_risk = True
             break
 
-        if consumed_items and consumed_load + item_load > min_budget:
+        if consumed_items and consumed_lines + item_lines > line_count:
             break
 
         consumed_items.append(item)
-        consumed_load += item_load
+        consumed_lines += item_lines
 
     if not consumed_items:
         consumed_items.append(items[0])
@@ -325,3 +377,26 @@ def fit_text_to_slot(text: str, slot: SlotDescriptor) -> FitResult:
     """Fit one logical text block into a slot."""
 
     return fit_text_items_to_slot([text], slot)
+
+
+def sort_slots_in_reading_order(
+    slots: list[SlotDescriptor] | tuple[SlotDescriptor, ...],
+) -> list[SlotDescriptor]:
+    """Return slots sorted in a top-to-bottom, left-to-right reading order."""
+
+    ordered = sorted(slots, key=lambda slot: (slot.y, slot.x))
+    if len(ordered) <= 1:
+        return ordered
+
+    row_threshold = max(slot.height for slot in ordered) // 3
+    rows: list[list[SlotDescriptor]] = []
+    for slot in ordered:
+        if rows and abs(rows[-1][0].y - slot.y) <= row_threshold:
+            rows[-1].append(slot)
+            continue
+        rows.append([slot])
+
+    flattened: list[SlotDescriptor] = []
+    for row in rows:
+        flattened.extend(sorted(row, key=lambda slot: slot.x))
+    return flattened

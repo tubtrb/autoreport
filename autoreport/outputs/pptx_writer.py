@@ -7,7 +7,9 @@ from typing import Any
 from zipfile import BadZipFile
 
 from pptx import Presentation
+from pptx.dml.color import RGBColor
 from pptx.exc import PackageNotFoundError
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
 from pptx.util import Pt
 
 from autoreport.outputs.errors import (
@@ -17,7 +19,7 @@ from autoreport.outputs.errors import (
     TemplateNotFoundError,
     TemplateReadError,
 )
-from autoreport.templates.autofill import FillPlan, PlannedSlide
+from autoreport.templates.autofill import FillPlan, PlannedSlide, SlideDecoration
 from autoreport.templates.weekly_report import profile_weekly_template
 
 
@@ -210,42 +212,125 @@ class PowerPointWriter:
         slide = presentation.slides.add_slide(
             presentation.slide_layouts[planned_slide.layout_index]
         )
-        title_placeholder = slide.placeholders[
-            planned_slide.title_slot.placeholder_index
-        ]
-        title_placeholder.text = planned_slide.title_text
-        if planned_slide.title_font_size is not None:
-            self._apply_font_size(
-                title_placeholder.text_frame,
-                planned_slide.title_font_size,
-            )
+        for decoration in planned_slide.decorations:
+            self._add_decoration_shape(slide, decoration)
+
+        title_shape = self._resolve_text_shape(
+            slide,
+            planned_slide.title_slot,
+        )
+        self._write_text_block(
+            title_shape,
+            planned_slide.title_text,
+            planned_slide.title_font_size,
+        )
 
         if planned_slide.body_slot is None:
             return
 
-        body_placeholder = slide.placeholders[
-            planned_slide.body_slot.placeholder_index
-        ]
-        if planned_slide.subtitle_text is not None:
-            body_placeholder.text = planned_slide.subtitle_text
-            if planned_slide.body_font_size is not None:
-                self._apply_font_size(
-                    body_placeholder.text_frame,
-                    planned_slide.body_font_size,
+        if planned_slide.body_fills:
+            for fill in planned_slide.body_fills:
+                body_shape = self._resolve_text_shape(
+                    slide,
+                    fill.slot,
+                )
+                if fill.text is not None:
+                    self._write_text_block(
+                        body_shape,
+                        fill.text,
+                        fill.font_size,
+                    )
+                    continue
+                self._write_text_items(
+                    body_shape,
+                    fill.items,
+                    fill.font_size,
                 )
             return
 
-        text_frame = body_placeholder.text_frame
+        body_shape = self._resolve_text_shape(
+            slide,
+            planned_slide.body_slot,
+        )
+        if planned_slide.subtitle_text is not None:
+            self._write_text_block(
+                body_shape,
+                planned_slide.subtitle_text,
+                planned_slide.body_font_size,
+            )
+            return
+
+        self._write_text_items(
+            body_shape,
+            planned_slide.body_items,
+            planned_slide.body_font_size,
+        )
+
+    def _resolve_text_shape(self, slide, slot):
+        """Return a writable shape for either a placeholder slot or a text box."""
+
+        if slot.placeholder_index is not None:
+            return slide.placeholders[slot.placeholder_index]
+
+        return slide.shapes.add_textbox(
+            slot.x,
+            slot.y,
+            slot.width,
+            slot.height,
+        )
+
+    def _write_text_block(
+        self,
+        shape,
+        text: str,
+        font_size: int | None,
+    ) -> None:
+        """Write one logical text block into a frame."""
+
+        shape.text = text
+        if font_size is not None:
+            self._apply_font_size(shape.text_frame, font_size)
+
+    def _write_text_items(
+        self,
+        shape,
+        items: list[str],
+        font_size: int | None,
+    ) -> None:
+        """Write multiple items into a frame using one paragraph per item."""
+
+        text_frame = shape.text_frame
         text_frame.clear()
-        for index, item in enumerate(planned_slide.body_items):
+        for index, item in enumerate(items):
             paragraph = (
                 text_frame.paragraphs[0]
                 if index == 0
                 else text_frame.add_paragraph()
             )
             paragraph.text = item
-            if planned_slide.body_font_size is not None:
-                paragraph.font.size = Pt(planned_slide.body_font_size)
+            if font_size is not None:
+                paragraph.font.size = Pt(font_size)
+
+    def _add_decoration_shape(self, slide, decoration: SlideDecoration) -> None:
+        """Draw one neutral chrome shape onto a slide."""
+
+        auto_shape_type = {
+            "rectangle": MSO_AUTO_SHAPE_TYPE.RECTANGLE,
+            "rounded_rectangle": MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,
+        }[decoration.shape_type]
+        shape = slide.shapes.add_shape(
+            auto_shape_type,
+            decoration.x,
+            decoration.y,
+            decoration.width,
+            decoration.height,
+        )
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = RGBColor(*decoration.fill_rgb)
+        if decoration.line_rgb is None:
+            shape.line.fill.background()
+        else:
+            shape.line.color.rgb = RGBColor(*decoration.line_rgb)
 
     def _apply_font_size(self, text_frame, font_size: int) -> None:
         """Apply one font size across all paragraphs in a text frame."""

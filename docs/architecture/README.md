@@ -11,6 +11,7 @@ flowchart TD
     WEBSEQ["Web demo sequence"]
     FLOW["Generation flow"]
     AUTOFILL["Template-aware autofill engine"]
+    WORKSTREAMS["v0.3 template workstreams"]
     ERRORS["Error and validation map"]
     TESTMAP["Feature to test map"]
     CONTRACT["Weekly report contract"]
@@ -20,6 +21,7 @@ flowchart TD
     README --> WEBSEQ
     README --> FLOW
     README --> AUTOFILL
+    README --> WORKSTREAMS
     README --> ERRORS
     README --> TESTMAP
     README --> CONTRACT
@@ -35,6 +37,7 @@ Read `system-overview.md` first, then pick the sequence, flow, contract, or test
 - `web-demo-sequence.md`: browser-to-API generation path and HTTP outcomes
 - `generation-flow.md`: data-shape transitions from YAML input to `.pptx`
 - `template-aware-autofill-engine.md`: near-term `v0.3` direction for profiling templates, slot mapping, fitting, and diagnostics
+- `v0.3-template-workstreams.md`: branch plan and done criteria for parallel `v0.3` template-engine work
 - `error-and-validation-map.md`: shared failure boundaries and surface-specific responses
 - `feature-test-map.md`: feature ownership mapped to current unittest modules
 - `weekly-report-contract.md`: current input contract and validation rules

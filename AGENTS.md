@@ -27,7 +27,7 @@
 - Use the repository virtualenv by default: `.\venv\Scripts\python.exe`
 - CLI or entrypoint changes: `.\venv\Scripts\python.exe -m unittest tests.test_cli`
 - Loader or schema changes: `.\venv\Scripts\python.exe -m unittest tests.test_loader tests.test_validator`
-- Generation or writer changes: `.\venv\Scripts\python.exe -m unittest tests.test_generator tests.test_pptx_writer`
+- Generation or writer changes: `.\venv\Scripts\python.exe -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer`
 - Web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_app`
 - Cross-cutting changes: run the narrow focused tests first, then expand to the relevant combination above.
 

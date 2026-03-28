@@ -16,6 +16,9 @@ and routes deeper work to one primary focused skill.
 - Read `../../../AGENTS.md`.
 - Read `../../../README.md` and `../../../pyproject.toml` for the current public frame and package metadata.
 - Start with `references/current-repo.md`.
+- If the task touches the `v0.3` template-aware direction, also read:
+  - `../../../docs/architecture/template-aware-autofill-engine.md`
+  - `../../../docs/architecture/v0.3-template-workstreams.md`
 - Identify the primary surface before editing:
   - CLI/entrypoint -> `../autoreport-cli/SKILL.md`
   - Loader/schema/example/tests -> `../report-schema/SKILL.md`
@@ -64,6 +67,27 @@ and routes deeper work to one primary focused skill.
 - The CLI and web demo both feed the same core generation path.
 - Some strings and comments still carry older `v0.1` wording; preserve them unless intentionally updating the contract across code/tests/docs.
 - The web demo HTML currently contains tested literal copy from `autoreport/web/app.py`; treat it as contract until deliberately changed.
+
+## Current Design Frame
+
+Treat this as living contributor guidance for the `v0.3` direction.
+It may evolve as real template workflows are exercised, so keep the paired
+architecture docs and focused skills aligned when it changes.
+
+The target template-driven runtime flow is:
+
+1. user selects a PowerPoint template
+2. `autoreport` inspects the template and exposes the required YAML or JSON contract
+3. a human or another AI fills that contract
+4. `autoreport` generates a `.pptx` that follows the selected template
+
+Current design expectations:
+
+- template selection and contract display are first-class product behavior, not just internal debugging helpers
+- slide titles should drive the generated `Contents` slide so the outline stays in sync with the real deck
+- text and image placement should be template-slot driven, including horizontal and vertical arrangements when the template exposes them
+- generalized template contracts should be added beside the current weekly-report path, then migrated deliberately instead of replacing everything at once
+- when the design frame changes, update both the architecture docs and the relevant repo-local skill in the same task when practical
 
 ## Output Contract
 
