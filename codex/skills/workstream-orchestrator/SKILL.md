@@ -10,7 +10,8 @@ description: Monitor and orchestrate the autoreport v0.3 parallel worktrees. Use
 Use this skill for the master-thread role that coordinates the sibling
 `autoreport_v0.3-*` worktrees. Keep contract ownership and merge order aligned
 while pushing short, concrete next-step instructions into each worktree's
-private `.codex/` state.
+private `.codex/` state. Instruction files stay text-based, while worker
+progress and completion reports live in JSON under the same `.codex/` folder.
 
 Master-thread git control is the default operating mode for this skill.
 Workers may continue local development, local tests, and local WIP commits, but
@@ -62,13 +63,26 @@ force-push decisions whenever branch history needs to stay aligned.
 - Use the dispatch script with a JSON object that maps workstream keys to
   instruction text.
 - Include a functional-evidence requirement, not just a code-status request.
-- Require checkpoint reports to name the input, execution command, output
-  artifact path, visible/behavioral result, and remaining gap.
+- Require workers to write checkpoint reports into `.codex/worker-status.json`.
+- Require workers to write completion reports into `.codex/worker-final.json`
+  when the branch is ready for master review.
+- Require checkpoint reports to include the input, execution command, output
+  artifact path, visible or behavioral result, and remaining gap.
 - Require completion reports to include at least one absolute output path that
   the user can open directly for visual verification, such as a generated
-  `.pptx`, contract file, skeleton file, or screenshot.
+  `.pptx`, contract file, skeleton file, or screenshot. Prefer the final
+  `.pptx` when available.
 
-5. Report back to the user.
+5. Collect worker reports before deciding whether a branch is ready.
+- Run the report collector after or alongside the git snapshot.
+- Treat `.codex/worker-status.json` as the latest checkpoint state and
+  `.codex/worker-final.json` as the completion handoff.
+- Use the collector output to detect missing reports, stale status updates,
+  missing artifact files, or a ready-for-review branch.
+- Open `primary_artifact_path` from `worker-final.json` for the final visual
+  check instead of relying on tests alone.
+
+6. Report back to the user.
 - Summarize which worktrees were inspected, which files were written, and any
   blockers.
 - Call out overlap on `autoreport/templates/weekly_report.py`,
@@ -84,6 +98,10 @@ force-push decisions whenever branch history needs to stay aligned.
 ```
 
 ```bash
+.\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\collect_worker_reports.py --pretty
+```
+
+```bash
 @'
 {"template-contract-export":"...","generic-payload-schema":"..."}
 '@ | .\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\write_master_next.py --stdin-json
@@ -92,5 +110,7 @@ force-push decisions whenever branch history needs to stay aligned.
 ## Output Contract
 
 - State that `workstream-orchestrator` was used.
-- Cite the snapshot or narrow test results behind each orchestration decision.
+- Cite the snapshot, collector output, or narrow test results behind each
+  orchestration decision.
 - Report each `.codex/master-next.txt` path that was written.
+- Distinguish instruction-channel writes from report-channel findings.

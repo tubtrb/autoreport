@@ -79,6 +79,114 @@ same time.
 - Keep these files local/private and out of tracked product docs.
 - Overwrite the file with the newest instruction unless the user asks for an
   append-only log.
+- Tell workers to keep `.codex/worker-status.json` current and to create
+  `.codex/worker-final.json` only when the branch is ready for master review.
+
+## Report channel policy
+
+Use JSON as the source of truth for worker reports so the master thread can
+collect and validate progress programmatically.
+
+### `.codex/worker-status.json`
+
+Use this file for the latest checkpoint status. Overwrite it at each checkpoint.
+
+Required fields:
+
+- `workstream_key`
+- `branch`
+- `head`
+- `updated_at`
+- `status`
+  Allowed values: `in_progress`, `blocked`, `ready_for_review`
+- `task_summary`
+- `last_green_test_command`
+- `working_tree_clean`
+- `evidence.input`
+- `evidence.command`
+- `evidence.artifact_paths`
+  Absolute filesystem paths only
+- `evidence.visible_result`
+- `evidence.remaining_gap`
+- `sync_notes`
+
+Suggested shape:
+
+```json
+{
+  "workstream_key": "text-layout-engine",
+  "branch": "codex/v0.3-text-layout-engine",
+  "head": "03e3ed24ac8216acfbf474ada971e84cbc5f5995",
+  "updated_at": "2026-03-28T14:32:00+09:00",
+  "status": "in_progress",
+  "task_summary": "Two-column text slot distribution now follows contract order.",
+  "last_green_test_command": ".\\venv\\Scripts\\python.exe -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer",
+  "working_tree_clean": false,
+  "evidence": {
+    "input": "tests/_tmp/two_column_payload.yaml + fixtures/template-two-column.pptx",
+    "command": ".\\venv\\Scripts\\python.exe -m autoreport.cli generate --template fixtures/template-two-column.pptx --input tests/_tmp/two_column_payload.yaml --output tests/_tmp/two-column-output.pptx",
+    "artifact_paths": [
+      "C:\\worktrees\\autoreport_v0.3-text-layout-engine\\tests\\_tmp\\two-column-output.pptx"
+    ],
+    "visible_result": "The two body items land left-to-right and the Contents slide matches slide titles.",
+    "remaining_gap": "Need to lock the vertical stack overflow case."
+  },
+  "sync_notes": "Do not rebase until template-contract-export freezes the slot naming."
+}
+```
+
+### `.codex/worker-final.json`
+
+Use this file only when the workstream is ready for master review.
+
+Required fields:
+
+- `workstream_key`
+- `branch`
+- `head`
+- `completed_at`
+- `completion_summary`
+- `last_green_test_command`
+- `primary_artifact_path`
+  Absolute filesystem path only
+- `artifact_paths`
+  Absolute filesystem paths only
+- `visible_result`
+- `known_gaps`
+- `ready_for_master_review`
+  Must be `true`
+
+Suggested shape:
+
+```json
+{
+  "workstream_key": "image-layout-engine",
+  "branch": "codex/v0.3-image-layout-engine",
+  "head": "2ed749941021458ffceeebce140fa6279dfbb6e3",
+  "completed_at": "2026-03-28T16:05:00+09:00",
+  "completion_summary": "Contain and cover image placement are now deterministic across portrait and landscape fixtures.",
+  "last_green_test_command": ".\\venv\\Scripts\\python.exe -m unittest tests.test_generator tests.test_pptx_writer",
+  "primary_artifact_path": "C:\\worktrees\\autoreport_v0.3-image-layout-engine\\tests\\_tmp\\image-layout-output.pptx",
+  "artifact_paths": [
+    "C:\\worktrees\\autoreport_v0.3-image-layout-engine\\tests\\_tmp\\image-layout-output.pptx",
+    "C:\\worktrees\\autoreport_v0.3-image-layout-engine\\tests\\_tmp\\cover-vs-contain.png"
+  ],
+  "visible_result": "Portrait and landscape images both land in the intended slots and captions follow the matching image.",
+  "known_gaps": "No remaining functional gaps for the scoped workstream.",
+  "ready_for_master_review": true
+}
+```
+
+## Collector policy
+
+- Run `collect_worker_reports.py` after `worktree_snapshot.py` when you need the
+  latest orchestration picture.
+- The collector should validate JSON parsing, required fields, absolute paths,
+  and artifact existence.
+- The collector summary should make these booleans easy to scan per workstream:
+  `report_missing`, `status_stale`, `ready_for_review`, `final_present`.
+- Final review still requires opening `primary_artifact_path` for visual
+  verification.
 
 ## Functional evidence policy
 
