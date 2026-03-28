@@ -1,0 +1,4 @@
+interface:
+  display_name: "PPTX Output"
+  short_description: "Maintain weekly slide context, generation flow, and PowerPoint writer behavior."
+  default_prompt: "Work on autoreport PowerPoint generation while preserving the tested weekly slide structure and template compatibility rules."

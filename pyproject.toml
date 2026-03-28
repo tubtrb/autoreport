@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autoreport"
+version = "0.2.1"
+description = "Deterministic weekly report generator with CLI and public web demo entry points."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "autoreport contributors" },
+]
+keywords = ["reporting", "automation", "pptx", "yaml"]
+dependencies = [
+  "fastapi>=0.115",
+  "httpx>=0.28",
+  "PyYAML>=6.0",
+  "python-pptx>=1.0.2",
+  "uvicorn>=0.34",
+]
+
+[project.scripts]
+autoreport = "autoreport.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["autoreport"]

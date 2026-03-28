@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Docs"
+  short_description: "Keep README, package metadata, examples, and release wording aligned with current behavior."
+  default_prompt: "Work on autoreport public docs and metadata while keeping product-facing text aligned with the current code and tests."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Autoreport Dev"
+  short_description: "Route repository work to the correct autoreport-focused skill."
+  default_prompt: "Work in the current autoreport repository, load the shared repo bootstrap, and choose the right focused skill for the touched surface."
