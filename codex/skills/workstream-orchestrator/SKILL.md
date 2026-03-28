@@ -91,6 +91,17 @@ force-push decisions whenever branch history needs to stay aligned.
 - Distinguish code health from product evidence. A green test suite is useful,
   but it does not replace a final artifact path that the user can open.
 
+## Interpreter Note
+
+- The shared interpreter lives under the main repo at `.\venv\Scripts\python.exe`
+  when commands are run from the main `autoreport` repo root.
+- Do not assume sibling worktrees such as `autoreport_v0.3-*` carry their own
+  `.venv` directory.
+- If you are currently inside a sibling worktree and need to run a shared
+  orchestration script, use the main repo interpreter via a relative path such
+  as `..\autoreport\venv\Scripts\python.exe` or another confirmed shared
+  interpreter path.
+
 ## Commands
 
 ```bash

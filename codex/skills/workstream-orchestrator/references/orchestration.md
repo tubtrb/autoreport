@@ -25,6 +25,9 @@ These worktrees live beside the main repo under the same workspace root.
 
 Use the shared repo virtualenv at `.\venv\Scripts\python.exe` from the repo
 root unless the user explicitly sets another interpreter.
+If you are running from a sibling worktree that does not have its own `.\venv`,
+use the main repo interpreter through a relative path such as
+`..\autoreport\venv\Scripts\python.exe` or another confirmed shared path.
 
 ## Merge order
 
