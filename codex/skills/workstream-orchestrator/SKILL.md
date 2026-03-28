@@ -51,9 +51,16 @@ force-push decisions whenever branch history needs to stay aligned.
 3. Apply master-owned git orchestration when policy or shared history changes.
 - Treat policy updates to tracked shared files such as `AGENTS.md`,
   `codex/skills/`, and shared architecture docs as master-owned changes.
-- After a policy change lands on the shared base, the master thread should
-  inspect each active task worktree, make any needed checkpoint commit, rebase onto
-  the shared base, rerun the narrow tests, and push the branch.
+- A policy change is not complete just because it is committed locally. The
+  strict completion bar is:
+  - the change is committed on `codex/v0.3-master`
+  - `codex/v0.3-master` is pushed
+  - the policy sync script has rebased the active task worktrees onto the
+    pushed base and rerun their narrow checks
+- After a policy change lands on the shared base, use the policy sync script to
+  inspect each active task worktree, make any needed checkpoint commit, rebase
+  onto the shared base, rerun the narrow tests, and push the branch when
+  appropriate.
 - Do not assume `.codex/master-next.txt` is the authoritative channel until the
   branch history actually contains the updated skill/policy files.
 - Use workers for implementation checkpoints; use the master thread for final
@@ -122,6 +129,10 @@ force-push decisions whenever branch history needs to stay aligned.
 
 ```bash
 .\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\collect_worker_reports.py --pretty
+```
+
+```bash
+.\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\sync_policy_worktrees.py --base-branch codex/v0.3-master --checkpoint-dirty --push --pretty
 ```
 
 ```bash

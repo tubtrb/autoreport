@@ -55,6 +55,7 @@
 - When both repo-local and personal/global skills exist, explicitly load the repo-local path under `codex/skills/` and treat it as authoritative for this repository.
 - If a focused skill is missing or incomplete, continue with this baseline plus `autoreport-dev` and report the coverage gap instead of hard-failing the session.
 - Keep AI/process guidance out of the public product story; do not move bootstrap narrative into `README.md` unless there is an explicit contributor-facing reason.
+- For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `codex/v0.3-master`, pushed, and the active task worktrees have been synchronized onto that pushed base.
 - Before any public push, PR, release, publish-ready doc handoff, or claim that the repo is safe to share publicly, load `codex/skills/public-repo-safety/SKILL.md` and run its blocker checks.
 - If `public-repo-safety` finds a blocker in a tracked file or a non-ignored untracked file, stop the public-sharing flow until the finding is removed or intentionally resolved.
 - Do not promote ignored screenshots or local artifacts into tracked docs paths without reviewing them through `public-repo-safety`.

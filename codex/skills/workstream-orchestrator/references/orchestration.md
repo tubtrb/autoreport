@@ -78,12 +78,27 @@ field names and slot rules are stable enough.
 
 Use this mode when the master thread changes tracked shared operating rules.
 
-1. Commit and push the policy change on `codex/v0.3-master`.
-2. Inspect each active task worktree for local changes.
-3. Create a checkpoint commit if the worktree is dirty.
-4. Rebase the task branch onto `origin/codex/v0.3-master`.
-5. Run the branch's narrow verification command.
-6. Push the rebased branch.
+1. Commit the policy change on `codex/v0.3-master`.
+2. Push `codex/v0.3-master`.
+3. Run `sync_policy_worktrees.py --base-branch codex/v0.3-master --checkpoint-dirty --push`.
+4. Confirm that all active task worktrees either:
+   - contain the new base commit and passed their narrow checks, or
+   - failed loudly with an explicit blocker in the sync report.
+5. Only after that is the policy change considered complete.
+
+Detailed sync sequence:
+
+1. Inspect each active task worktree for local changes.
+2. Create a checkpoint commit if the worktree is dirty.
+3. Rebase the task branch onto `origin/codex/v0.3-master`.
+4. Run the branch's narrow verification command.
+5. Push the rebased branch when it already exists remotely or when it has
+   unique task commits beyond the base.
+6. Leave branches with no unique commits beyond the base unpushed unless the
+   user explicitly wants placeholder remotes.
+
+Do not consider a policy change "done" while it is only local to a bootstrap or
+maintenance branch.
 
 Do not rely on `.codex/master-next.txt` as the only channel for a new policy
 until the affected branches have actually received that policy through git
