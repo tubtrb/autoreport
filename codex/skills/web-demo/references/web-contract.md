@@ -77,8 +77,10 @@ Expected behavior:
 - `report_content` is a high-level AI-facing draft surface.
 - `authoring_payload` is the normalized public authoring surface.
 - `report_payload` is the compiled runtime surface and remains supported for compatibility.
+- In `report_content`, `pattern_id` is the primary layout selector and `kind` is optional when the pattern already exists in the active template contract.
 - Plain YAML and one complete fenced `yaml` block are both accepted.
 - Mixed outputs that split YAML across unfenced text and a later fenced block should be rejected as broken AI output.
+- If an AI returns a truncated or misspelled `pattern_id`, the web layer should surface that contract mismatch clearly instead of leaking an unrelated internal field error.
 
 For image-backed slides:
 

@@ -81,7 +81,6 @@ def write_report_content(path: Path) -> None:
                 "        1. What It Does",
                 "  slides:",
                 "    - pattern_id: text.editorial",
-                "      kind: text",
                 "      slots:",
                 "        title: What It Does",
                 "        body_1: |",

@@ -47,6 +47,7 @@ AI_DRAFT_PROMPT_YAML = """
 # - Each item in report_content.slides becomes one deck slide.
 # - The number of slide entries is the number of content slides in the deck.
 # - pattern_id selects the PPT layout pattern, so it must come from template_contract.
+# - In report_content, kind is optional when pattern_id already matches template_contract.
 # - slots.title / slots.body_1 / slots.image_* / slots.caption_* map to template placeholders.
 # Rules for the other AI:
 # 1. Return the final answer as one fenced ```yaml code block.
@@ -75,13 +76,11 @@ report_content:
         2. Add the second section title
   slides:
     - pattern_id: text.editorial
-      kind: text
       slots:
         title: First section title
         body_1: |
           Write the main narrative for this slide.
     - pattern_id: text_image.editorial
-      kind: text_image
       slots:
         title: Visual proof
         body_1: |
@@ -540,6 +539,34 @@ def _error_response(
     return JSONResponse(status_code=status_code, content=payload)
 
 
+def _collect_missing_uploaded_image_errors(
+    raw_data: dict[str, object],
+    *,
+    available_image_refs: set[str],
+) -> list[str]:
+    payload_kind = detect_payload_kind(raw_data)
+    if payload_kind not in {"authoring", "content"}:
+        return []
+
+    authoring_payload, _ = materialize_authoring_payload(
+        raw_data,
+        _BUILT_IN_CONTRACT,
+        available_image_refs=available_image_refs,
+        enforce_image_refs=False,
+    )
+    errors: list[str] = []
+    for slide in authoring_payload.slides:
+        for image in slide.assets.images:
+            if image.path is not None or image.ref is None:
+                continue
+            if image.ref not in available_image_refs:
+                errors.append(
+                    f"Slide {slide.slide_no} needs an uploaded image for ref '{image.ref}'. "
+                    "Upload the matching file below before generating, or replace the draft image note with a real file path/ref."
+                )
+    return errors
+
+
 @app.get("/", response_class=HTMLResponse)
 def demo_page() -> HTMLResponse:
     return HTMLResponse(INDEX_HTML)
@@ -643,6 +670,19 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
             request,
             keep_temp_dir=True,
         )
+        missing_image_errors = _collect_missing_uploaded_image_errors(
+            raw_data,
+            available_image_refs=set(image_refs.keys()),
+        )
+        if missing_image_errors:
+            _log_result(request_id=request_id, result="error", started_at=started_at, error_type="validation_error")
+            _cleanup_temp_dir(temp_dir_path)
+            return _error_response(
+                status_code=422,
+                error_type="validation_error",
+                message="Payload validation failed.",
+                errors=missing_image_errors,
+            )
         output_path = temp_dir_path / "autoreport_demo.pptx"
         generated_path = generate_report_from_mapping(
             raw_data,

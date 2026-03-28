@@ -68,6 +68,49 @@ authoring_payload:
         image_orientation: auto
 """.strip()
 
+VALID_REPORT_CONTENT_WITH_DESCRIPTIVE_IMAGE_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport
+      subtitle_1: |
+        Template-aware PPTX autofill engine
+  slides:
+    - pattern_id: text_image.editorial
+      slots:
+        title: Visual Proof
+        body_1: |
+          Explain what the visual should prove.
+        image_1: Middle East strategic map infographic
+        caption_1: Example caption
+""".strip()
+
+VALID_REPORT_CONTENT_WITH_TWO_DESCRIPTIVE_IMAGES_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport
+      subtitle_1: |
+        Template-aware PPTX autofill engine
+  slides:
+    - pattern_id: text_image.editorial
+      slots:
+        title: First visual
+        body_1: |
+          First description.
+        image_1: First draft image note
+        caption_1: First caption
+    - pattern_id: text_image.editorial
+      slots:
+        title: Second visual
+        body_1: |
+          Second description.
+        image_1: Second draft image note
+        caption_1: Second caption
+""".strip()
+
 VALID_REPORT_CONTENT_YAML = """
 report_content:
   title_slide:
@@ -84,11 +127,22 @@ report_content:
         1. What It Does
   slides:
     - pattern_id: text.editorial
-      kind: text
       slots:
         title: What It Does
         body_1: |
           Generate editable PowerPoint decks from structured inputs.
+""".strip()
+
+TRUNCATED_CLAUDE_REPORT_CONTENT_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport
+      subtitle_1: |
+        Template-aware PPTX autofill engine
+  slides:
+    - pattern_id: text_image.edito
 """.strip()
 
 MIXED_CHATGPT_STYLE_REPORT_CONTENT = """
@@ -145,6 +199,8 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("# 1. Return the final answer as one fenced ```yaml code block.", response.text)
         self.assertIn("# 3. Do not write any prose before or after the fenced YAML block.", response.text)
         self.assertIn("# - Each item in report_content.slides becomes one deck slide.", response.text)
+        self.assertIn("# - In report_content, kind is optional when pattern_id already matches template_contract.", response.text)
+        self.assertIn("    - pattern_id: text.editorial\\n      slots:", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")
@@ -182,6 +238,18 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("goal: What It Does", response.json()["normalized_authoring_yaml"])
         self.assertIn("report_payload:", response.json()["compiled_yaml"])
 
+    def test_compile_endpoint_accepts_report_content_without_kind(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": VALID_REPORT_CONTENT_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("kind: text", response.json()["normalized_authoring_yaml"])
+
     def test_compile_endpoint_accepts_fenced_report_content(self) -> None:
         response = self.client.post(
             "/api/compile",
@@ -195,6 +263,22 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.json()["payload_kind"], "content")
         self.assertIn("authoring_payload:", response.json()["normalized_authoring_yaml"])
 
+    def test_compile_endpoint_assigns_distinct_global_refs_to_multiple_descriptive_image_notes(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": VALID_REPORT_CONTENT_WITH_TWO_DESCRIPTIVE_IMAGES_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        normalized = response.json()["normalized_authoring_yaml"]
+        self.assertIn("ref: image_1", normalized)
+        self.assertIn("ref: image_2", normalized)
+        self.assertIn("Slide 1: image_1 was mapped to upload ref 'image_1'.", " ".join(response.json()["hints"]))
+        self.assertIn("Slide 2: image_1 was mapped to upload ref 'image_2'.", " ".join(response.json()["hints"]))
+
     def test_compile_endpoint_rejects_mixed_partial_fence_ai_output(self) -> None:
         response = self.client.post(
             "/api/compile",
@@ -207,6 +291,22 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error_type"], "yaml_parse_error")
         self.assertIn("Mixed fenced and unfenced YAML content", response.json()["message"])
+
+    def test_generate_endpoint_returns_clear_error_for_truncated_pattern_id(self) -> None:
+        response = self.client.post(
+            "/api/generate",
+            data={
+                "payload_yaml": TRUNCATED_CLAUDE_REPORT_CONTENT_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error_type"], "validation_error")
+        self.assertIn(
+            "Field 'slides[0].slots' must be an object.",
+            response.json()["errors"],
+        )
 
     def test_generate_endpoint_returns_pptx_attachment_from_authoring_payload(self) -> None:
         response = self.client.post(
@@ -259,6 +359,39 @@ class WebAppTestCase(unittest.TestCase):
             if hasattr(shape, "image")
         ]
         self.assertGreaterEqual(len(image_shapes), 1)
+
+    def test_generate_endpoint_returns_friendly_missing_upload_error_for_report_content_image_notes(self) -> None:
+        response = self.client.post(
+            "/api/generate",
+            data={
+                "payload_yaml": VALID_REPORT_CONTENT_WITH_DESCRIPTIVE_IMAGE_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error_type"], "validation_error")
+        self.assertEqual(response.json()["message"], "Payload validation failed.")
+        self.assertTrue(
+            any(
+                "Slide 1 needs an uploaded image for ref 'image_1'." in item
+                for item in response.json()["errors"]
+            )
+        )
+
+    def test_generate_endpoint_returns_distinct_missing_upload_errors_for_multiple_descriptive_images(self) -> None:
+        response = self.client.post(
+            "/api/generate",
+            data={
+                "payload_yaml": VALID_REPORT_CONTENT_WITH_TWO_DESCRIPTIVE_IMAGES_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        joined = " ".join(response.json()["errors"])
+        self.assertIn("Slide 1 needs an uploaded image for ref 'image_1'.", joined)
+        self.assertIn("Slide 2 needs an uploaded image for ref 'image_2'.", joined)
 
     def test_generate_endpoint_rejects_invalid_image_manifest_json(self) -> None:
         response = self.client.post(

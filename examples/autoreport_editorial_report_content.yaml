@@ -14,7 +14,6 @@ report_content:
         2. Why It Matters
   slides:
     - pattern_id: text.editorial
-      kind: text
       slots:
         title: What It Does
         body_1: |
@@ -22,7 +21,6 @@ report_content:
           PowerPoint deck. Each item in slides becomes one content slide in the
           generated presentation.
     - pattern_id: text_image.editorial
-      kind: text_image
       slots:
         title: Why It Matters
         body_1: |

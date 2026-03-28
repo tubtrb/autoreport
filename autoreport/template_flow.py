@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from difflib import get_close_matches
 from functools import lru_cache
 import json
 from pathlib import Path
@@ -378,12 +379,14 @@ def _normalize_report_content(
         raw_slides = []
 
     slides: list[AuthoringSlide] = []
+    next_generated_image_index = 1
     for index, raw_slide in enumerate(raw_slides, start=1):
-        normalized = _normalize_report_content_slide(
+        normalized, next_generated_image_index = _normalize_report_content_slide(
             raw_slide,
             slide_no=index,
             contract=contract,
             available_image_refs=tuple(available_image_refs),
+            next_generated_image_index=next_generated_image_index,
             hints=hints,
             errors=errors,
         )
@@ -420,36 +423,61 @@ def _normalize_report_content_slide(
     slide_no: int,
     contract: TemplateContract,
     available_image_refs: Iterable[str],
+    next_generated_image_index: int,
     hints: list[str],
     errors: list[str],
-) -> AuthoringSlide | None:
+) -> tuple[AuthoringSlide | None, int]:
     prefix = f"slides[{slide_no - 1}]"
     if not isinstance(raw_slide, dict):
         errors.append(f"Field '{prefix}' must be an object.")
-        return None
+        return None, next_generated_image_index
 
     pattern_id = _optional_string(raw_slide.get("pattern_id"))
-    kind = _optional_string(raw_slide.get("kind")) or _infer_kind_from_pattern(
-        contract,
-        pattern_id,
-    )
-    if kind not in {"text", "metrics", "text_image"}:
+    pattern = _lookup_pattern(contract, pattern_id)
+    if pattern is None and pattern_id is not None:
+        repaired_pattern = _repair_report_content_pattern(contract, pattern_id)
+        if repaired_pattern is not None:
+            hints.append(
+                f"Slide {slide_no}: pattern_id '{pattern_id}' was expanded to "
+                f"'{repaired_pattern.pattern_id}' from the template contract."
+            )
+            pattern = repaired_pattern
+            pattern_id = repaired_pattern.pattern_id
+    if pattern_id is not None and pattern is None:
         errors.append(
-            f"Field '{prefix}.kind' must be one of 'text', 'metrics', or 'text_image'."
+            _build_unknown_report_content_pattern_error(
+                contract=contract,
+                prefix=prefix,
+                pattern_id=pattern_id,
+            )
         )
-        return None
+        return None, next_generated_image_index
 
     slots = raw_slide.get("slots")
     if not isinstance(slots, dict):
         errors.append(f"Field '{prefix}.slots' must be an object.")
-        return None
+        return None, next_generated_image_index
+
+    kind = _infer_report_content_kind(
+        contract,
+        raw_slide=raw_slide,
+        pattern=pattern,
+        slots=slots,
+    )
+    if kind is None:
+        errors.append(
+            f"Field '{prefix}' needs a valid pattern_id or enough slide structure "
+            "for Autoreport to infer a supported template pattern."
+        )
+        return None, next_generated_image_index
 
     goal = _normalize_scalar_slot(slots.get("title"), fallback=f"Slide {slide_no}")
     body_text = _normalize_multiline_text(slots.get("body_1"))
     caption = _optional_string(slots.get("caption_1"))
-    images, image_notes = _normalize_report_content_images(
+    images, image_notes, next_generated_image_index = _normalize_report_content_images(
         slots,
         available_image_refs=available_image_refs,
+        next_generated_image_index=next_generated_image_index,
     )
     for note in image_notes:
         hints.append(f"Slide {slide_no}: {note}")
@@ -474,19 +502,22 @@ def _normalize_report_content_slide(
         pattern_id=pattern_id,
         image_count=(len(images) if kind == "text_image" else None),
         image_orientation=(
-            _pattern_image_layout(_lookup_pattern(contract, pattern_id))
-            if kind == "text_image" and pattern_id is not None and _lookup_pattern(contract, pattern_id) is not None
+            _pattern_image_layout(pattern)
+            if kind == "text_image" and pattern is not None
             else "auto"
         ),
     )
 
-    return AuthoringSlide(
-        slide_no=slide_no,
-        goal=goal,
-        include_in_contents=True,
-        context=context,
-        assets=AuthoringSlideAssets(images=images if kind == "text_image" else []),
-        layout_request=layout_request,
+    return (
+        AuthoringSlide(
+            slide_no=slide_no,
+            goal=goal,
+            include_in_contents=True,
+            context=context,
+            assets=AuthoringSlideAssets(images=images if kind == "text_image" else []),
+            layout_request=layout_request,
+        ),
+        next_generated_image_index,
     )
 
 
@@ -494,7 +525,8 @@ def _normalize_report_content_images(
     slots: dict[str, Any],
     *,
     available_image_refs: Iterable[str],
-) -> tuple[list[ImageSpec], list[str]]:
+    next_generated_image_index: int,
+) -> tuple[list[ImageSpec], list[str], int]:
     images: list[ImageSpec] = []
     notes: list[str] = []
     available_ref_set = set(available_image_refs)
@@ -508,7 +540,12 @@ def _normalize_report_content_images(
         raw_value = slots.get(alias)
         normalized = _optional_string(raw_value)
         if normalized is None:
-            images.append(ImageSpec(ref=alias, fit="contain"))
+            generated_ref = f"image_{next_generated_image_index}"
+            images.append(ImageSpec(ref=generated_ref, fit="contain"))
+            notes.append(
+                f"{alias} was mapped to upload ref '{generated_ref}'. Upload a real image file for that ref later."
+            )
+            next_generated_image_index += 1
             continue
 
         looks_like_path = any(token in normalized for token in ("\\", "/")) or normalized.lower().endswith(
@@ -521,10 +558,14 @@ def _normalize_report_content_images(
             images.append(ImageSpec(path=Path(normalized), fit="contain"))
             continue
 
-        images.append(ImageSpec(ref=alias, fit="contain"))
-        notes.append(f"{alias} should later be replaced with a real uploaded image. Draft note: {normalized}")
+        generated_ref = f"image_{next_generated_image_index}"
+        images.append(ImageSpec(ref=generated_ref, fit="contain"))
+        notes.append(
+            f"{alias} was mapped to upload ref '{generated_ref}'. Draft note: {normalized}. Upload a matching image for that ref later."
+        )
+        next_generated_image_index += 1
 
-    return images, notes
+    return images, notes, next_generated_image_index
 
 
 def _parse_metric_items(body_text: str | None) -> list[MetricItem]:
@@ -574,14 +615,99 @@ def _lookup_pattern(
     return None
 
 
-def _infer_kind_from_pattern(
+def _repair_report_content_pattern(
     contract: TemplateContract,
-    pattern_id: str | None,
+    pattern_id: str,
+) -> TemplatePatternContract | None:
+    prefix_matches = [
+        pattern
+        for pattern in contract.slide_patterns
+        if pattern.pattern_id.startswith(pattern_id)
+    ]
+    if len(prefix_matches) == 1:
+        return prefix_matches[0]
+    if prefix_matches:
+        shortest_match = min(prefix_matches, key=lambda pattern: len(pattern.pattern_id))
+        if all(
+            match.pattern_id.startswith(shortest_match.pattern_id)
+            for match in prefix_matches
+        ):
+            return shortest_match
+    return None
+
+
+def _build_unknown_report_content_pattern_error(
+    *,
+    contract: TemplateContract,
+    prefix: str,
+    pattern_id: str,
+) -> str:
+    known_pattern_ids = [pattern.pattern_id for pattern in contract.slide_patterns]
+    close_matches = get_close_matches(pattern_id, known_pattern_ids, n=3, cutoff=0.55)
+    if close_matches:
+        formatted = ", ".join(f"'{match}'" for match in close_matches)
+        return (
+            f"Field '{prefix}.pattern_id' must match a template pattern from the "
+            f"contract. Got '{pattern_id}'. Closest matches: {formatted}."
+        )
+    return (
+        f"Field '{prefix}.pattern_id' must match a template pattern from the "
+        f"contract. Got '{pattern_id}'."
+    )
+
+
+def _infer_report_content_kind(
+    contract: TemplateContract,
+    *,
+    raw_slide: dict[str, Any],
+    pattern: TemplatePatternContract | None,
+    slots: dict[str, Any],
 ) -> str | None:
-    pattern = _lookup_pattern(contract, pattern_id)
-    if pattern is None:
-        return None
-    return pattern.kind
+    if pattern is not None:
+        return pattern.kind
+
+    supported_kinds = {
+        candidate.kind for candidate in contract.slide_patterns if candidate.kind
+    }
+    raw_kind = _optional_string(raw_slide.get("kind"))
+    if raw_kind in supported_kinds:
+        return raw_kind
+
+    image_alias_count = sum(
+        1
+        for alias in slots
+        if isinstance(alias, str) and alias.startswith("image_")
+    )
+    if image_alias_count > 0 and "text_image" in supported_kinds:
+        return "text_image"
+
+    if _looks_like_metrics_body(slots) and "metrics" in supported_kinds:
+        return "metrics"
+
+    if "text" in supported_kinds:
+        return "text"
+
+    if len(supported_kinds) == 1:
+        return next(iter(supported_kinds))
+
+    return None
+
+
+def _looks_like_metrics_body(slots: dict[str, Any]) -> bool:
+    body_text = _normalize_multiline_text(slots.get("body_1"))
+    if body_text is None:
+        return False
+
+    lines = [line.strip() for line in body_text.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return False
+
+    metric_like_lines = 0
+    for line in lines:
+        normalized = line.lstrip("-").lstrip("•").strip()
+        if ":" in normalized:
+            metric_like_lines += 1
+    return metric_like_lines == len(lines)
 
 
 def _normalize_scalar_slot(raw: Any, *, fallback: str) -> str:
