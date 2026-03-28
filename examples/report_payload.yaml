@@ -1,0 +1,35 @@
+# Example Autoreport payload in YAML format.
+report_payload:
+  payload_version: autoreport.payload.v1
+  template_id: autoreport-editorial-v1
+  title_slide:
+    title: Autoreport
+    subtitle:
+      - Template-aware PPTX autofill engine
+      - Turn one template into repeatable decks
+  contents:
+    enabled: true
+  slides:
+    - kind: text
+      title: Why Teams Use Autoreport
+      include_in_contents: true
+      body:
+        - Reuse existing templates instead of rebuilding recurring slides by hand.
+        - Keep deck structure deterministic enough for reviewable automation.
+      slot_overrides: {}
+    - kind: metrics
+      title: Adoption Snapshot
+      include_in_contents: true
+      items:
+        - label: Templates profiled
+          value: 12
+        - label: Decks generated
+          value: 24
+      slot_overrides: {}
+    - kind: text
+      title: Demo Surfaces
+      include_in_contents: true
+      body:
+        - Use the CLI for scripted generation or the web demo for quick iteration.
+        - Both entry points share the same validation and PowerPoint pipeline.
+      slot_overrides: {}

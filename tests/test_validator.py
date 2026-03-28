@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from autoreport.models import ReportPayload, TemplateContract
+from autoreport.loader import load_yaml
 from autoreport.template_flow import get_built_in_contract
 from autoreport.validator import (
     ValidationError,
@@ -149,6 +151,33 @@ class ValidatorTestCase(unittest.TestCase):
                 "Field 'slides[0].slot_overrides.text_image.unknown' targets an unknown slot for the selected pattern.",
             ],
         )
+
+    def test_validate_payload_accepts_yaml_example_file(self) -> None:
+        payload = validate_payload(
+            load_yaml(Path("examples") / "report_payload.yaml"),
+            get_built_in_contract(),
+        )
+
+        self.assertEqual(payload.template_id, "autoreport-editorial-v1")
+        self.assertEqual(
+            payload.title_slide.subtitle,
+            [
+                "Template-aware PPTX autofill engine",
+                "Turn one template into repeatable decks",
+            ],
+        )
+        self.assertEqual(payload.slides[0].title, "Why Teams Use Autoreport")
+        self.assertEqual(payload.slides[1].kind, "metrics")
+
+    def test_validate_payload_accepts_json_example_file(self) -> None:
+        payload = validate_payload(
+            load_yaml(Path("examples") / "report_payload.json"),
+            get_built_in_contract(),
+        )
+
+        self.assertEqual(payload.template_id, "autoreport-editorial-v1")
+        self.assertEqual(payload.slides[1].title, "Adoption Snapshot")
+        self.assertEqual(payload.slides[2].title, "Demo Surfaces")
 
 
 if __name__ == "__main__":

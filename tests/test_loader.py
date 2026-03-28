@@ -88,6 +88,30 @@ class LoaderTestCase(unittest.TestCase):
         with self.assertRaises(yaml.YAMLError):
             parse_yaml_text("title: [broken")
 
+    def test_load_yaml_reads_report_payload_yaml_example(self) -> None:
+        loaded = load_yaml(Path("examples") / "report_payload.yaml")
+
+        self.assertEqual(
+            loaded["report_payload"]["title_slide"]["title"],
+            "Autoreport",
+        )
+        self.assertEqual(
+            loaded["report_payload"]["slides"][1]["items"][0]["label"],
+            "Templates profiled",
+        )
+
+    def test_load_yaml_reads_report_payload_json_example(self) -> None:
+        loaded = load_yaml(Path("examples") / "report_payload.json")
+
+        self.assertEqual(
+            loaded["report_payload"]["slides"][0]["kind"],
+            "text",
+        )
+        self.assertEqual(
+            loaded["report_payload"]["slides"][2]["title"],
+            "Demo Surfaces",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
