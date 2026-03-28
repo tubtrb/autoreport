@@ -103,6 +103,30 @@ class WorkstreamRuntimeTests(unittest.TestCase):
         self.assertIn("must\n  be a single shared reminder", orchestrator_skill_text)
         self.assertIn("must\n  not regenerate or paraphrase branch-specific instructions", orchestration_ref_text)
 
+    def test_stale_code_cleanup_policy_is_present_in_bootstrap_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agents_text = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+        autoreport_skill_text = (
+            repo_root / "codex" / "skills" / "autoreport-dev" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestrator_skill_text = (
+            repo_root / "codex" / "skills" / "workstream-orchestrator" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestration_ref_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "workstream-orchestrator"
+            / "references"
+            / "orchestration.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("stale code", agents_text)
+        self.assertIn("Do not keep \"old but maybe useful later\" tracked code", agents_text)
+        self.assertIn("remove the stale predecessor path in the same task", autoreport_skill_text)
+        self.assertIn("stale predecessor code", orchestrator_skill_text)
+        self.assertIn("Treat stale tracked code", orchestration_ref_text)
+
     def test_report_example_templates_cover_required_fields(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         status_template = json.loads(

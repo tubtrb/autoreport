@@ -59,6 +59,9 @@ and routes deeper work to one primary focused skill.
 - Contract or payload changes should update the public example files and tests.
 - User-visible behavior changes should update the nearest tests in the same change.
 - Public wording changes should keep README and package metadata aligned with real behavior.
+- When a task supersedes an older contract, homepage flow, helper, example, or copy block, remove the stale predecessor path in the same task instead of leaving both versions behind.
+- Treat duplicate old/new paths as blockers unless compatibility is intentional, documented, and covered by tests.
+- Use git history and tags for rollback, not tracked dead code kept around "just in case."
 - Any task that could make files public should run `public-repo-safety` before signoff.
 - If versioned posts under `docs/posts/` are part of the task and the branch is being wrapped up, run `autorelease-handoff` before calling the work finished.
 

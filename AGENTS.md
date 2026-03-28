@@ -55,6 +55,10 @@
 - When both repo-local and personal/global skills exist, explicitly load the repo-local path under `codex/skills/` and treat it as authoritative for this repository.
 - If a focused skill is missing or incomplete, continue with this baseline plus `autoreport-dev` and report the coverage gap instead of hard-failing the session.
 - Keep AI/process guidance out of the public product story; do not move bootstrap narrative into `README.md` unless there is an explicit contributor-facing reason.
+- Treat stale code, stale sample payloads, stale UI copy, and other superseded implementation paths as blockers rather than optional cleanup.
+- When a task replaces a public contract, homepage flow, CLI path, or template behavior, remove the superseded tracked code, docs, tests, and examples in the same task unless compatibility is intentionally preserved.
+- Do not keep "old but maybe useful later" tracked code as a safety blanket; rely on git history, tags, and explicit compatibility shims instead of leaving dead paths in the live repo.
+- If compatibility really must remain, document that choice and keep it covered by tests so it is an explicit supported path rather than leftover code trash.
 - For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `codex/v0.3-master`, pushed, and the active task worktrees have been synchronized onto that pushed base.
 - When old sibling directories from retired `codex/v0.3-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
 - If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v0.3-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.
