@@ -200,7 +200,10 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("# 3. Do not write any prose before or after the fenced YAML block.", response.text)
         self.assertIn("# - Each item in report_content.slides becomes one deck slide.", response.text)
         self.assertIn("# - In report_content, kind is optional when pattern_id already matches template_contract.", response.text)
+        self.assertIn("# 8. Only use text_image patterns when the user explicitly wants a visual and can provide or upload a real image later.", response.text)
+        self.assertIn("# 9. If no real image is available, do not add slots.image_* or caption_* fields. Use text.editorial or metrics.editorial instead.", response.text)
         self.assertIn("    - pattern_id: text.editorial\\n      slots:", response.text)
+        self.assertNotIn("Describe the image the next AI should source or create.", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")

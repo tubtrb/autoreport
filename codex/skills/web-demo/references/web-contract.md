@@ -39,6 +39,8 @@ User-app UI contract:
 - Keep helper panes optional. Contract view and compiled runtime view may exist, but must stay secondary to the main authoring flow.
 - Avoid manual slide-by-slide builder controls in the user app when the intended flow is "ask another AI for N slides, paste, generate."
 - The AI package should instruct the external AI to return exactly one fenced `yaml` code block with no prose before or after it.
+- The AI package should tell the external AI to prefer non-image patterns unless the user explicitly has a real visual to upload later.
+- If no real image is available, the prompt should tell the external AI not to invent `slots.image_*` fields or image slides just because a visual might be nice.
 
 ## Debug App Contract
 

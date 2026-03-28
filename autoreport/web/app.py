@@ -57,9 +57,11 @@ AI_DRAFT_PROMPT_YAML = """
 # 5. Do not declare the total slide count anywhere. Autoreport infers it from slides[*].
 # 6. Choose pattern_id values from the template contract.
 # 7. Put narrative text into slots.body_1.
-# 8. For image slides, describe the desired visual in slots.image_1 / image_2 / image_3.
-# 9. Actual image files are uploaded later in the web app or passed as CLI paths.
-# 10. If the template contract exposes 2-image or 3-image patterns, use the matching pattern_id.
+# 8. Only use text_image patterns when the user explicitly wants a visual and can provide or upload a real image later.
+# 9. If no real image is available, do not add slots.image_* or caption_* fields. Use text.editorial or metrics.editorial instead.
+# 10. When a real image will be provided later, describe it in slots.image_1 / image_2 / image_3.
+# 11. Actual image files are uploaded later in the web app or passed as CLI paths.
+# 12. If the template contract exposes 2-image or 3-image patterns, use them only when the user truly has that many visuals.
 report_content:
   title_slide:
     pattern_id: cover.editorial
@@ -80,13 +82,6 @@ report_content:
         title: First section title
         body_1: |
           Write the main narrative for this slide.
-    - pattern_id: text_image.editorial
-      slots:
-        title: Visual proof
-        body_1: |
-          Explain what the visual should prove.
-        image_1: Describe the image the next AI should source or create.
-        caption_1: Optional caption
 """.strip()
 app = FastAPI(
     title="Autoreport Demo",
