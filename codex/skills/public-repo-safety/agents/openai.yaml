@@ -1,0 +1,4 @@
+interface:
+  display_name: "Public Repo Safety"
+  short_description: "Check public repo hygiene and leaks"
+  default_prompt: "Use $public-repo-safety to check the current Autoreport repo for secrets, PII, unsafe screenshots, and public-release risks before anything is pushed or published."

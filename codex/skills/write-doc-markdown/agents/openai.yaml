@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Doc Markdown"
+  short_description: "Draft WordPress docs in KO/EN"
+  default_prompt: "Use $write-doc-markdown to draft a Korean development log or an English release note or user guide from the current autoreport repo state."

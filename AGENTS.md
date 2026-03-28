@@ -43,10 +43,16 @@
 - YAML loading, models, validator rules, example payload, schema tests -> `report-schema`
 - Template shaping, generation orchestration, writer behavior, template compatibility -> `pptx-output`
 - FastAPI routes, HTML demo surface, API error shape, web tests -> `web-demo`
+- Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
+- Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`
 - README, release notes, packaging metadata, public wording alignment -> `release-docs`
+- WordPress-style public Markdown posts for development logs, release notes, and user guides -> `write-doc-markdown`
 - If a task genuinely spans multiple surfaces, keep one primary skill and consult adjacent skills only where necessary.
 
 ## Bootstrap Rules
 - When both repo-local and personal/global skills exist, explicitly load the repo-local path under `codex/skills/` and treat it as authoritative for this repository.
 - If a focused skill is missing or incomplete, continue with this baseline plus `autoreport-dev` and report the coverage gap instead of hard-failing the session.
 - Keep AI/process guidance out of the public product story; do not move bootstrap narrative into `README.md` unless there is an explicit contributor-facing reason.
+- Before any public push, PR, release, publish-ready doc handoff, or claim that the repo is safe to share publicly, load `codex/skills/public-repo-safety/SKILL.md` and run its blocker checks.
+- If `public-repo-safety` finds a blocker in a tracked file or a non-ignored untracked file, stop the public-sharing flow until the finding is removed or intentionally resolved.
+- Do not promote ignored screenshots or local artifacts into tracked docs paths without reviewing them through `public-repo-safety`.

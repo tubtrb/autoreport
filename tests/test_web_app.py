@@ -36,10 +36,12 @@ class WebAppTestCase(unittest.TestCase):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("YAML을 붙여 넣고 바로 PPTX를 받아보세요.", response.text)
-        self.assertIn("예제 불러오기", response.text)
-        self.assertIn("현재 상태", response.text)
-        self.assertIn("Autoreport 공개 데모", response.text)
+        self.assertIn("Paste YAML and get a PPTX instantly.", response.text)
+        self.assertIn("Load Example", response.text)
+        self.assertIn("Current Status", response.text)
+        self.assertIn("Autoreport Public Demo", response.text)
+        self.assertIn("generated PPTX output is", response.text)
+        self.assertIn("cleaned up after download by default.", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")

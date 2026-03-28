@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Verification"
+  short_description: "Verify release flows and gather evidence"
+  default_prompt: "Use $release-verification to run release-time checks for the current Autoreport branch, capture browser evidence, and summarize ship readiness."

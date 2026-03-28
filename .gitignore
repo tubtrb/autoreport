@@ -54,6 +54,8 @@ tests/_tmp/
 tests/tmp*/
 output/
 .codex/autoreport-dev/
+.playwright-cli/
+docs/posts/
 
 # Translations
 *.mo

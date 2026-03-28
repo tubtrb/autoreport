@@ -59,11 +59,11 @@ def _render_demo_html() -> str:
 
     example_json = json.dumps(DEFAULT_EXAMPLE_YAML.strip())
     return """<!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Autoreport 공개 데모</title>
+    <title>Autoreport Demo</title>
     <style>
       :root {
         color-scheme: light;
@@ -74,7 +74,6 @@ def _render_demo_html() -> str:
         --muted: #64748b;
         --accent: #064e3b;
         --accent-soft: rgba(6, 78, 59, 0.08);
-        --accent-line: rgba(6, 78, 59, 0.12);
         --border: #e2e8f0;
         --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
         --error-bg: #fef2f2;
@@ -100,7 +99,7 @@ def _render_demo_html() -> str:
           radial-gradient(circle at top right, rgba(6, 78, 59, 0.08), rgba(6, 78, 59, 0) 30%),
           var(--bg);
         color: var(--text);
-        font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+        font-family: "Segoe UI", Arial, sans-serif;
       }
 
       main {
@@ -441,14 +440,15 @@ def _render_demo_html() -> str:
     <main>
       <div class="page">
         <section class="hero">
-          <h1>YAML을 붙여 넣고 바로 PPTX를 받아보세요.</h1>
+          <h1>Paste YAML and get a PPTX instantly.</h1>
           <p>
-            이 데모는 weekly report 스키마를 기준으로 YAML 입력을 검증하고,
-            즉시 PowerPoint 보고서를 생성합니다.
+            This demo validates weekly report YAML against the current schema and
+            generates a PowerPoint deck right away.
           </p>
           <p class="subcopy">
-            입력 구조와 결과 흐름을 빠르게 확인할 수 있는 공개 데모이며,
-            붙여 넣은 내용은 요청 처리 외 목적으로 저장하지 않습니다.
+            Use the sample input or paste your own report data. Submitted content
+            is processed only to generate the file, and generated PPTX output is
+            cleaned up after download by default.
           </p>
         </section>
 
@@ -459,29 +459,29 @@ def _render_demo_html() -> str:
                 <div class="pane-header">
                   <div class="pane-title">
                     <span class="pane-title-mark" aria-hidden="true"></span>
-                    <span>YAML 데이터</span>
+                    <span>YAML Input</span>
                   </div>
                   <button id="load-example" class="ghost-button" type="button">
-                    예제 불러오기
+                    Load Example
                   </button>
                 </div>
                 <textarea
                   id="report-yaml"
                   spellcheck="false"
-                  aria-label="보고서 YAML 입력"
-                  placeholder="여기에 YAML 코드를 붙여넣으세요..."
+                  aria-label="Report YAML input"
+                  placeholder="Paste your YAML here..."
                 ></textarea>
               </div>
 
               <aside class="status-pane">
                 <div class="status-stack">
                   <section class="status-card">
-                    <div class="status-label">현재 상태</div>
+                    <div class="status-label">Current Status</div>
                     <div id="status-panel" class="status-panel status-idle" aria-live="polite">
                       <span id="status-icon" class="status-icon" aria-hidden="true">i</span>
                       <div class="status-copy">
                         <p id="status-message">
-                          예제를 불러오거나 직접 YAML을 입력한 뒤 PPTX를 생성하세요.
+                          Load the example or paste your own YAML, then generate a PPTX.
                         </p>
                         <ul id="error-list" class="error-list"></ul>
                       </div>
@@ -489,11 +489,12 @@ def _render_demo_html() -> str:
                   </section>
 
                   <button id="generate-button" class="primary-button" type="button">
-                    <span id="generate-label">PPTX 생성</span>
+                    <span id="generate-label">Generate PPTX</span>
                   </button>
 
                   <p class="footnote">
-                    지원 범위: 기본 weekly template, YAML 붙여넣기, 즉시 다운로드
+                    Current scope: built-in weekly template, pasted YAML input,
+                    instant download
                   </p>
                 </div>
               </aside>
@@ -501,7 +502,10 @@ def _render_demo_html() -> str:
           </div>
         </section>
 
-        <p class="footer-note">Autoreport 공개 데모 · 입력된 내용은 서버에 저장되지 않습니다.</p>
+        <p class="footer-note">
+          Autoreport Public Demo - Submitted YAML is not retained, and generated
+          PPTX files are cleaned up after download.
+        </p>
       </div>
     </main>
 
@@ -525,19 +529,19 @@ def _render_demo_html() -> str:
         if (mode === "loading") {
           statusIcon.textContent = "";
           statusIcon.className = "status-icon loading";
-          generateLabel.textContent = "생성 중...";
+          generateLabel.textContent = "Generating...";
         } else if (mode === "success") {
-          statusIcon.textContent = "✓";
+          statusIcon.textContent = "OK";
           statusIcon.className = "status-icon";
-          generateLabel.textContent = "PPTX 다시 생성";
+          generateLabel.textContent = "Generate Again";
         } else if (mode === "error") {
           statusIcon.textContent = "!";
           statusIcon.className = "status-icon";
-          generateLabel.textContent = "PPTX 생성";
+          generateLabel.textContent = "Generate PPTX";
         } else {
           statusIcon.textContent = "i";
           statusIcon.className = "status-icon";
-          generateLabel.textContent = "PPTX 생성";
+          generateLabel.textContent = "Generate PPTX";
         }
 
         for (const item of errors) {
@@ -558,17 +562,20 @@ def _render_demo_html() -> str:
         textarea.value = EXAMPLE_YAML;
         setStatus(
           "idle",
-          "예제 YAML을 불러왔습니다. 내용을 확인한 뒤 바로 PPTX를 생성할 수 있습니다."
+          "Sample YAML loaded. Review the content or generate the PPTX right away."
         );
       });
 
       generateButton.addEventListener("click", async () => {
         if (!textarea.value.trim()) {
-          setStatus("error", "생성에 실패했습니다. 올바른 YAML 데이터를 입력해주세요.");
+          setStatus("error", "Generation failed. Please provide valid YAML input.");
           return;
         }
 
-        setBusy(true, "입력된 YAML을 검증하고 PPTX 파일을 생성하고 있습니다...");
+        setBusy(
+          true,
+          "Validating the YAML input and generating your PPTX file..."
+        );
 
         try {
           const response = await fetch("/api/generate", {
@@ -586,7 +593,7 @@ def _render_demo_html() -> str:
             generateButton.disabled = false;
             setStatus(
               "error",
-              payload.message || "생성에 실패했습니다. 오류를 확인하고 다시 시도해 주세요.",
+              payload.message || "Generation failed. Review the error details and try again.",
               payload.errors || []
             );
             return;
@@ -603,12 +610,12 @@ def _render_demo_html() -> str:
           URL.revokeObjectURL(downloadUrl);
 
           generateButton.disabled = false;
-          setStatus("success", "생성이 완료되었습니다. 다운로드가 곧 시작됩니다.");
+          setStatus("success", "Generation complete. Your download should begin shortly.");
         } catch (error) {
           generateButton.disabled = false;
           setStatus(
             "error",
-            "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+            "A network error occurred. Please wait a moment and try again."
           );
         }
       });

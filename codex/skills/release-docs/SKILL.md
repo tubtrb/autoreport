@@ -1,6 +1,6 @@
 ---
 name: release-docs
-description: Keep README, release notes, package metadata, examples, and public wording aligned with the current autoreport implementation.
+description: Keep README, package metadata, examples, and repo-tracked public wording aligned with the current autoreport implementation. For WordPress-style development logs, release notes, and user guides, use the dedicated `write-doc-markdown` skill.
 ---
 
 # Release Docs
@@ -8,7 +8,8 @@ description: Keep README, release notes, package metadata, examples, and public 
 ## Overview
 
 Use this skill for `README.md`, `pyproject.toml`, release notes,
-example payload wording, packaging text, and other public-facing project descriptions.
+example payload wording, packaging text, and other public-facing project descriptions
+that live in the repository. Use `write-doc-markdown` for WordPress-style post generation.
 
 ## Mandatory Preload
 
@@ -19,6 +20,9 @@ example payload wording, packaging text, and other public-facing project descrip
 - Read `../../../pyproject.toml`.
 - Read any relevant repo-tracked `release-note-*.md` files when version framing or historical messaging matters.
 - Read `../../../examples/weekly_report.yaml`.
+- Read `../public-repo-safety/SKILL.md` before final public signoff or before promoting screenshots into tracked docs.
+- If the user wants a WordPress-style post, switch to `../write-doc-markdown/SKILL.md`.
+- If the user wants the docs backed by fresh smoke-test evidence, browser captures, or release signoff notes, also consult `../release-verification/SKILL.md`.
 - If docs describe a runtime behavior, inspect the matching code/tests before editing.
 
 ## Workflow
@@ -30,6 +34,7 @@ example payload wording, packaging text, and other public-facing project descrip
 2. Keep public messaging product-first.
 - Do not move bootstrap or AI-process narrative into top-level product copy by default.
 - Keep contributor/bootstrap guidance in `AGENTS.md` and repo-local skills instead.
+- Treat WordPress-style blog posts as a separate writing surface owned by `write-doc-markdown`.
 
 3. Update linked surfaces together.
 - If entrypoints change, update README and `pyproject.toml` together.

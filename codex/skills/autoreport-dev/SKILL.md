@@ -21,7 +21,10 @@ and routes deeper work to one primary focused skill.
   - Loader/schema/example/tests -> `../report-schema/SKILL.md`
   - Template/generator/writer -> `../pptx-output/SKILL.md`
   - FastAPI/demo HTML/API -> `../web-demo/SKILL.md`
+  - Public repo safety, leak scans, and screenshot hygiene -> `../public-repo-safety/SKILL.md`
+  - Release readiness checks, browser smoke tests, and evidence capture -> `../release-verification/SKILL.md`
   - README/release/package messaging -> `../release-docs/SKILL.md`
+  - WordPress-style development logs, release notes, and user guides -> `../write-doc-markdown/SKILL.md`
 - If a focused skill is missing, continue with this umbrella guidance and report the coverage gap.
 
 ## Workflow
@@ -47,6 +50,7 @@ and routes deeper work to one primary focused skill.
 - Schema changes should update example YAML and tests.
 - User-visible behavior changes should update the nearest tests in the same change.
 - Public wording changes should keep README and package metadata aligned with real behavior.
+- Any task that could make files public should run `public-repo-safety` before signoff.
 
 5. Verify narrowly before broadening.
 - Run the smallest relevant unittest target first.
