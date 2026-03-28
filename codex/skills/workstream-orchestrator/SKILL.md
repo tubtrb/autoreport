@@ -79,6 +79,10 @@ force-push decisions whenever branch history needs to stay aligned.
 - By default, only empty retired directories should be removed automatically.
   Non-empty retired directories should be surfaced as blockers unless the user
   explicitly wants the stronger cleanup mode.
+- If cleanup fails because Windows reports a directory lock against an otherwise
+  empty retired sibling, pause and ask the user to restart the Codex desktop
+  app first, then rerun the cleanup script before trying stronger manual
+  deletion steps.
 
 5. Write the next-step instructions.
 - Keep each instruction short, concrete, and copy-pastable.

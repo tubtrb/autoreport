@@ -35,6 +35,9 @@ the branch suffix and infer a narrow test recipe from the branch name.
   - delete retired empty directories automatically
   - report retired non-empty directories as blockers unless the user explicitly
     opts into `--allow-nonempty`
+- If a retired empty directory is blocked by `WinError 32` or another Windows
+  lock, the first retry step is to ask the user to restart the Codex desktop
+  app and then rerun `cleanup_retired_worktrees.py --delete`.
 - Keep cleanup scoped to the workspace root so it cannot reach unrelated
   directories.
 
@@ -114,6 +117,9 @@ Detailed sync sequence:
    user explicitly wants placeholder remotes.
 7. After the sync succeeds, run retired sibling cleanup when old `autoreport_v0.3-*`
    directories remain in the workspace.
+8. If cleanup reports an empty retired directory blocked by a Windows lock,
+   ask the user to restart the Codex desktop app, then rerun the cleanup step
+   before escalating to stronger manual deletion.
 
 Do not consider a policy change "done" while it is only local to a bootstrap or
 maintenance branch.
