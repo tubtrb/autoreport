@@ -1,74 +1,34 @@
-"""PowerPoint output support for rendered weekly reports."""
+"""PowerPoint output support for contract-first Autoreport decks."""
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from zipfile import BadZipFile
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.exc import PackageNotFoundError
+from pptx.parts.image import Image
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
 from pptx.util import Pt
 
 from autoreport.outputs.errors import (
     OutputWriteError,
-    TemplateCompatibilityError,
     TemplateLoadError,
     TemplateNotFoundError,
     TemplateReadError,
 )
-from autoreport.templates.autofill import FillPlan, PlannedSlide, SlideDecoration
-from autoreport.templates.weekly_report import profile_weekly_template
+from autoreport.templates.autofill import (
+    FillPlan,
+    PlannedImageFill,
+    PlannedSlide,
+    PlannedTextFill,
+    SlideDecoration,
+)
 
 
 class PowerPointWriter:
     """Write report content into a `.pptx` presentation."""
-
-    def write(
-        self,
-        *,
-        template_path: Path | None,
-        output_path: Path,
-        context: dict[str, Any],
-    ) -> Path:
-        """Write a PowerPoint file using a template and prepared context."""
-
-        presentation = self._load_presentation(template_path)
-        self._ensure_weekly_template_compatibility(
-            presentation,
-            template_path=template_path,
-        )
-        self._clear_slides(presentation)
-
-        for slide_context in context.get("slides", []):
-            layout = slide_context["layout"]
-            if layout == "title":
-                self._add_title_slide(
-                    presentation,
-                    title=slide_context["title"],
-                    subtitle=slide_context["subtitle"],
-                )
-                continue
-
-            if layout == "bullets":
-                self._add_bullet_slide(
-                    presentation,
-                    title=slide_context["title"],
-                    items=slide_context["items"],
-                )
-                continue
-
-            raise ValueError(f"Unsupported slide layout: {layout}")
-
-        try:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            presentation.save(str(output_path))
-        except OSError as exc:
-            raise OutputWriteError(output_path) from exc
-
-        return output_path
 
     def write_fill_plan(
         self,
@@ -107,60 +67,6 @@ class PowerPointWriter:
         except OSError as exc:
             raise TemplateReadError(template_path) from exc
 
-    def _ensure_weekly_template_compatibility(
-        self,
-        presentation: Presentation,
-        *,
-        template_path: Path | None,
-    ) -> None:
-        """Verify the template exposes the layouts/placeholders weekly reports use."""
-
-        profile_weekly_template(
-            presentation,
-            template_path=template_path,
-        )
-
-    def _assert_layout_access(
-        self,
-        presentation: Presentation,
-        *,
-        layout_index: int,
-        placeholder_index: int,
-        layout_name: str,
-        template_path: Path | None,
-    ) -> None:
-        """Check that the expected layout and placeholder can be instantiated."""
-
-        try:
-            layout = presentation.slide_layouts[layout_index]
-        except IndexError as exc:
-            raise TemplateCompatibilityError(
-                template_path,
-                f"missing '{layout_name}' slide layout at index {layout_index}",
-            ) from exc
-
-        try:
-            slide = presentation.slides.add_slide(layout)
-            if slide.shapes.title is None:
-                raise TemplateCompatibilityError(
-                    template_path,
-                    f"'{layout_name}' layout has no title placeholder",
-                )
-            placeholder = slide.placeholders[placeholder_index]
-            if not hasattr(placeholder, "text_frame"):
-                raise TemplateCompatibilityError(
-                    template_path,
-                    f"'{layout_name}' layout placeholder {placeholder_index} "
-                    f"does not support text",
-                )
-        except TemplateCompatibilityError:
-            raise
-        except (AttributeError, IndexError, KeyError) as exc:
-            raise TemplateCompatibilityError(
-                template_path,
-                f"'{layout_name}' layout is missing placeholder {placeholder_index}",
-            ) from exc
-
     def _clear_slides(self, presentation: Presentation) -> None:
         """Remove existing slides while preserving the template theme."""
 
@@ -169,38 +75,6 @@ class PowerPointWriter:
             relationship_id = slide_id.rId
             presentation.part.drop_rel(relationship_id)
             presentation.slides._sldIdLst.remove(slide_id)
-
-    def _add_title_slide(
-        self,
-        presentation: Presentation,
-        *,
-        title: str,
-        subtitle: str,
-    ) -> None:
-        """Add the opening title slide."""
-
-        slide = presentation.slides.add_slide(presentation.slide_layouts[0])
-        slide.shapes.title.text = title
-        slide.placeholders[1].text = subtitle
-
-    def _add_bullet_slide(
-        self,
-        presentation: Presentation,
-        *,
-        title: str,
-        items: list[str],
-    ) -> None:
-        """Add a content slide with bullet items."""
-
-        slide = presentation.slides.add_slide(presentation.slide_layouts[1])
-        slide.shapes.title.text = title
-
-        text_frame = slide.placeholders[1].text_frame
-        text_frame.clear()
-
-        for index, item in enumerate(items):
-            paragraph = text_frame.paragraphs[0] if index == 0 else text_frame.add_paragraph()
-            paragraph.text = item
 
     def _write_planned_slide(
         self,
@@ -214,64 +88,84 @@ class PowerPointWriter:
         )
         for decoration in planned_slide.decorations:
             self._add_decoration_shape(slide, decoration)
+        for image_fill in planned_slide.image_fills:
+            self._write_image_fill(slide, image_fill)
+        for text_fill in planned_slide.text_fills:
+            self._write_text_fill(slide, text_fill)
 
-        title_shape = self._resolve_text_shape(
-            slide,
-            planned_slide.title_slot,
-        )
-        self._write_text_block(
-            title_shape,
-            planned_slide.title_text,
-            planned_slide.title_font_size,
-        )
+    def _write_text_fill(self, slide, fill: PlannedTextFill) -> None:
+        shape = self._resolve_text_shape(slide, fill.slot)
+        if fill.text is not None:
+            self._write_text_block(shape, fill.text, fill.font_size)
+            return
+        self._write_text_items(shape, fill.items, fill.font_size)
 
-        if planned_slide.body_slot is None:
+    def _write_image_fill(self, slide, fill: PlannedImageFill) -> None:
+        if fill.slot.placeholder_index is not None and fill.fit == "cover":
+            placeholder = slide.placeholders[fill.slot.placeholder_index]
+            picture = placeholder.insert_picture(str(fill.image_path))
             return
 
-        if planned_slide.body_fills:
-            for fill in planned_slide.body_fills:
-                body_shape = self._resolve_text_shape(
-                    slide,
-                    fill.slot,
-                )
-                if fill.text is not None:
-                    self._write_text_block(
-                        body_shape,
-                        fill.text,
-                        fill.font_size,
-                    )
-                    continue
-                self._write_text_items(
-                    body_shape,
-                    fill.items,
-                    fill.font_size,
-                )
-            return
-
-        body_shape = self._resolve_text_shape(
+        self._add_picture_to_bounds(
             slide,
-            planned_slide.body_slot,
+            image_path=fill.image_path,
+            left=fill.slot.x,
+            top=fill.slot.y,
+            width=fill.slot.width,
+            height=fill.slot.height,
+            fit=fill.fit,
         )
-        if planned_slide.subtitle_text is not None:
-            self._write_text_block(
-                body_shape,
-                planned_slide.subtitle_text,
-                planned_slide.body_font_size,
+
+    def _add_picture_to_bounds(
+        self,
+        slide,
+        *,
+        image_path: Path,
+        left: int,
+        top: int,
+        width: int,
+        height: int,
+        fit: str,
+    ) -> None:
+        image = Image.from_file(str(image_path))
+        image_width, image_height = image.size
+        image_ratio = image_width / image_height
+        slot_ratio = width / height
+
+        if fit == "contain":
+            scale = min(width / image_width, height / image_height)
+            scaled_width = int(image_width * scale)
+            scaled_height = int(image_height * scale)
+            offset_left = left + max(0, (width - scaled_width) // 2)
+            offset_top = top + max(0, (height - scaled_height) // 2)
+            slide.shapes.add_picture(
+                str(image_path),
+                offset_left,
+                offset_top,
+                width=scaled_width,
+                height=scaled_height,
             )
             return
 
-        self._write_text_items(
-            body_shape,
-            planned_slide.body_items,
-            planned_slide.body_font_size,
+        picture = slide.shapes.add_picture(
+            str(image_path),
+            left,
+            top,
+            width=width,
+            height=height,
         )
+        if image_ratio > slot_ratio:
+            crop = (1 - (slot_ratio / image_ratio)) / 2
+            picture.crop_left = crop
+            picture.crop_right = crop
+            return
+        crop = (1 - (image_ratio / slot_ratio)) / 2
+        picture.crop_top = crop
+        picture.crop_bottom = crop
 
     def _resolve_text_shape(self, slide, slot):
-        """Return a writable shape for either a placeholder slot or a text box."""
-
         if slot.placeholder_index is not None:
             return slide.placeholders[slot.placeholder_index]
-
         return slide.shapes.add_textbox(
             slot.x,
             slot.y,
@@ -285,8 +179,6 @@ class PowerPointWriter:
         text: str,
         font_size: int | None,
     ) -> None:
-        """Write one logical text block into a frame."""
-
         shape.text = text
         if font_size is not None:
             self._apply_font_size(shape.text_frame, font_size)
@@ -297,8 +189,6 @@ class PowerPointWriter:
         items: list[str],
         font_size: int | None,
     ) -> None:
-        """Write multiple items into a frame using one paragraph per item."""
-
         text_frame = shape.text_frame
         text_frame.clear()
         for index, item in enumerate(items):
@@ -312,8 +202,6 @@ class PowerPointWriter:
                 paragraph.font.size = Pt(font_size)
 
     def _add_decoration_shape(self, slide, decoration: SlideDecoration) -> None:
-        """Draw one neutral chrome shape onto a slide."""
-
         auto_shape_type = {
             "rectangle": MSO_AUTO_SHAPE_TYPE.RECTANGLE,
             "rounded_rectangle": MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,
@@ -333,8 +221,5 @@ class PowerPointWriter:
             shape.line.color.rgb = RGBColor(*decoration.line_rgb)
 
     def _apply_font_size(self, text_frame, font_size: int) -> None:
-        """Apply one font size across all paragraphs in a text frame."""
-
         for paragraph in text_frame.paragraphs:
             paragraph.font.size = Pt(font_size)
-

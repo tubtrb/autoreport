@@ -1,4 +1,4 @@
-"""Template-aware autofill planning primitives and text-fitting helpers."""
+"""Template-aware autofill planning primitives and fitting helpers."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ DEFAULT_HORIZONTAL_PADDING_PT = 12
 
 
 class SlotContentKind(str, Enum):
-    """Kinds of content blocks/slotted content supported by the autofill engine."""
+    """Legacy semantic content kinds kept for fitting heuristics."""
 
     TITLE = "title"
     PARAGRAPH_OR_BULLETS = "paragraph_or_bullets"
@@ -51,16 +51,22 @@ class SlotDescriptor:
     y: int
     width: int
     height: int
-    preferred_font_size: int
-    min_font_size: int
-    allowed_kinds: tuple[SlotContentKind, ...]
+    preferred_font_size: int | None = None
+    min_font_size: int | None = None
+    allowed_kinds: tuple[SlotContentKind, ...] = ()
     explicit_font_name: str | None = None
     priority: int = 0
+    alias: str | None = None
+    slot_type: str = "text"
+    required: bool = True
+    orientation: str | None = None
+    order: int | None = None
+    placeholder_type: str | None = None
 
     def supports(self, kind: SlotContentKind) -> bool:
-        """Return whether this slot accepts the given content kind."""
+        """Return whether this slot accepts the given legacy content kind."""
 
-        return kind in self.allowed_kinds
+        return not self.allowed_kinds or kind in self.allowed_kinds
 
     def estimated_char_budget(self, font_size: int) -> int:
         """Estimate how many characters fit in this slot for a font size."""
@@ -70,32 +76,69 @@ class SlotDescriptor:
 
 
 @dataclass(slots=True)
-class TemplateProfile:
-    """Summary of the layouts and slots used by a known template family."""
+class PatternProfile:
+    """A reusable profiled layout/pattern inside a template."""
 
-    template_name: str
-    template_path: Path | None
-    title_layout_index: int
-    title_layout_name: str
-    body_layout_index: int
-    body_layout_name: str
-    title_slot: SlotDescriptor
-    subtitle_slot: SlotDescriptor
-    body_title_slot: SlotDescriptor
-    body_content_slot: SlotDescriptor
-    title_secondary_slots: tuple[SlotDescriptor, ...] = ()
-    body_content_slots: tuple[SlotDescriptor, ...] = ()
+    pattern_id: str
+    kind: str
+    layout_index: int
+    layout_name: str
+    slots: tuple[SlotDescriptor, ...]
+    decorations: tuple["SlideDecoration", ...] = ()
+
+    def slots_by_type(self, slot_type: str) -> tuple[SlotDescriptor, ...]:
+        return tuple(slot for slot in self.slots if slot.slot_type == slot_type)
+
+    def get_slot(self, slot_id: str) -> SlotDescriptor | None:
+        for slot in self.slots:
+            if slot.slot_name == slot_id:
+                return slot
+        return None
 
 
 @dataclass(slots=True)
-class ContentBlock:
-    """One semantic unit of input content to map into a slide slot."""
+class TemplateProfile:
+    """Summary of the profiled patterns exposed by one template family."""
 
-    block_id: str
-    kind: SlotContentKind
-    heading: str
-    items: list[str] = field(default_factory=list)
-    secondary_text: str | None = None
+    template_name: str
+    template_id: str
+    template_label: str
+    template_source: str
+    template_path: Path | None
+    title_pattern: PatternProfile
+    contents_pattern: PatternProfile
+    slide_patterns: tuple[PatternProfile, ...]
+
+    def patterns_for_kind(self, kind: str) -> tuple[PatternProfile, ...]:
+        return tuple(pattern for pattern in self.slide_patterns if pattern.kind == kind)
+
+    def get_pattern(self, pattern_id: str) -> PatternProfile | None:
+        if self.title_pattern.pattern_id == pattern_id:
+            return self.title_pattern
+        if self.contents_pattern.pattern_id == pattern_id:
+            return self.contents_pattern
+        for pattern in self.slide_patterns:
+            if pattern.pattern_id == pattern_id:
+                return pattern
+        return None
+
+    @property
+    def title_layout_index(self) -> int:
+        return self.title_pattern.layout_index
+
+    @property
+    def title_layout_name(self) -> str:
+        return self.title_pattern.layout_name
+
+    @property
+    def body_layout_index(self) -> int:
+        pattern = self.slide_patterns[0]
+        return pattern.layout_index
+
+    @property
+    def body_layout_name(self) -> str:
+        pattern = self.slide_patterns[0]
+        return pattern.layout_name
 
 
 @dataclass(slots=True)
@@ -134,24 +177,27 @@ class PlannedTextFill:
 
 
 @dataclass(slots=True)
-class PlannedSlide:
-    """A slide ready to be written into a PowerPoint presentation."""
+class PlannedImageFill:
+    """One image assignment targeting a specific slot on a slide."""
 
+    slot: SlotDescriptor
+    image_path: Path
+    fit: str = "contain"
+
+
+@dataclass(slots=True)
+class PlannedSlide:
+    """A generic slide-writing plan for one generated deck slide."""
+
+    pattern_id: str
+    kind: str
     layout_name: str
     layout_index: int
-    title_slot: SlotDescriptor
-    title_text: str
-    content_kind: SlotContentKind
-    source_block_id: str
-    body_slot: SlotDescriptor | None = None
-    subtitle_text: str | None = None
-    body_items: list[str] = field(default_factory=list)
-    title_font_size: int | None = None
-    body_font_size: int | None = None
-    fit_result: FitResult | None = None
-    continuation: bool = False
+    slide_title: str
     decorations: list[SlideDecoration] = field(default_factory=list)
-    body_fills: list[PlannedTextFill] = field(default_factory=list)
+    text_fills: list[PlannedTextFill] = field(default_factory=list)
+    image_fills: list[PlannedImageFill] = field(default_factory=list)
+    continuation: bool = False
 
 
 @dataclass(slots=True)
@@ -184,8 +230,6 @@ class DiagnosticReport:
         *,
         slide_title: str | None = None,
     ) -> None:
-        """Record a warning entry."""
-
         self.entries.append(
             DiagnosticEntry(
                 severity=DiagnosticSeverity.WARNING,
@@ -202,8 +246,6 @@ class DiagnosticReport:
         *,
         slide_title: str | None = None,
     ) -> None:
-        """Record an error entry."""
-
         self.entries.append(
             DiagnosticEntry(
                 severity=DiagnosticSeverity.ERROR,
@@ -215,8 +257,6 @@ class DiagnosticReport:
 
     @property
     def warnings(self) -> list[DiagnosticEntry]:
-        """Return only warning entries."""
-
         return [
             entry
             for entry in self.entries
@@ -225,8 +265,6 @@ class DiagnosticReport:
 
     @property
     def errors(self) -> list[DiagnosticEntry]:
-        """Return only error entries."""
-
         return [
             entry
             for entry in self.entries
@@ -316,16 +354,19 @@ def fit_text_items_to_slot(
 ) -> FitResult:
     """Choose a font size or split point for a list of text items."""
 
+    preferred_font_size = slot.preferred_font_size or 18
+    min_font_size = slot.min_font_size or 12
+
     for font_size in iter_font_sizes(
-        slot.preferred_font_size,
-        slot.min_font_size,
+        preferred_font_size,
+        min_font_size,
     ):
         chars_per_line, line_count, _ = calc_text_box(font_size, slot)
         used_lines = estimate_item_line_usage(items, chars_per_line)
         if used_lines <= line_count:
             status = (
                 FitStatus.FIT
-                if font_size == slot.preferred_font_size
+                if font_size == preferred_font_size
                 else FitStatus.SHRINK
             )
             return FitResult(
@@ -335,7 +376,7 @@ def fit_text_items_to_slot(
                 remaining_items=0,
             )
 
-    chars_per_line, line_count, _ = calc_text_box(slot.min_font_size, slot)
+    chars_per_line, line_count, _ = calc_text_box(min_font_size, slot)
     consumed_items: list[str] = []
     consumed_lines = 0
     out_of_bounds_risk = False
@@ -359,14 +400,10 @@ def fit_text_items_to_slot(
 
     consumed_count = len(consumed_items)
     remaining_items = max(len(items) - consumed_count, 0)
-    status = (
-        FitStatus.OVERFLOW
-        if out_of_bounds_risk
-        else FitStatus.SPILL
-    )
+    status = FitStatus.OVERFLOW if out_of_bounds_risk else FitStatus.SPILL
     return FitResult(
         status=status,
-        font_size=slot.min_font_size,
+        font_size=min_font_size,
         consumed_items=consumed_count,
         remaining_items=remaining_items,
         out_of_bounds_risk=out_of_bounds_risk,

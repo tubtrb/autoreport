@@ -38,13 +38,13 @@ class TemplateReadError(OSError):
 
 
 class TemplateCompatibilityError(ValueError):
-    """Raised when a template lacks the layouts/placeholders weekly reports need."""
+    """Raised when a template lacks the layouts/placeholders Autoreport needs."""
 
     def __init__(self, template_path: Path | None, detail: str) -> None:
         self.template_path = template_path
         self.detail = detail
         target = str(template_path) if template_path is not None else "default template"
         super().__init__(
-            "PowerPoint template is not compatible with the weekly report layout: "
+            "PowerPoint template is not compatible with the Autoreport contract: "
             f"{target} ({detail})"
         )

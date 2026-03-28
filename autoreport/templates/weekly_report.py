@@ -1,22 +1,33 @@
-"""Template helpers for weekly report slide generation."""
+"""Template profiling and fill planning for the public Autoreport contract."""
 
 from __future__ import annotations
 
+from hashlib import sha1
 from pathlib import Path
-from typing import Any
 
 from pptx import Presentation
 from pptx.enum.shapes import PP_PLACEHOLDER
 
-from autoreport.models import WeeklyReport
+from autoreport.models import (
+    ImageSpec,
+    PayloadSlide,
+    ReportPayload,
+    TemplateContract,
+    TemplatePatternContract,
+    TemplateSectionContract,
+    TemplateSlotContract,
+    TEMPLATE_CONTRACT_VERSION,
+)
 from autoreport.outputs.errors import TemplateCompatibilityError
 from autoreport.templates.autofill import (
-    ContentBlock,
     DiagnosticReport,
     FillPlan,
     FitStatus,
-    PlannedTextFill,
+    PatternProfile,
+    PlannedImageFill,
     PlannedSlide,
+    PlannedTextFill,
+    SlideDecoration,
     SlotContentKind,
     SlotDescriptor,
     TemplateProfile,
@@ -27,217 +38,70 @@ from autoreport.templates.autofill import (
 
 
 TEMPLATE_NAME = "weekly_report"
-BASIC_TEMPLATE_NAME = "basic_template"
-SUPPORTED_TEMPLATE_NAMES = (
-    TEMPLATE_NAME,
-    BASIC_TEMPLATE_NAME,
-)
+BASIC_TEMPLATE_NAME = "autoreport_editorial"
+SUPPORTED_TEMPLATE_NAMES = (BASIC_TEMPLATE_NAME, TEMPLATE_NAME)
+BUILT_IN_TEMPLATE_ID = "autoreport-editorial-v1"
+BUILT_IN_TEMPLATE_LABEL = "Autoreport Editorial"
 TITLE_LAYOUT_INDEX = 0
-BODY_LAYOUT_INDEX = 1
 BLANK_LAYOUT_INDEX = 6
-METRIC_LABELS = (
-    ("tasks_completed", "Tasks completed"),
-    ("open_issues", "Open issues"),
-)
-TITLE_FONT_SIZE = 30
-TITLE_MIN_FONT_SIZE = 22
-SUBTITLE_FONT_SIZE = 18
+
+TITLE_FONT_SIZE = 34
+TITLE_MIN_FONT_SIZE = 20
+SUBTITLE_FONT_SIZE = 20
 SUBTITLE_MIN_FONT_SIZE = 14
 SECTION_TITLE_FONT_SIZE = 24
+SECTION_TITLE_MIN_FONT_SIZE = 20
 SECTION_BODY_FONT_SIZE = 18
-SECTION_BODY_MIN_FONT_SIZE = 14
-BASIC_TITLE_FONT_SIZE = 28
-BASIC_TITLE_MIN_FONT_SIZE = 20
-BASIC_SUBTITLE_FONT_SIZE = 18
-BASIC_SUBTITLE_MIN_FONT_SIZE = 14
-BASIC_SECTION_TITLE_FONT_SIZE = 24
-BASIC_SECTION_TITLE_MIN_FONT_SIZE = 20
-BASIC_SECTION_BODY_FONT_SIZE = 20
-BASIC_SECTION_BODY_MIN_FONT_SIZE = 14
+SECTION_BODY_MIN_FONT_SIZE = 13
+CAPTION_FONT_SIZE = 14
+CAPTION_MIN_FONT_SIZE = 11
+
+BASIC_EDITORIAL_NAVY = (14, 40, 65)
+BASIC_EDITORIAL_TEAL = (21, 96, 130)
+BASIC_EDITORIAL_ORANGE = (233, 113, 50)
+BASIC_EDITORIAL_LIGHT = (247, 248, 250)
+BASIC_EDITORIAL_PALE = (234, 242, 246)
+BASIC_EDITORIAL_LINE = (217, 224, 231)
+BASIC_EDITORIAL_PALE_LINE = (227, 236, 242)
 
 IGNORED_TEXT_PLACEHOLDER_TYPES = frozenset(
     getattr(PP_PLACEHOLDER, name)
     for name in ("DATE", "FOOTER", "SLIDE_NUMBER")
     if hasattr(PP_PLACEHOLDER, name)
 )
+TITLE_PLACEHOLDER_TYPES = frozenset(
+    getattr(PP_PLACEHOLDER, name)
+    for name in ("TITLE", "CENTER_TITLE")
+    if hasattr(PP_PLACEHOLDER, name)
+)
+TEXT_EXCLUDED_PLACEHOLDER_TYPES = (
+    IGNORED_TEXT_PLACEHOLDER_TYPES
+    | TITLE_PLACEHOLDER_TYPES
+    | frozenset(
+        getattr(PP_PLACEHOLDER, name)
+        for name in ("SUBTITLE", "PICTURE")
+        if hasattr(PP_PLACEHOLDER, name)
+    )
+)
+PICTURE_PLACEHOLDER_TYPES = frozenset(
+    getattr(PP_PLACEHOLDER, name)
+    for name in ("PICTURE",)
+    if hasattr(PP_PLACEHOLDER, name)
+)
 
 
-def build_weekly_report_context(report: WeeklyReport) -> dict[str, Any]:
-    """Prepare slide-friendly context for a weekly report presentation."""
-
-    metric_items = [
-        f"{label}: {report.metrics[key]}"
-        for key, label in METRIC_LABELS
-    ]
-
-    return {
-        "slides": [
-            {
-                "layout": "title",
-                "title": report.title,
-                "subtitle": f"{report.team}\n{report.week}",
-            },
-            {
-                "layout": "bullets",
-                "title": "Highlights",
-                "items": list(report.highlights),
-            },
-            {
-                "layout": "bullets",
-                "title": "Metrics",
-                "items": metric_items,
-            },
-            {
-                "layout": "bullets",
-                "title": "Risks",
-                "items": list(report.risks),
-            },
-            {
-                "layout": "bullets",
-                "title": "Next Steps",
-                "items": list(report.next_steps),
-            },
-        ]
-    }
-
-
-def build_weekly_report_content_blocks(report: WeeklyReport) -> list[ContentBlock]:
-    """Convert validated report data into template-aware content blocks."""
-
-    metric_items = [
-        f"{label}: {report.metrics[key]}"
-        for key, label in METRIC_LABELS
-    ]
-    body_blocks = [
-        ContentBlock(
-            block_id="highlights",
-            kind=SlotContentKind.PARAGRAPH_OR_BULLETS,
-            heading="Highlights",
-            items=list(report.highlights),
-        ),
-        ContentBlock(
-            block_id="metrics",
-            kind=SlotContentKind.METRIC_LIST,
-            heading="Metrics",
-            items=metric_items,
-        ),
-        ContentBlock(
-            block_id="risks",
-            kind=SlotContentKind.SHORT_FACT_OR_STATUS,
-            heading="Risks",
-            items=list(report.risks),
-        ),
-        ContentBlock(
-            block_id="next_steps",
-            kind=SlotContentKind.SHORT_FACT_OR_STATUS,
-            heading="Next Steps",
-            items=list(report.next_steps),
-        ),
-    ]
-    return [
-        ContentBlock(
-            block_id="title",
-            kind=SlotContentKind.TITLE,
-            heading=report.title,
-            secondary_text=f"{report.team}\n{report.week}",
-        ),
-        ContentBlock(
-            block_id="contents",
-            kind=SlotContentKind.SHORT_FACT_OR_STATUS,
-            heading="Contents",
-            items=[block.heading for block in body_blocks],
-        ),
-        *body_blocks,
-    ]
-
-
-def profile_weekly_template(
+def profile_template(
     presentation: Presentation,
     *,
     template_path: Path | None,
+    template_name: str = BASIC_TEMPLATE_NAME,
 ) -> TemplateProfile:
-    """Profile the current title/content layouts into autofill slots."""
+    """Profile either the built-in editorial template or a user template."""
 
-    (
-        title_layout_index,
-        title_layout,
-        title_placeholder,
-        title_secondary_placeholders,
-    ) = _select_title_layout(
-        presentation,
-        template_path=template_path,
-    )
-    (
-        body_layout_index,
-        body_layout,
-        body_title_placeholder,
-        body_content_placeholders,
-    ) = _select_body_layout(
-        presentation,
-        template_path=template_path,
-        preferred_skip_layout_index=title_layout_index,
-    )
+    if template_name == BASIC_TEMPLATE_NAME and template_path is None:
+        return profile_basic_template(presentation, template_path=None)
 
-    title_secondary_slots = tuple(
-        _build_slot_descriptor(
-            placeholder,
-            layout_index=title_layout_index,
-            slot_name=f"title_secondary_{index + 1}",
-            preferred_font_size=SUBTITLE_FONT_SIZE,
-            min_font_size=SUBTITLE_MIN_FONT_SIZE,
-            allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
-        )
-        for index, placeholder in enumerate(title_secondary_placeholders)
-    )
-    body_content_slots = tuple(
-        _build_slot_descriptor(
-            placeholder,
-            layout_index=body_layout_index,
-            slot_name=f"body_content_{index + 1}",
-            preferred_font_size=SECTION_BODY_FONT_SIZE,
-            min_font_size=SECTION_BODY_MIN_FONT_SIZE,
-            allowed_kinds=(
-                SlotContentKind.PARAGRAPH_OR_BULLETS,
-                SlotContentKind.METRIC_LIST,
-                SlotContentKind.SHORT_FACT_OR_STATUS,
-            ),
-        )
-        for index, placeholder in enumerate(body_content_placeholders)
-    )
-
-    return TemplateProfile(
-        template_name=TEMPLATE_NAME,
-        template_path=template_path,
-        title_layout_index=title_layout_index,
-        title_layout_name=title_layout.name,
-        body_layout_index=body_layout_index,
-        body_layout_name=body_layout.name,
-        title_slot=_build_slot_descriptor(
-            title_placeholder,
-            layout_index=title_layout_index,
-            slot_name="title_title",
-            preferred_font_size=TITLE_FONT_SIZE,
-            min_font_size=TITLE_MIN_FONT_SIZE,
-            allowed_kinds=(SlotContentKind.TITLE,),
-        ),
-        subtitle_slot=title_secondary_slots[0],
-        body_title_slot=_build_slot_descriptor(
-            body_title_placeholder,
-            layout_index=body_layout_index,
-            slot_name="body_title",
-            preferred_font_size=SECTION_TITLE_FONT_SIZE,
-            min_font_size=SECTION_TITLE_FONT_SIZE,
-            allowed_kinds=(
-                SlotContentKind.TITLE,
-                SlotContentKind.PARAGRAPH_OR_BULLETS,
-                SlotContentKind.METRIC_LIST,
-                SlotContentKind.SHORT_FACT_OR_STATUS,
-            ),
-        ),
-        body_content_slot=body_content_slots[0],
-        title_secondary_slots=title_secondary_slots,
-        body_content_slots=body_content_slots,
-    )
+    return profile_user_template(presentation, template_path=template_path)
 
 
 def profile_basic_template(
@@ -245,7 +109,7 @@ def profile_basic_template(
     *,
     template_path: Path | None,
 ) -> TemplateProfile:
-    """Build a neutral text-first profile derived from the sanitized sample deck."""
+    """Build the built-in editorial profile with multiple generation patterns."""
 
     blank_layout = _get_layout(
         presentation,
@@ -254,214 +118,1023 @@ def profile_basic_template(
         template_path=template_path,
     )
 
-    title_slot = _build_text_box_slot(
+    title_title_slot = _build_text_box_slot(
         presentation,
         layout_index=BLANK_LAYOUT_INDEX,
-        slot_name="title_title",
-        x_ratio=0.054,
-        y_ratio=0.160,
-        width_ratio=0.824,
-        height_ratio=0.104,
-        preferred_font_size=BASIC_TITLE_FONT_SIZE,
-        min_font_size=BASIC_TITLE_MIN_FONT_SIZE,
+        slot_name="cover.title",
+        alias="title",
+        slot_type="title",
+        x_ratio=0.315,
+        y_ratio=0.251,
+        width_ratio=0.469,
+        height_ratio=0.160,
+        preferred_font_size=TITLE_FONT_SIZE,
+        min_font_size=TITLE_MIN_FONT_SIZE,
         allowed_kinds=(SlotContentKind.TITLE,),
     )
-    subtitle_slot = _build_text_box_slot(
+    title_subtitle_slot = _build_text_box_slot(
         presentation,
         layout_index=BLANK_LAYOUT_INDEX,
-        slot_name="title_subtitle",
-        x_ratio=0.053,
-        y_ratio=0.561,
-        width_ratio=0.235,
-        height_ratio=0.247,
-        preferred_font_size=BASIC_SUBTITLE_FONT_SIZE,
-        min_font_size=BASIC_SUBTITLE_MIN_FONT_SIZE,
+        slot_name="cover.subtitle_1",
+        alias="subtitle_1",
+        slot_type="text",
+        x_ratio=0.319,
+        y_ratio=0.451,
+        width_ratio=0.353,
+        height_ratio=0.127,
+        preferred_font_size=SUBTITLE_FONT_SIZE,
+        min_font_size=SUBTITLE_MIN_FONT_SIZE,
         allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+        orientation="stack",
+        order=1,
     )
-    body_title_slot = _build_text_box_slot(
-        presentation,
+    title_pattern = PatternProfile(
+        pattern_id="cover.editorial",
+        kind="cover",
         layout_index=BLANK_LAYOUT_INDEX,
-        slot_name="body_title",
-        x_ratio=0.029,
-        y_ratio=0.013,
-        width_ratio=0.863,
-        height_ratio=0.071,
-        preferred_font_size=BASIC_SECTION_TITLE_FONT_SIZE,
-        min_font_size=BASIC_SECTION_TITLE_MIN_FONT_SIZE,
-        allowed_kinds=(
-            SlotContentKind.TITLE,
-            SlotContentKind.PARAGRAPH_OR_BULLETS,
-            SlotContentKind.METRIC_LIST,
-            SlotContentKind.SHORT_FACT_OR_STATUS,
+        layout_name=blank_layout.name,
+        slots=(title_title_slot, title_subtitle_slot),
+        decorations=_build_basic_template_title_decorations(presentation),
+    )
+
+    contents_pattern = PatternProfile(
+        pattern_id="contents.editorial",
+        kind="contents",
+        layout_index=BLANK_LAYOUT_INDEX,
+        layout_name=blank_layout.name,
+        slots=(
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="contents.title",
+                alias="title",
+                slot_type="title",
+                x_ratio=0.077,
+                y_ratio=0.085,
+                width_ratio=0.581,
+                height_ratio=0.069,
+                preferred_font_size=SECTION_TITLE_FONT_SIZE,
+                min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
+                allowed_kinds=(SlotContentKind.TITLE,),
+            ),
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="contents.body_1",
+                alias="body_1",
+                slot_type="text",
+                x_ratio=0.081,
+                y_ratio=0.237,
+                width_ratio=0.566,
+                height_ratio=0.597,
+                preferred_font_size=SECTION_BODY_FONT_SIZE,
+                min_font_size=SECTION_BODY_MIN_FONT_SIZE,
+                allowed_kinds=(
+                    SlotContentKind.PARAGRAPH_OR_BULLETS,
+                    SlotContentKind.SHORT_FACT_OR_STATUS,
+                ),
+                orientation="stack",
+                order=1,
+            ),
         ),
+        decorations=_build_basic_template_body_decorations(presentation),
     )
-    body_content_slot = _build_text_box_slot(
-        presentation,
-        layout_index=BLANK_LAYOUT_INDEX,
-        slot_name="body_content",
-        x_ratio=0.048,
-        y_ratio=0.220,
-        width_ratio=0.904,
-        height_ratio=0.640,
-        preferred_font_size=BASIC_SECTION_BODY_FONT_SIZE,
-        min_font_size=BASIC_SECTION_BODY_MIN_FONT_SIZE,
-        allowed_kinds=(
-            SlotContentKind.PARAGRAPH_OR_BULLETS,
-            SlotContentKind.METRIC_LIST,
-            SlotContentKind.SHORT_FACT_OR_STATUS,
+
+    slide_patterns = (
+        PatternProfile(
+            pattern_id="text.editorial",
+            kind="text",
+            layout_index=BLANK_LAYOUT_INDEX,
+            layout_name=blank_layout.name,
+            slots=(
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text.title",
+                    alias="title",
+                    slot_type="title",
+                    x_ratio=0.077,
+                    y_ratio=0.085,
+                    width_ratio=0.581,
+                    height_ratio=0.069,
+                    preferred_font_size=SECTION_TITLE_FONT_SIZE,
+                    min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
+                    allowed_kinds=(SlotContentKind.TITLE,),
+                ),
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text.body_1",
+                    alias="body_1",
+                    slot_type="text",
+                    x_ratio=0.081,
+                    y_ratio=0.237,
+                    width_ratio=0.566,
+                    height_ratio=0.597,
+                    preferred_font_size=SECTION_BODY_FONT_SIZE,
+                    min_font_size=SECTION_BODY_MIN_FONT_SIZE,
+                    allowed_kinds=(
+                        SlotContentKind.PARAGRAPH_OR_BULLETS,
+                        SlotContentKind.SHORT_FACT_OR_STATUS,
+                    ),
+                    orientation="stack",
+                    order=1,
+                ),
+            ),
+            decorations=_build_basic_template_body_decorations(presentation),
+        ),
+        PatternProfile(
+            pattern_id="metrics.editorial",
+            kind="metrics",
+            layout_index=BLANK_LAYOUT_INDEX,
+            layout_name=blank_layout.name,
+            slots=(
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="metrics.title",
+                    alias="title",
+                    slot_type="title",
+                    x_ratio=0.077,
+                    y_ratio=0.085,
+                    width_ratio=0.581,
+                    height_ratio=0.069,
+                    preferred_font_size=SECTION_TITLE_FONT_SIZE,
+                    min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
+                    allowed_kinds=(SlotContentKind.TITLE,),
+                ),
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="metrics.body_1",
+                    alias="body_1",
+                    slot_type="text",
+                    x_ratio=0.081,
+                    y_ratio=0.237,
+                    width_ratio=0.566,
+                    height_ratio=0.597,
+                    preferred_font_size=SECTION_BODY_FONT_SIZE,
+                    min_font_size=SECTION_BODY_MIN_FONT_SIZE,
+                    allowed_kinds=(SlotContentKind.METRIC_LIST,),
+                    orientation="stack",
+                    order=1,
+                ),
+            ),
+            decorations=_build_basic_template_body_decorations(presentation),
+        ),
+        PatternProfile(
+            pattern_id="text_image.editorial",
+            kind="text_image",
+            layout_index=BLANK_LAYOUT_INDEX,
+            layout_name=blank_layout.name,
+            slots=(
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text_image.title",
+                    alias="title",
+                    slot_type="title",
+                    x_ratio=0.077,
+                    y_ratio=0.085,
+                    width_ratio=0.581,
+                    height_ratio=0.069,
+                    preferred_font_size=SECTION_TITLE_FONT_SIZE,
+                    min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
+                    allowed_kinds=(SlotContentKind.TITLE,),
+                ),
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text_image.body_1",
+                    alias="body_1",
+                    slot_type="text",
+                    x_ratio=0.081,
+                    y_ratio=0.237,
+                    width_ratio=0.566,
+                    height_ratio=0.597,
+                    preferred_font_size=SECTION_BODY_FONT_SIZE,
+                    min_font_size=SECTION_BODY_MIN_FONT_SIZE,
+                    allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS,),
+                    orientation="stack",
+                    order=1,
+                ),
+                _build_geometry_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text_image.image_1",
+                    alias="image_1",
+                    slot_type="image",
+                    x_ratio=0.709,
+                    y_ratio=0.197,
+                    width_ratio=0.227,
+                    height_ratio=0.470,
+                    orientation="stack",
+                    order=1,
+                ),
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text_image.caption_1",
+                    alias="caption_1",
+                    slot_type="caption",
+                    x_ratio=0.709,
+                    y_ratio=0.700,
+                    width_ratio=0.227,
+                    height_ratio=0.095,
+                    preferred_font_size=CAPTION_FONT_SIZE,
+                    min_font_size=CAPTION_MIN_FONT_SIZE,
+                    allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+                    orientation="stack",
+                    order=1,
+                    required=False,
+                ),
+            ),
+            decorations=_build_basic_template_body_decorations(presentation),
         ),
     )
 
     return TemplateProfile(
         template_name=BASIC_TEMPLATE_NAME,
+        template_id=BUILT_IN_TEMPLATE_ID,
+        template_label=BUILT_IN_TEMPLATE_LABEL,
+        template_source="built_in",
         template_path=None,
-        title_layout_index=BLANK_LAYOUT_INDEX,
-        title_layout_name=blank_layout.name,
-        body_layout_index=BLANK_LAYOUT_INDEX,
-        body_layout_name=blank_layout.name,
-        title_slot=title_slot,
-        subtitle_slot=subtitle_slot,
-        body_title_slot=body_title_slot,
-        body_content_slot=body_content_slot,
-        title_secondary_slots=(subtitle_slot,),
-        body_content_slots=(body_content_slot,),
+        title_pattern=title_pattern,
+        contents_pattern=contents_pattern,
+        slide_patterns=slide_patterns,
     )
 
 
-def build_weekly_report_fill_plan(
-    content_blocks: list[ContentBlock],
-    template_profile: TemplateProfile,
-) -> tuple[FillPlan, DiagnosticReport]:
-    """Map content blocks into concrete slides for the current template."""
+def profile_user_template(
+    presentation: Presentation,
+    *,
+    template_path: Path | None,
+) -> TemplateProfile:
+    """Profile a user-supplied PowerPoint template into Autoreport patterns."""
 
+    (
+        title_layout_index,
+        title_layout,
+        title_placeholder,
+        subtitle_placeholders,
+    ) = _select_title_layout(
+        presentation,
+        template_path=template_path,
+    )
+    (
+        body_layout_index,
+        body_layout,
+        body_title_placeholder,
+        body_text_placeholders,
+    ) = _select_body_layout(
+        presentation,
+        template_path=template_path,
+        preferred_skip_layout_index=title_layout_index,
+    )
+
+    title_slots = (
+        _build_placeholder_slot(
+            title_placeholder,
+            layout_index=title_layout_index,
+            slot_name="cover.title",
+            alias="title",
+            slot_type="title",
+            preferred_font_size=TITLE_FONT_SIZE,
+            min_font_size=TITLE_MIN_FONT_SIZE,
+            allowed_kinds=(SlotContentKind.TITLE,),
+        ),
+        *(
+            _build_placeholder_slot(
+                placeholder,
+                layout_index=title_layout_index,
+                slot_name=f"cover.subtitle_{index + 1}",
+                alias=f"subtitle_{index + 1}",
+                slot_type="text",
+                preferred_font_size=SUBTITLE_FONT_SIZE,
+                min_font_size=SUBTITLE_MIN_FONT_SIZE,
+                allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+                orientation="stack",
+                order=index + 1,
+            )
+            for index, placeholder in enumerate(subtitle_placeholders)
+        ),
+    )
+    title_pattern = PatternProfile(
+        pattern_id="cover.template",
+        kind="cover",
+        layout_index=title_layout_index,
+        layout_name=title_layout.name,
+        slots=title_slots,
+    )
+
+    text_slots = _build_text_slots_from_placeholders(
+        body_text_placeholders,
+        layout_index=body_layout_index,
+        slot_prefix="text.body_",
+        alias_prefix="body_",
+        allowed_kinds=(
+            SlotContentKind.PARAGRAPH_OR_BULLETS,
+            SlotContentKind.METRIC_LIST,
+            SlotContentKind.SHORT_FACT_OR_STATUS,
+        ),
+    )
+    body_title_slot = _build_placeholder_slot(
+        body_title_placeholder,
+        layout_index=body_layout_index,
+        slot_name="text.title",
+        alias="title",
+        slot_type="title",
+        preferred_font_size=SECTION_TITLE_FONT_SIZE,
+        min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
+        allowed_kinds=(SlotContentKind.TITLE,),
+    )
+    text_pattern = PatternProfile(
+        pattern_id="text.template",
+        kind="text",
+        layout_index=body_layout_index,
+        layout_name=body_layout.name,
+        slots=(body_title_slot, *text_slots),
+    )
+    metrics_pattern = PatternProfile(
+        pattern_id="metrics.template",
+        kind="metrics",
+        layout_index=body_layout_index,
+        layout_name=body_layout.name,
+        slots=(
+            _clone_slot(body_title_slot, slot_name="metrics.title"),
+            *(
+                _clone_slot(
+                    slot,
+                    slot_name=slot.slot_name.replace("text.body_", "metrics.body_"),
+                    alias=slot.alias,
+                )
+                for slot in text_slots
+            ),
+        ),
+    )
+    contents_pattern = PatternProfile(
+        pattern_id="contents.template",
+        kind="contents",
+        layout_index=body_layout_index,
+        layout_name=body_layout.name,
+        slots=(
+            _clone_slot(body_title_slot, slot_name="contents.title"),
+            *(
+                _clone_slot(
+                    slot,
+                    slot_name=slot.slot_name.replace("text.body_", "contents.body_"),
+                    alias=slot.alias,
+                )
+                for slot in text_slots
+            ),
+        ),
+    )
+
+    slide_patterns: list[PatternProfile] = [text_pattern, metrics_pattern]
+    mixed_pattern = _profile_text_image_pattern(
+        presentation,
+        template_path=template_path,
+        preferred_skip_layout_index=title_layout_index,
+    )
+    if mixed_pattern is not None:
+        slide_patterns.append(mixed_pattern)
+
+    return TemplateProfile(
+        template_name=(
+            template_path.stem if template_path is not None else TEMPLATE_NAME
+        ),
+        template_id=_build_user_template_id(template_path, slide_patterns),
+        template_label=(
+            template_path.stem.replace("_", " ").title()
+            if template_path is not None
+            else "User Template"
+        ),
+        template_source="user_template",
+        template_path=template_path,
+        title_pattern=title_pattern,
+        contents_pattern=contents_pattern,
+        slide_patterns=tuple(slide_patterns),
+    )
+
+
+def export_template_contract(profile: TemplateProfile) -> TemplateContract:
+    """Convert a profiled template into the public template-contract shape."""
+
+    return TemplateContract(
+        contract_version=TEMPLATE_CONTRACT_VERSION,
+        template_id=profile.template_id,
+        template_label=profile.template_label,
+        template_source=profile.template_source,
+        title_slide=_export_section_contract(profile.title_pattern),
+        contents_slide=_export_section_contract(profile.contents_pattern),
+        slide_patterns=tuple(
+            _export_pattern_contract(pattern)
+            for pattern in profile.slide_patterns
+        ),
+    )
+
+
+def build_report_fill_plan(
+    payload: ReportPayload,
+    template_profile: TemplateProfile,
+    *,
+    image_refs: dict[str, Path] | None = None,
+) -> tuple[FillPlan, DiagnosticReport]:
+    """Map a validated payload into concrete slides for the current template."""
+
+    image_refs = image_refs or {}
     fill_plan = FillPlan()
     diagnostics = DiagnosticReport()
     _add_font_risk_warnings(diagnostics, template_profile)
 
-    for block in content_blocks:
-        if block.kind == SlotContentKind.TITLE:
-            title_fit = fit_text_to_slot(
-                block.heading,
-                template_profile.title_slot,
+    fill_plan.slides.append(
+        _plan_title_slide(
+            payload.title_slide.title,
+            payload.title_slide.subtitle,
+            template_profile.title_pattern,
+            diagnostics,
+        )
+    )
+
+    included_titles = [
+        slide.title
+        for slide in payload.slides
+        if slide.include_in_contents
+    ]
+    if payload.contents.enabled:
+        fill_plan.slides.extend(
+            _plan_textual_pattern_slides(
+                slide_title="Contents",
+                items=included_titles or ["Overview"],
+                pattern=template_profile.contents_pattern,
+                diagnostics=diagnostics,
+                kind="contents",
             )
-            subtitle_items = [
-                item.strip()
-                for item in (block.secondary_text or "").splitlines()
-                if item.strip()
-            ]
-            subtitle_fills, _ = _plan_items_across_slots(
-                subtitle_items,
-                template_profile.title_secondary_slots
-                or (template_profile.subtitle_slot,),
-                reserve_one_item_per_remaining_slot=True,
+        )
+
+    for payload_slide in payload.slides:
+        pattern = _select_pattern_for_payload_slide(
+            template_profile,
+            payload_slide,
+        )
+        fill_plan.slides.extend(
+            _plan_payload_slide(
+                payload_slide,
+                pattern=pattern,
+                diagnostics=diagnostics,
+                image_refs=image_refs,
             )
-            fill_plan.slides.append(
-                PlannedSlide(
-                    layout_name=template_profile.title_layout_name,
-                    layout_index=template_profile.title_layout_index,
-                    title_slot=template_profile.title_slot,
-                    title_text=block.heading,
-                    content_kind=block.kind,
-                    source_block_id=block.block_id,
-                    body_slot=template_profile.subtitle_slot,
-                    subtitle_text="\n".join(subtitle_items),
-                    title_font_size=title_fit.font_size,
-                    body_font_size=(
-                        subtitle_fills[0].font_size
-                        if subtitle_fills
-                        else None
-                    ),
-                    fit_result=(
-                        subtitle_fills[-1].fit_result
-                        if subtitle_fills
-                        else None
-                    ),
-                    body_fills=subtitle_fills,
-                )
-            )
+        )
+
+    return fill_plan, diagnostics
+
+
+def _plan_title_slide(
+    title: str,
+    subtitle_items: list[str],
+    pattern: PatternProfile,
+    diagnostics: DiagnosticReport,
+) -> PlannedSlide:
+    title_slot = pattern.slots_by_type("title")[0]
+    title_fit = fit_text_to_slot(title, title_slot)
+    _record_fit_diagnostics(
+        diagnostics,
+        slide_title=title,
+        fit_result=title_fit,
+        label="cover title",
+    )
+
+    subtitle_slots = pattern.slots_by_type("text")
+    subtitle_fills, _ = _plan_items_across_slots(
+        subtitle_items,
+        subtitle_slots,
+        reserve_one_item_per_remaining_slot=True,
+    )
+    for index, fill in enumerate(subtitle_fills, start=1):
+        if fill.fit_result is not None:
             _record_fit_diagnostics(
                 diagnostics,
-                slide_title=block.heading,
-                fit_result=title_fit,
-                label="title",
+                slide_title=title,
+                fit_result=fill.fit_result,
+                label=f"cover subtitle slot {index}",
             )
-            for index, fill in enumerate(subtitle_fills, start=1):
-                if fill.fit_result is None:
-                    continue
-                _record_fit_diagnostics(
-                    diagnostics,
-                    slide_title=block.heading,
-                    fit_result=fill.fit_result,
-                    label=f"subtitle slot {index}",
-                )
-            continue
 
-        remaining_items = list(block.items)
-        continuation_index = 0
-        while remaining_items:
-            continuation = continuation_index > 0
-            slide_title = (
-                f"{block.heading} (cont.)"
-                if continuation
-                else block.heading
-            )
-            body_title_fit = fit_text_to_slot(
-                slide_title,
-                template_profile.body_title_slot,
-            )
-            body_fills, remaining_items = _plan_items_across_slots(
-                remaining_items,
-                template_profile.body_content_slots
-                or (template_profile.body_content_slot,),
-                reserve_one_item_per_remaining_slot=True,
-            )
-            fill_plan.slides.append(
-                PlannedSlide(
-                    layout_name=template_profile.body_layout_name,
-                    layout_index=template_profile.body_layout_index,
-                    title_slot=template_profile.body_title_slot,
-                    title_text=slide_title,
-                    content_kind=block.kind,
-                    source_block_id=block.block_id,
-                    body_slot=template_profile.body_content_slot,
-                    body_items=[
-                        item
-                        for fill in body_fills
-                        for item in fill.items
-                    ],
-                    title_font_size=body_title_fit.font_size,
-                    body_font_size=(
-                        body_fills[0].font_size
-                        if body_fills
-                        else None
-                    ),
-                    fit_result=(
-                        body_fills[-1].fit_result
-                        if body_fills
-                        else None
-                    ),
-                    continuation=continuation,
-                    body_fills=body_fills,
-                )
-            )
+    return PlannedSlide(
+        pattern_id=pattern.pattern_id,
+        kind=pattern.kind,
+        layout_name=pattern.layout_name,
+        layout_index=pattern.layout_index,
+        slide_title=title,
+        decorations=list(pattern.decorations),
+        text_fills=[
+            PlannedTextFill(
+                slot=title_slot,
+                text=title,
+                font_size=title_fit.font_size,
+                fit_result=title_fit,
+            ),
+            *subtitle_fills,
+        ],
+    )
+
+
+def _plan_payload_slide(
+    payload_slide: PayloadSlide,
+    *,
+    pattern: PatternProfile,
+    diagnostics: DiagnosticReport,
+    image_refs: dict[str, Path],
+) -> list[PlannedSlide]:
+    if payload_slide.kind == "metrics":
+        items = [metric.as_text() for metric in payload_slide.items]
+        return _plan_textual_pattern_slides(
+            slide_title=payload_slide.title,
+            items=items,
+            pattern=pattern,
+            diagnostics=diagnostics,
+            kind=payload_slide.kind,
+            slot_overrides=payload_slide.slot_overrides,
+        )
+
+    if payload_slide.kind == "text":
+        return _plan_textual_pattern_slides(
+            slide_title=payload_slide.title,
+            items=payload_slide.body,
+            pattern=pattern,
+            diagnostics=diagnostics,
+            kind=payload_slide.kind,
+            slot_overrides=payload_slide.slot_overrides,
+        )
+
+    return _plan_text_image_slides(
+        payload_slide,
+        pattern=pattern,
+        diagnostics=diagnostics,
+        image_refs=image_refs,
+    )
+
+
+def _plan_textual_pattern_slides(
+    *,
+    slide_title: str,
+    items: list[str],
+    pattern: PatternProfile,
+    diagnostics: DiagnosticReport,
+    kind: str,
+    slot_overrides: dict[str, object] | None = None,
+) -> list[PlannedSlide]:
+    slot_overrides = slot_overrides or {}
+    title_slot = pattern.slots_by_type("title")[0]
+    title_override = slot_overrides.get(title_slot.slot_name)
+    resolved_title = slide_title
+    if title_override is not None and getattr(title_override, "text", None):
+        resolved_title = "\n".join(title_override.text)
+
+    body_slots = list(pattern.slots_by_type("text"))
+    override_fills: list[PlannedTextFill] = []
+    remaining_body_slots: list[SlotDescriptor] = []
+    for slot in body_slots:
+        override = slot_overrides.get(slot.slot_name)
+        if override is None:
+            remaining_body_slots.append(slot)
+            continue
+        override_fill = _build_text_override_fill(slot, override)
+        override_fills.append(override_fill)
+        if override_fill.fit_result is not None:
             _record_fit_diagnostics(
                 diagnostics,
                 slide_title=slide_title,
-                fit_result=body_title_fit,
-                label=f"{block.heading} title",
+                fit_result=override_fill.fit_result,
+                label=slot.alias or slot.slot_name,
             )
-            for index, fill in enumerate(body_fills, start=1):
-                if fill.fit_result is None:
-                    continue
-                _record_fit_diagnostics(
-                    diagnostics,
-                    slide_title=slide_title,
-                    fit_result=fill.fit_result,
-                    label=f"{block.heading} slot {index}",
-                )
-            continuation_index += 1
 
-    return fill_plan, diagnostics
+    planned_slides: list[PlannedSlide] = []
+    remaining_items = list(items)
+    continuation_index = 0
+
+    while remaining_items or continuation_index == 0:
+        continuation = continuation_index > 0
+        resolved_slide_title = (
+            f"{resolved_title} (cont.)"
+            if continuation
+            else resolved_title
+        )
+        title_fit = fit_text_to_slot(resolved_slide_title, title_slot)
+        _record_fit_diagnostics(
+            diagnostics,
+            slide_title=resolved_slide_title,
+            fit_result=title_fit,
+            label="title",
+        )
+
+        body_fills: list[PlannedTextFill] = list(override_fills)
+        if remaining_items and remaining_body_slots:
+            planned_body_fills, remaining_items = _plan_items_across_slots(
+                remaining_items,
+                remaining_body_slots,
+                reserve_one_item_per_remaining_slot=True,
+            )
+            for fill in planned_body_fills:
+                if fill.fit_result is not None:
+                    _record_fit_diagnostics(
+                        diagnostics,
+                        slide_title=resolved_slide_title,
+                        fit_result=fill.fit_result,
+                        label=fill.slot.alias or fill.slot.slot_name,
+                    )
+            body_fills.extend(planned_body_fills)
+        elif continuation or (remaining_items and not remaining_body_slots):
+            break
+
+        planned_slides.append(
+            PlannedSlide(
+                pattern_id=pattern.pattern_id,
+                kind=kind,
+                layout_name=pattern.layout_name,
+                layout_index=pattern.layout_index,
+                slide_title=resolved_slide_title,
+                continuation=continuation,
+                decorations=list(pattern.decorations),
+                text_fills=[
+                    PlannedTextFill(
+                        slot=title_slot,
+                        text=resolved_slide_title,
+                        font_size=title_fit.font_size,
+                        fit_result=title_fit,
+                    ),
+                    *body_fills,
+                ],
+            )
+        )
+
+        if not remaining_items:
+            break
+        continuation_index += 1
+
+    return planned_slides
+
+
+def _plan_text_image_slides(
+    payload_slide: PayloadSlide,
+    *,
+    pattern: PatternProfile,
+    diagnostics: DiagnosticReport,
+    image_refs: dict[str, Path],
+) -> list[PlannedSlide]:
+    title_slot = pattern.slots_by_type("title")[0]
+    caption_slots = list(pattern.slots_by_type("caption"))
+    image_slots = list(pattern.slots_by_type("image"))
+    slot_overrides = payload_slide.slot_overrides
+
+    image_fill: PlannedImageFill | None = None
+    if image_slots:
+        image_slot = image_slots[0]
+        image_override = slot_overrides.get(image_slot.slot_name)
+        resolved_image = (
+            image_override.image
+            if image_override is not None and image_override.image is not None
+            else payload_slide.image
+        )
+        if resolved_image is not None:
+            image_fill = PlannedImageFill(
+                slot=image_slot,
+                image_path=_resolve_image_path(resolved_image, image_refs),
+                fit=resolved_image.fit,
+            )
+
+    caption_fill: PlannedTextFill | None = None
+    if caption_slots:
+        caption_slot = caption_slots[0]
+        caption_override = slot_overrides.get(caption_slot.slot_name)
+        caption_values = None
+        if caption_override is not None and caption_override.text is not None:
+            caption_values = caption_override.text
+        elif payload_slide.caption:
+            caption_values = [payload_slide.caption]
+        if caption_values:
+            caption_text = "\n".join(caption_values)
+            caption_fit = fit_text_to_slot(caption_text, caption_slot)
+            caption_fill = PlannedTextFill(
+                slot=caption_slot,
+                text=caption_text,
+                font_size=caption_fit.font_size,
+                fit_result=caption_fit,
+            )
+            _record_fit_diagnostics(
+                diagnostics,
+                slide_title=payload_slide.title,
+                fit_result=caption_fit,
+                label=caption_slot.alias or caption_slot.slot_name,
+            )
+
+    slides = _plan_textual_pattern_slides(
+        slide_title=payload_slide.title,
+        items=payload_slide.body,
+        pattern=pattern,
+        diagnostics=diagnostics,
+        kind=payload_slide.kind,
+        slot_overrides=slot_overrides,
+    )
+    for slide in slides:
+        if image_fill is not None:
+            slide.image_fills.append(image_fill)
+        if caption_fill is not None:
+            slide.text_fills.append(caption_fill)
+    return slides
+
+
+def _select_pattern_for_payload_slide(
+    template_profile: TemplateProfile,
+    payload_slide: PayloadSlide,
+) -> PatternProfile:
+    if payload_slide.pattern_id is not None:
+        pattern = template_profile.get_pattern(payload_slide.pattern_id)
+        if pattern is None:
+            raise ValueError(f"Unknown pattern id: {payload_slide.pattern_id}")
+        return pattern
+
+    candidates = template_profile.patterns_for_kind(payload_slide.kind)
+    if not candidates:
+        raise ValueError(
+            f"Template '{template_profile.template_id}' does not support "
+            f"slide kind '{payload_slide.kind}'."
+        )
+    return candidates[0]
+
+
+def _resolve_image_path(image: ImageSpec, image_refs: dict[str, Path]) -> Path:
+    if image.path is not None:
+        return image.path
+    if image.ref is not None and image.ref in image_refs:
+        return image_refs[image.ref]
+    raise ValueError("Image payload could not be resolved to a file path.")
+
+
+def _build_text_override_fill(slot: SlotDescriptor, override) -> PlannedTextFill:
+    values = list(override.text or [])
+    if slot.slot_type in {"title", "caption"}:
+        text = "\n".join(values)
+        fit_result = fit_text_to_slot(text, slot)
+        return PlannedTextFill(
+            slot=slot,
+            text=text,
+            font_size=fit_result.font_size,
+            fit_result=fit_result,
+        )
+
+    fit_result = fit_text_items_to_slot(values, slot)
+    return PlannedTextFill(
+        slot=slot,
+        items=values[: fit_result.consumed_items],
+        font_size=fit_result.font_size,
+        fit_result=fit_result,
+    )
+
+
+def _plan_items_across_slots(
+    items: list[str],
+    slots: tuple[SlotDescriptor, ...] | list[SlotDescriptor],
+    *,
+    reserve_one_item_per_remaining_slot: bool,
+) -> tuple[list[PlannedTextFill], list[str]]:
+    fills: list[PlannedTextFill] = []
+    remaining_items = list(items)
+    ordered_slots = sort_slots_in_reading_order(list(slots))
+
+    for index, slot in enumerate(ordered_slots):
+        if not remaining_items:
+            break
+
+        remaining_slot_count = len(ordered_slots) - index - 1
+        max_items_for_slot = len(remaining_items)
+        if reserve_one_item_per_remaining_slot and remaining_slot_count > 0:
+            max_items_for_slot = max(1, len(remaining_items) - remaining_slot_count)
+        candidate_items = remaining_items[:max_items_for_slot]
+        fit_result = fit_text_items_to_slot(candidate_items, slot)
+        consumed_items = candidate_items[: fit_result.consumed_items]
+        fills.append(
+            PlannedTextFill(
+                slot=slot,
+                items=consumed_items,
+                font_size=fit_result.font_size,
+                fit_result=fit_result,
+            )
+        )
+        remaining_items = remaining_items[len(consumed_items) :]
+
+    return fills, remaining_items
+
+
+def _export_section_contract(pattern: PatternProfile) -> TemplateSectionContract:
+    return TemplateSectionContract(
+        pattern_id=pattern.pattern_id,
+        layout_name=pattern.layout_name,
+        slots=tuple(_export_slot_contract(slot) for slot in pattern.slots),
+    )
+
+
+def _export_pattern_contract(pattern: PatternProfile) -> TemplatePatternContract:
+    return TemplatePatternContract(
+        pattern_id=pattern.pattern_id,
+        kind=pattern.kind,
+        layout_name=pattern.layout_name,
+        slots=tuple(_export_slot_contract(slot) for slot in pattern.slots),
+    )
+
+
+def _export_slot_contract(slot: SlotDescriptor) -> TemplateSlotContract:
+    return TemplateSlotContract(
+        slot_id=slot.slot_name,
+        alias=slot.alias or slot.slot_name,
+        slot_type=slot.slot_type,
+        required=slot.required,
+        orientation=slot.orientation,
+        order=slot.order,
+    )
+
+
+def _build_user_template_id(
+    template_path: Path | None,
+    patterns: list[PatternProfile],
+) -> str:
+    digest = sha1()
+    if template_path is not None and template_path.exists():
+        digest.update(template_path.read_bytes())
+    else:
+        digest.update(b"default-template")
+    for pattern in patterns:
+        digest.update(pattern.pattern_id.encode("utf-8"))
+        digest.update(pattern.layout_name.encode("utf-8"))
+        for slot in pattern.slots:
+            digest.update(slot.slot_name.encode("utf-8"))
+            digest.update((slot.slot_type or "").encode("utf-8"))
+            digest.update(str(slot.placeholder_index).encode("utf-8"))
+    return f"template-{digest.hexdigest()[:12]}"
+
+
+def _build_text_slots_from_placeholders(
+    placeholders,
+    *,
+    layout_index: int,
+    slot_prefix: str,
+    alias_prefix: str,
+    allowed_kinds: tuple[SlotContentKind, ...],
+) -> tuple[SlotDescriptor, ...]:
+    provisional = [
+        _build_placeholder_slot(
+            placeholder,
+            layout_index=layout_index,
+            slot_name="__tmp__",
+            alias="__tmp__",
+            slot_type="text",
+            preferred_font_size=SECTION_BODY_FONT_SIZE,
+            min_font_size=SECTION_BODY_MIN_FONT_SIZE,
+            allowed_kinds=allowed_kinds,
+        )
+        for placeholder in placeholders
+    ]
+    ordered_placeholders = sort_slots_in_reading_order(provisional)
+    orientation = _infer_orientation(ordered_placeholders)
+    slots: list[SlotDescriptor] = []
+    for index, slot in enumerate(ordered_placeholders, start=1):
+        slots.append(
+            _clone_slot(
+                slot,
+                slot_name=f"{slot_prefix}{index}",
+                alias=f"{alias_prefix}{index}",
+                orientation=orientation,
+                order=index,
+            )
+        )
+    return tuple(slots)
+
+
+def _profile_text_image_pattern(
+    presentation: Presentation,
+    *,
+    template_path: Path | None,
+    preferred_skip_layout_index: int,
+) -> PatternProfile | None:
+    best_candidate = None
+    for layout_index, layout in enumerate(presentation.slide_layouts):
+        if layout_index == preferred_skip_layout_index:
+            continue
+        try:
+            title_placeholder = _pick_body_title_placeholder(
+                layout,
+                layout_name="text_image",
+                template_path=template_path,
+            )
+            text_placeholders = _list_body_text_placeholders(
+                layout,
+                excluded_idx=title_placeholder.placeholder_format.idx,
+            )
+            image_placeholders = _list_image_placeholders(layout)
+            if not text_placeholders or not image_placeholders:
+                continue
+            candidate = (
+                len(image_placeholders),
+                len(text_placeholders),
+                sum(
+                    placeholder.width * placeholder.height
+                    for placeholder in image_placeholders
+                ),
+                -layout_index,
+                layout_index,
+                layout,
+                title_placeholder,
+                text_placeholders,
+                image_placeholders,
+            )
+            if best_candidate is None or candidate > best_candidate:
+                best_candidate = candidate
+        except TemplateCompatibilityError:
+            continue
+
+    if best_candidate is None:
+        return None
+
+    (
+        _,
+        _,
+        _,
+        _,
+        layout_index,
+        layout,
+        title_placeholder,
+        text_placeholders,
+        image_placeholders,
+    ) = best_candidate
+
+    ordered_text_slots = _build_text_slots_from_placeholders(
+        text_placeholders[:1],
+        layout_index=layout_index,
+        slot_prefix="text_image.body_",
+        alias_prefix="body_",
+        allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS,),
+    )
+    caption_slots: tuple[SlotDescriptor, ...] = ()
+    if len(text_placeholders) > 1:
+        caption_slots = _build_text_slots_from_placeholders(
+            text_placeholders[1:2],
+            layout_index=layout_index,
+            slot_prefix="text_image.caption_",
+            alias_prefix="caption_",
+            allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+        )
+        caption_slots = tuple(
+            _clone_slot(slot, slot_type="caption", required=False)
+            for slot in caption_slots
+        )
+
+    provisional_image_slots = [
+        _build_placeholder_slot(
+            image_placeholder,
+            layout_index=layout_index,
+            slot_name=f"__image_{index}",
+            alias=f"__image_{index}",
+            slot_type="image",
+            preferred_font_size=SECTION_BODY_FONT_SIZE,
+            min_font_size=SECTION_BODY_MIN_FONT_SIZE,
+            allowed_kinds=(),
+        )
+        for index, image_placeholder in enumerate(image_placeholders)
+    ]
+    ordered_image_slots = sort_slots_in_reading_order(provisional_image_slots)
+    image_orientation = _infer_orientation(ordered_image_slots)
+    image_slots = tuple(
+        _clone_slot(
+            slot,
+            slot_name=f"text_image.image_{index + 1}",
+            alias=f"image_{index + 1}",
+            slot_type="image",
+            orientation=image_orientation,
+            order=index + 1,
+        )
+        for index, slot in enumerate(ordered_image_slots)
+    )
+
+    return PatternProfile(
+        pattern_id="text_image.template",
+        kind="text_image",
+        layout_index=layout_index,
+        layout_name=layout.name,
+        slots=(
+            _build_placeholder_slot(
+                title_placeholder,
+                layout_index=layout_index,
+                slot_name="text_image.title",
+                alias="title",
+                slot_type="title",
+                preferred_font_size=SECTION_TITLE_FONT_SIZE,
+                min_font_size=SECTION_TITLE_MIN_FONT_SIZE,
+                allowed_kinds=(SlotContentKind.TITLE,),
+            ),
+            *ordered_text_slots,
+            *image_slots,
+            *caption_slots,
+        ),
+    )
 
 
 def _get_layout(
@@ -485,6 +1158,7 @@ def _select_title_layout(
     *,
     template_path: Path | None,
 ):
+    best_candidate = None
     for layout_index, layout in enumerate(presentation.slide_layouts):
         try:
             title_placeholder = _pick_title_text_placeholder(
@@ -499,19 +1173,29 @@ def _select_title_layout(
                 layout_name="title",
                 template_path=template_path,
             )
-            return (
+            candidate = (
+                _score_title_layout_candidate(
+                    title_placeholder=title_placeholder,
+                    secondary_placeholders=subtitle_placeholders,
+                ),
                 layout_index,
                 layout,
                 title_placeholder,
                 subtitle_placeholders,
             )
+            if best_candidate is None or candidate > best_candidate:
+                best_candidate = candidate
         except TemplateCompatibilityError:
             continue
 
-    raise TemplateCompatibilityError(
-        template_path,
-        "no compatible title layout exposing both title and subtitle placeholders",
-    )
+    if best_candidate is None:
+        raise TemplateCompatibilityError(
+            template_path,
+            "no compatible title layout exposing both title and subtitle placeholders",
+        )
+
+    _, layout_index, layout, title_placeholder, subtitle_placeholders = best_candidate
+    return layout_index, layout, title_placeholder, subtitle_placeholders
 
 
 def _select_body_layout(
@@ -561,43 +1245,21 @@ def _select_body_layout(
     if best_candidate is None:
         raise TemplateCompatibilityError(
             template_path,
-            "no compatible body layout exposing both title and content placeholders",
+            "no compatible body layout exposing both title and text placeholders",
         )
 
-    _, _, _, layout_index, layout, body_title_placeholder, body_content_placeholders = best_candidate
-    return (
-        layout_index,
-        layout,
-        body_title_placeholder,
-        body_content_placeholders,
-    )
-
-
-def _require_title_placeholder(
-    layout,
-    *,
-    layout_name: str,
-    template_path: Path | None,
-):
-    placeholder = _find_title_placeholder(layout)
-    if placeholder is not None:
-        return placeholder
-
-    raise TemplateCompatibilityError(
-        template_path,
-        f"'{layout_name}' layout has no title placeholder",
-    )
+    _, _, _, layout_index, layout, title_placeholder, content_placeholders = best_candidate
+    return layout_index, layout, title_placeholder, content_placeholders
 
 
 def _find_title_placeholder(layout):
     for placeholder in getattr(layout, "placeholders", []):
         placeholder_type = placeholder.placeholder_format.type
-        if placeholder_type in (
-            PP_PLACEHOLDER.TITLE,
-            PP_PLACEHOLDER.CENTER_TITLE,
-        ) and hasattr(placeholder, "text_frame"):
+        if (
+            placeholder_type in TITLE_PLACEHOLDER_TYPES
+            and hasattr(placeholder, "text_frame")
+        ):
             return placeholder
-
     return None
 
 
@@ -617,7 +1279,6 @@ def _pick_title_text_placeholder(
             template_path,
             f"'{layout_name}' layout has no text placeholder",
         )
-
     return max(candidates, key=lambda shape: shape.width * shape.height)
 
 
@@ -637,27 +1298,7 @@ def _pick_body_title_placeholder(
             template_path,
             f"'{layout_name}' layout has no title-like text placeholder",
         )
-
     return min(candidates, key=lambda shape: (shape.top, shape.left))
-
-
-def _pick_primary_text_placeholder(
-    layout,
-    *,
-    excluded_idx: int,
-    layout_name: str,
-    template_path: Path | None,
-    required: bool = True,
-):
-    candidates = _list_text_placeholders(layout, excluded_idx=excluded_idx)
-    if not candidates:
-        if not required:
-            return None
-        raise TemplateCompatibilityError(
-            template_path,
-            f"'{layout_name}' layout has no secondary text placeholder",
-        )
-    return max(candidates, key=lambda shape: shape.width * shape.height)
 
 
 def _pick_title_secondary_text_placeholders(
@@ -699,7 +1340,7 @@ def _pick_body_content_placeholders(
     layout_name: str,
     template_path: Path | None,
 ):
-    candidates = _list_text_placeholders(layout, excluded_idx=excluded_idx)
+    candidates = _list_body_text_placeholders(layout, excluded_idx=excluded_idx)
     if not candidates:
         raise TemplateCompatibilityError(
             template_path,
@@ -717,66 +1358,6 @@ def _pick_body_content_placeholders(
     )
 
 
-def _pick_secondary_text_placeholder(
-    layout,
-    *,
-    excluded_idx: int,
-    anchor_top: int,
-    layout_name: str,
-    template_path: Path | None,
-):
-    candidates = _pick_title_secondary_text_placeholders(
-        layout,
-        excluded_idx=excluded_idx,
-        anchor_top=anchor_top,
-        layout_name=layout_name,
-        template_path=template_path,
-    )
-    if not candidates:
-        raise TemplateCompatibilityError(
-            template_path,
-            f"'{layout_name}' layout has no secondary text placeholder",
-        )
-    return candidates[0]
-
-
-def _plan_items_across_slots(
-    items: list[str],
-    slots: tuple[SlotDescriptor, ...] | list[SlotDescriptor],
-    *,
-    reserve_one_item_per_remaining_slot: bool,
-) -> tuple[list[PlannedTextFill], list[str]]:
-    fills: list[PlannedTextFill] = []
-    remaining_items = list(items)
-    ordered_slots = sort_slots_in_reading_order(list(slots))
-
-    for index, slot in enumerate(ordered_slots):
-        if not remaining_items:
-            break
-
-        remaining_slot_count = len(ordered_slots) - index - 1
-        max_items_for_slot = len(remaining_items)
-        if reserve_one_item_per_remaining_slot and remaining_slot_count > 0:
-            max_items_for_slot = max(
-                1,
-                len(remaining_items) - remaining_slot_count,
-            )
-        candidate_items = remaining_items[:max_items_for_slot]
-        fit_result = fit_text_items_to_slot(candidate_items, slot)
-        consumed_items = candidate_items[: fit_result.consumed_items]
-        fills.append(
-            PlannedTextFill(
-                slot=slot,
-                items=consumed_items,
-                font_size=fit_result.font_size,
-                fit_result=fit_result,
-            )
-        )
-        remaining_items = remaining_items[len(consumed_items) :]
-
-    return fills, remaining_items
-
-
 def _list_text_placeholders(layout, *, excluded_idx: int | None = None):
     return [
         shape
@@ -790,18 +1371,77 @@ def _list_text_placeholders(layout, *, excluded_idx: int | None = None):
     ]
 
 
-def _build_slot_descriptor(
+def _list_body_text_placeholders(layout, *, excluded_idx: int | None = None):
+    return [
+        shape
+        for shape in layout.placeholders
+        if hasattr(shape, "text_frame")
+        and shape.placeholder_format.type not in TEXT_EXCLUDED_PLACEHOLDER_TYPES
+        and (
+            excluded_idx is None
+            or shape.placeholder_format.idx != excluded_idx
+        )
+    ]
+
+
+def _list_image_placeholders(layout):
+    return [
+        shape
+        for shape in layout.placeholders
+        if shape.placeholder_format.type in PICTURE_PLACEHOLDER_TYPES
+    ]
+
+
+def _score_title_layout_candidate(
+    *,
+    title_placeholder,
+    secondary_placeholders,
+) -> tuple[int, int, int, int, int]:
+    title_area = title_placeholder.width * title_placeholder.height
+    max_secondary_area = max(
+        shape.width * shape.height for shape in secondary_placeholders
+    )
+    has_explicit_subtitle = any(
+        getattr(PP_PLACEHOLDER, "SUBTITLE", None)
+        == shape.placeholder_format.type
+        for shape in secondary_placeholders
+    )
+    has_explicit_title = title_placeholder.placeholder_format.type in TITLE_PLACEHOLDER_TYPES
+    return (
+        int(has_explicit_subtitle),
+        title_area - max_secondary_area,
+        int(has_explicit_title),
+        title_area,
+        -len(secondary_placeholders),
+    )
+
+
+def _build_placeholder_slot(
     placeholder,
     *,
     layout_index: int,
     slot_name: str,
+    alias: str,
+    slot_type: str,
     preferred_font_size: int,
     min_font_size: int,
     allowed_kinds: tuple[SlotContentKind, ...],
+    orientation: str | None = None,
+    order: int | None = None,
+    required: bool = True,
 ) -> SlotDescriptor:
-    paragraph = placeholder.text_frame.paragraphs[0]
+    paragraph = (
+        placeholder.text_frame.paragraphs[0]
+        if hasattr(placeholder, "text_frame")
+        else None
+    )
     return SlotDescriptor(
         slot_name=slot_name,
+        alias=alias,
+        slot_type=slot_type,
+        required=required,
+        orientation=orientation,
+        order=order,
         layout_index=layout_index,
         placeholder_index=placeholder.placeholder_format.idx,
         x=placeholder.left,
@@ -811,7 +1451,8 @@ def _build_slot_descriptor(
         preferred_font_size=preferred_font_size,
         min_font_size=min_font_size,
         allowed_kinds=allowed_kinds,
-        explicit_font_name=paragraph.font.name,
+        explicit_font_name=(None if paragraph is None else paragraph.font.name),
+        placeholder_type=str(placeholder.placeholder_format.type),
     )
 
 
@@ -820,6 +1461,8 @@ def _build_text_box_slot(
     *,
     layout_index: int,
     slot_name: str,
+    alias: str,
+    slot_type: str,
     x_ratio: float,
     y_ratio: float,
     width_ratio: float,
@@ -827,9 +1470,17 @@ def _build_text_box_slot(
     preferred_font_size: int,
     min_font_size: int,
     allowed_kinds: tuple[SlotContentKind, ...],
+    orientation: str | None = None,
+    order: int | None = None,
+    required: bool = True,
 ) -> SlotDescriptor:
     return SlotDescriptor(
         slot_name=slot_name,
+        alias=alias,
+        slot_type=slot_type,
+        required=required,
+        orientation=orientation,
+        order=order,
         layout_index=layout_index,
         placeholder_index=None,
         x=int(presentation.slide_width * x_ratio),
@@ -842,6 +1493,214 @@ def _build_text_box_slot(
     )
 
 
+def _build_geometry_slot(
+    presentation: Presentation,
+    *,
+    layout_index: int,
+    slot_name: str,
+    alias: str,
+    slot_type: str,
+    x_ratio: float,
+    y_ratio: float,
+    width_ratio: float,
+    height_ratio: float,
+    orientation: str | None = None,
+    order: int | None = None,
+    required: bool = True,
+) -> SlotDescriptor:
+    return SlotDescriptor(
+        slot_name=slot_name,
+        alias=alias,
+        slot_type=slot_type,
+        required=required,
+        orientation=orientation,
+        order=order,
+        layout_index=layout_index,
+        placeholder_index=None,
+        x=int(presentation.slide_width * x_ratio),
+        y=int(presentation.slide_height * y_ratio),
+        width=int(presentation.slide_width * width_ratio),
+        height=int(presentation.slide_height * height_ratio),
+        placeholder_type="geometry",
+    )
+
+
+def _clone_slot(
+    slot: SlotDescriptor,
+    *,
+    slot_name: str,
+    alias: str | None = None,
+    slot_type: str | None = None,
+    orientation: str | None = None,
+    order: int | None = None,
+    required: bool | None = None,
+) -> SlotDescriptor:
+    return SlotDescriptor(
+        slot_name=slot_name,
+        alias=(slot.alias if alias is None else alias),
+        slot_type=(slot.slot_type if slot_type is None else slot_type),
+        required=(slot.required if required is None else required),
+        orientation=(slot.orientation if orientation is None else orientation),
+        order=(slot.order if order is None else order),
+        layout_index=slot.layout_index,
+        placeholder_index=slot.placeholder_index,
+        x=slot.x,
+        y=slot.y,
+        width=slot.width,
+        height=slot.height,
+        preferred_font_size=slot.preferred_font_size,
+        min_font_size=slot.min_font_size,
+        allowed_kinds=slot.allowed_kinds,
+        explicit_font_name=slot.explicit_font_name,
+        priority=slot.priority,
+        placeholder_type=slot.placeholder_type,
+    )
+
+
+def _infer_orientation(slots: list[SlotDescriptor] | tuple[SlotDescriptor, ...]) -> str:
+    if len(slots) <= 1:
+        return "stack"
+
+    ordered = sort_slots_in_reading_order(list(slots))
+    x_span = max(slot.x for slot in ordered) - min(slot.x for slot in ordered)
+    y_span = max(slot.y for slot in ordered) - min(slot.y for slot in ordered)
+    max_height = max(slot.height for slot in ordered)
+    max_width = max(slot.width for slot in ordered)
+
+    if y_span <= max_height // 4:
+        return "horizontal"
+    if x_span <= max_width // 4:
+        return "stack"
+    return "vertical"
+
+
+def _build_basic_template_title_decorations(
+    presentation: Presentation,
+) -> tuple[SlideDecoration, ...]:
+    return (
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=0.251,
+            height_ratio=1.000,
+            fill_rgb=BASIC_EDITORIAL_NAVY,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.821,
+            y_ratio=0.000,
+            width_ratio=0.179,
+            height_ratio=1.000,
+            fill_rgb=(243, 244, 246),
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.793,
+            y_ratio=0.000,
+            width_ratio=0.016,
+            height_ratio=1.000,
+            fill_rgb=BASIC_EDITORIAL_ORANGE,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.315,
+            y_ratio=0.210,
+            width_ratio=0.195,
+            height_ratio=0.005,
+            fill_rgb=BASIC_EDITORIAL_TEAL,
+        ),
+    )
+
+
+def _build_basic_template_body_decorations(
+    presentation: Presentation,
+) -> tuple[SlideDecoration, ...]:
+    return (
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=1.000,
+            height_ratio=1.000,
+            fill_rgb=BASIC_EDITORIAL_LIGHT,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=1.000,
+            height_ratio=0.037,
+            fill_rgb=BASIC_EDITORIAL_NAVY,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.046,
+            y_ratio=0.093,
+            width_ratio=0.012,
+            height_ratio=0.793,
+            fill_rgb=BASIC_EDITORIAL_TEAL,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.068,
+            y_ratio=0.197,
+            width_ratio=0.604,
+            height_ratio=0.664,
+            fill_rgb=(255, 255, 255),
+            line_rgb=BASIC_EDITORIAL_LINE,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.709,
+            y_ratio=0.197,
+            width_ratio=0.227,
+            height_ratio=0.173,
+            fill_rgb=BASIC_EDITORIAL_PALE,
+            line_rgb=BASIC_EDITORIAL_PALE_LINE,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.709,
+            y_ratio=0.411,
+            width_ratio=0.227,
+            height_ratio=0.256,
+            fill_rgb=BASIC_EDITORIAL_NAVY,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.077,
+            y_ratio=0.176,
+            width_ratio=0.090,
+            height_ratio=0.005,
+            fill_rgb=BASIC_EDITORIAL_ORANGE,
+        ),
+    )
+
+
+def _build_ratio_decoration(
+    presentation: Presentation,
+    *,
+    x_ratio: float,
+    y_ratio: float,
+    width_ratio: float,
+    height_ratio: float,
+    fill_rgb: tuple[int, int, int],
+    line_rgb: tuple[int, int, int] | None = None,
+) -> SlideDecoration:
+    slide_width = presentation.slide_width
+    slide_height = presentation.slide_height
+    return SlideDecoration(
+        shape_type="rectangle",
+        x=round(slide_width * x_ratio),
+        y=round(slide_height * y_ratio),
+        width=round(slide_width * width_ratio),
+        height=max(1, round(slide_height * height_ratio)),
+        fill_rgb=fill_rgb,
+        line_rgb=line_rgb,
+    )
+
+
 def _add_font_risk_warnings(
     diagnostics: DiagnosticReport,
     template_profile: TemplateProfile,
@@ -849,21 +1708,21 @@ def _add_font_risk_warnings(
     if template_profile.template_path is None:
         return
 
-    slots = [
-        template_profile.title_slot,
-        template_profile.body_title_slot,
-    ]
-    slots.extend(template_profile.title_secondary_slots or (template_profile.subtitle_slot,))
-    slots.extend(template_profile.body_content_slots or (template_profile.body_content_slot,))
-
-    for slot in slots:
-        if slot.explicit_font_name is None:
-            diagnostics.add_warning(
-                "font-substitution-risk",
-                "Template slot "
-                f"'{slot.slot_name}' does not pin a font face; output may vary "
-                "across machines.",
-            )
+    for pattern in (
+        template_profile.title_pattern,
+        template_profile.contents_pattern,
+        *template_profile.slide_patterns,
+    ):
+        for slot in pattern.slots:
+            if slot.slot_type == "image":
+                continue
+            if slot.explicit_font_name is None:
+                diagnostics.add_warning(
+                    "font-substitution-risk",
+                    "Template slot "
+                    f"'{slot.slot_name}' does not pin a font face; output may vary "
+                    "across machines.",
+                )
 
 
 def _record_fit_diagnostics(

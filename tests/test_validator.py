@@ -1,106 +1,152 @@
-"""Tests for strict weekly report schema validation."""
+"""Tests for contract-first Autoreport validation rules."""
 
 from __future__ import annotations
 
 import unittest
 
-from autoreport.models import WeeklyReport
-from autoreport.validator import ValidationError, validate_report
+from autoreport.models import ReportPayload, TemplateContract
+from autoreport.template_flow import get_built_in_contract
+from autoreport.validator import (
+    ValidationError,
+    validate_payload,
+    validate_template_contract,
+)
+
+
+def build_valid_payload() -> dict[str, object]:
+    return {
+        "report_payload": {
+            "payload_version": "autoreport.payload.v1",
+            "template_id": "autoreport-editorial-v1",
+            "title_slide": {
+                "title": "Autoreport",
+                "subtitle": ["Template-aware PPTX autofill engine"],
+            },
+            "contents": {"enabled": True},
+            "slides": [
+                {
+                    "kind": "text",
+                    "title": "What It Does",
+                    "include_in_contents": True,
+                    "body": [
+                        "Generate editable PowerPoint decks from structured inputs.",
+                    ],
+                    "slot_overrides": {},
+                },
+                {
+                    "kind": "metrics",
+                    "title": "Adoption Snapshot",
+                    "include_in_contents": True,
+                    "items": [
+                        {"label": "Templates profiled", "value": 12},
+                    ],
+                    "slot_overrides": {},
+                },
+            ],
+        }
+    }
 
 
 class ValidatorTestCase(unittest.TestCase):
-    """Verify weekly report validation rules and model conversion."""
+    """Verify template-contract and payload validation behavior."""
 
-    def test_validate_report_returns_trimmed_weekly_report(self) -> None:
-        report = validate_report(
-            {
-                "title": " Weekly Report ",
-                "team": " Platform Team ",
-                "week": " 2026-W24 ",
-                "highlights": [" Built validator "],
-                "metrics": {
-                    "tasks_completed": 8,
-                    "open_issues": 3,
-                },
-                "risks": [" Schema drift "],
-                "next_steps": [" Add PowerPoint generation "],
-            }
-        )
+    def test_validate_template_contract_accepts_built_in_contract(self) -> None:
+        contract = validate_template_contract(get_built_in_contract().to_dict())
 
-        self.assertIsInstance(report, WeeklyReport)
-        self.assertEqual(report.title, "Weekly Report")
-        self.assertEqual(report.team, "Platform Team")
-        self.assertEqual(report.week, "2026-W24")
-        self.assertEqual(report.highlights, ["Built validator"])
-        self.assertEqual(report.metrics, {"tasks_completed": 8, "open_issues": 3})
-        self.assertEqual(report.risks, ["Schema drift"])
-        self.assertEqual(report.next_steps, ["Add PowerPoint generation"])
-
-    def test_validate_report_rejects_non_mapping_payload(self) -> None:
-        with self.assertRaises(ValidationError) as context:
-            validate_report(["not", "a", "mapping"])  # type: ignore[arg-type]
-
+        self.assertIsInstance(contract, TemplateContract)
+        self.assertEqual(contract.template_id, "autoreport-editorial-v1")
         self.assertEqual(
-            context.exception.errors,
-            ["Report content must be a YAML mapping."],
+            [pattern.kind for pattern in contract.slide_patterns],
+            ["text", "metrics", "text_image"],
         )
 
-    def test_validate_report_collects_errors_in_expected_order(self) -> None:
+    def test_validate_payload_accepts_editorial_text_and_metrics_payload(self) -> None:
+        payload = validate_payload(
+            build_valid_payload(),
+            get_built_in_contract(),
+        )
+
+        self.assertIsInstance(payload, ReportPayload)
+        self.assertEqual(payload.template_id, "autoreport-editorial-v1")
+        self.assertEqual([slide.kind for slide in payload.slides], ["text", "metrics"])
+
+    def test_validate_payload_collects_expected_errors_for_invalid_payload(self) -> None:
         with self.assertRaises(ValidationError) as context:
-            validate_report(
+            validate_payload(
                 {
-                    "title": "   ",
-                    "week": 202624,
-                    "highlights": ["valid", "   ", 12],
-                    "metrics": {
-                        "tasks_completed": True,
-                        "open_issues": -1,
-                        "extra_metric": 99,
-                    },
-                    "risks": [],
-                    "next_steps": "ship it",
-                    "report_type": "weekly_report",
-                    "unexpected": "value",
-                }
+                    "report_payload": {
+                        "payload_version": "wrong",
+                        "template_id": "wrong-template",
+                        "title_slide": {
+                            "title": "   ",
+                            "subtitle": [],
+                        },
+                        "contents": {"enabled": "yes"},
+                        "slides": [
+                            {
+                                "kind": "oops",
+                                "title": "  ",
+                                "include_in_contents": "yes",
+                                "body": [],
+                                "slot_overrides": [],
+                            }
+                        ],
+                    }
+                },
+                get_built_in_contract(),
             )
 
         self.assertEqual(
             context.exception.errors,
             [
-                "Field 'title' must be a non-empty string.",
-                "Field 'team' is required.",
-                "Field 'week' must be a non-empty string.",
-                "Field 'highlights[1]' must be a non-empty string.",
-                "Field 'highlights[2]' must be a non-empty string.",
-                "Field 'metrics.tasks_completed' must be an integer.",
-                "Field 'metrics.open_issues' must be greater than or equal to 0.",
-                "Field 'metrics.extra_metric' is not allowed.",
-                "Field 'risks' must contain at least 1 item.",
-                "Field 'next_steps' must be a list of non-empty strings.",
-                "Field 'report_type' is not supported in v0.1.",
-                "Field 'unexpected' is not allowed.",
+                "Field 'payload_version' must equal 'autoreport.payload.v1'.",
+                "Field 'template_id' must match 'autoreport-editorial-v1'.",
+                "Field 'title_slide.title' must be a non-empty string.",
+                "Field 'title_slide.subtitle' must contain at least 1 item.",
+                "Field 'contents.enabled' must be a boolean.",
+                "Field 'slides[0].title' must be a non-empty string.",
+                "Field 'slides[0].include_in_contents' must be a boolean.",
+                "Field 'slides[0].kind' must be one of 'text', 'metrics', or 'text_image'.",
+                "Field 'slides[0].slot_overrides' must be an object.",
             ],
         )
 
-    def test_validate_report_rejects_missing_required_metrics(self) -> None:
+    def test_validate_payload_rejects_unknown_slot_override_and_missing_image_ref(self) -> None:
         with self.assertRaises(ValidationError) as context:
-            validate_report(
+            validate_payload(
                 {
-                    "title": "Weekly Report",
-                    "team": "Platform Team",
-                    "week": "2026-W24",
-                    "highlights": ["Highlight"],
-                    "metrics": {},
-                    "risks": ["Risk"],
-                    "next_steps": ["Next step"],
-                }
+                    "report_payload": {
+                        "payload_version": "autoreport.payload.v1",
+                        "template_id": "autoreport-editorial-v1",
+                        "title_slide": {
+                            "title": "Autoreport",
+                            "subtitle": ["Template-aware PPTX autofill engine"],
+                        },
+                        "contents": {"enabled": True},
+                        "slides": [
+                            {
+                                "kind": "text_image",
+                                "title": "Why It Matters",
+                                "include_in_contents": True,
+                                "body": ["Teams keep their own template language."],
+                                "image": {"ref": "image_1", "fit": "contain"},
+                                "caption": "Workflow preview",
+                                "slot_overrides": {
+                                    "text_image.unknown": {"text": "bad"}
+                                },
+                            }
+                        ],
+                    }
+                },
+                get_built_in_contract(),
+                available_image_refs=(),
             )
 
         self.assertEqual(
             context.exception.errors,
             [
-                "Field 'metrics.tasks_completed' is required.",
-                "Field 'metrics.open_issues' is required.",
+                "Field 'slides[0].image.ref' does not match a provided image reference.",
+                "Field 'slides[0].slot_overrides.text_image.unknown' targets an unknown slot for the selected pattern.",
             ],
         )
 
