@@ -83,6 +83,47 @@ report_content:
         body_1: |
           Write the main narrative for this slide.
 """.strip()
+WEBSITE_INTRO_EXAMPLE_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport Website Overview
+      subtitle_1: |
+        Fast, contract-first PPT generation for AI-assisted workflows
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. What Autoreport Does
+        2. How The Web Flow Works
+        3. Why Teams Use It
+  slides:
+    - pattern_id: text.editorial
+      slots:
+        title: What Autoreport Does
+        body_1: |
+          Autoreport converts structured YAML into an editable PowerPoint deck.
+          The system keeps deck generation deterministic by validating the draft
+          against a template contract before it generates the final PPTX.
+    - pattern_id: text.editorial
+      slots:
+        title: How The Web Flow Works
+        body_1: |
+          The user copies one AI prompt package, asks another AI to draft
+          report_content, pastes the YAML into the web editor, and generates
+          the deck immediately.
+          When images are truly needed, real files can be uploaded later.
+    - pattern_id: metrics.editorial
+      slots:
+        title: Why Teams Use It
+        body_1: |
+          - Input shape: report_content or authoring_payload
+          - Slide count: inferred dynamically from slides
+          - Runtime: deterministic local PPTX generation
+          - Editing result: editable PowerPoint output
+""".strip()
 app = FastAPI(
     title="Autoreport Demo",
     docs_url=None,
@@ -94,6 +135,7 @@ app = FastAPI(
 def _render_demo_html() -> str:
     contract_json = json.dumps(DEFAULT_CONTRACT_YAML)
     draft_prompt_json = json.dumps(AI_DRAFT_PROMPT_YAML)
+    example_json = json.dumps(WEBSITE_INTRO_EXAMPLE_YAML)
     compiled_json = json.dumps("")
     return """<!DOCTYPE html>
 <html lang="en">
@@ -243,6 +285,7 @@ def _render_demo_html() -> str:
               </ul>
               <div class="copy-actions">
                 <button id="reset-draft" class="ghost" type="button">Reset To AI Draft Prompt</button>
+                <button id="load-intro-example" class="ghost" type="button">Load Website Intro Example</button>
                 <button id="copy-draft-prompt" class="ghost" type="button">Copy AI Draft Prompt</button>
                 <button id="copy-contract" class="ghost" type="button">Copy Template Contract</button>
                 <button id="copy-handoff-secondary" class="ghost" type="button">Copy AI Package</button>
@@ -263,6 +306,7 @@ def _render_demo_html() -> str:
     <script>
       const CONTRACT_YAML = __CONTRACT_JSON__;
       const AI_DRAFT_PROMPT = __DRAFT_PROMPT_JSON__;
+      const WEBSITE_INTRO_EXAMPLE = __EXAMPLE_JSON__;
       const DEFAULT_COMPILED = __COMPILED_JSON__;
       const contractNode = document.getElementById("template-contract");
       const payloadNode = document.getElementById("payload-yaml");
@@ -433,6 +477,15 @@ def _render_demo_html() -> str:
           ["Send this prompt together with the template contract to another AI, then paste the returned report_content draft back here."]
         );
       });
+      document.getElementById("load-intro-example").addEventListener("click", () => {
+        payloadNode.value = WEBSITE_INTRO_EXAMPLE;
+        compiledNode.value = "";
+        setStatus(
+          "Website intro example loaded.",
+          [],
+          ["Edit this starter deck in the main editor, then normalize or generate it."]
+        );
+      });
 
       document.getElementById("refresh-compiled").addEventListener("click", refreshCompiledPreview);
       document.getElementById("copy-draft-prompt").addEventListener("click", () => copyTextToClipboard("AI draft prompt", AI_DRAFT_PROMPT));
@@ -491,7 +544,7 @@ def _render_demo_html() -> str:
       });
     </script>
   </body>
-</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__DRAFT_PROMPT_JSON__", draft_prompt_json).replace("__COMPILED_JSON__", compiled_json)
+</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__DRAFT_PROMPT_JSON__", draft_prompt_json).replace("__EXAMPLE_JSON__", example_json).replace("__COMPILED_JSON__", compiled_json)
 
 
 INDEX_HTML = _render_demo_html()
