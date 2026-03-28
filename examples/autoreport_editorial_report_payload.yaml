@@ -1,0 +1,37 @@
+report_payload:
+  payload_version: autoreport.payload.v1
+  template_id: autoreport-editorial-v1
+  title_slide:
+    title: Autoreport
+    subtitle:
+      - Template-aware PPTX autofill engine
+  contents:
+    enabled: true
+  slides:
+    - kind: text
+      title: What It Does
+      include_in_contents: true
+      body:
+        - Generate editable PowerPoint decks from structured inputs.
+        - Fill template slots instead of rebuilding layouts from scratch.
+      slot_overrides: {}
+    - kind: metrics
+      title: Adoption Snapshot
+      include_in_contents: true
+      items:
+        - label: Templates profiled
+          value: 12
+        - label: Decks generated
+          value: 24
+      slot_overrides: {}
+    - kind: text_image
+      title: Why It Matters
+      include_in_contents: true
+      body:
+        - Teams keep their own brand language.
+        - Autoreport handles fit, spill, and consistency.
+      image:
+        ref: image_1
+        fit: contain
+      caption: Upload an image and map it to image_1.
+      slot_overrides: {}

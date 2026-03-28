@@ -1,0 +1,88 @@
+template_contract:
+  contract_version: autoreport.template.v1
+  template_id: autoreport-editorial-v1
+  template_label: Autoreport Editorial
+  template_source: built_in
+  title_slide:
+    pattern_id: cover.editorial
+    layout_name: Blank
+    slots:
+      - slot_id: cover.title
+        alias: title
+        slot_type: title
+        required: true
+      - slot_id: cover.subtitle_1
+        alias: subtitle_1
+        slot_type: text
+        required: true
+        orientation: stack
+        order: 1
+  contents_slide:
+    pattern_id: contents.editorial
+    layout_name: Blank
+    slots:
+      - slot_id: contents.title
+        alias: title
+        slot_type: title
+        required: true
+      - slot_id: contents.body_1
+        alias: body_1
+        slot_type: text
+        required: true
+        orientation: stack
+        order: 1
+  slide_patterns:
+    - pattern_id: text.editorial
+      kind: text
+      layout_name: Blank
+      slots:
+        - slot_id: text.title
+          alias: title
+          slot_type: title
+          required: true
+        - slot_id: text.body_1
+          alias: body_1
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+    - pattern_id: metrics.editorial
+      kind: metrics
+      layout_name: Blank
+      slots:
+        - slot_id: metrics.title
+          alias: title
+          slot_type: title
+          required: true
+        - slot_id: metrics.body_1
+          alias: body_1
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+    - pattern_id: text_image.editorial
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: title
+          slot_type: title
+          required: true
+        - slot_id: text_image.body_1
+          alias: body_1
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: stack
+          order: 1

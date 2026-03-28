@@ -1,54 +1,76 @@
 # autoreport
 
-Autoreport is a structured report automation project for turning well-defined
-input files into presentation-ready outputs. The long-term direction includes
-AI-assisted workflows, but the near-term v0.3 direction is a template-aware
-PowerPoint autofill engine that fills user-owned templates instead of
-inventing new slide designs. The current v0.2.1 work focuses on a deterministic
-weekly report pipeline with both CLI and web-demo entry points.
+Autoreport is a template-contract-first PPTX generation engine.
+It inspects a PowerPoint template, exports the fillable contract, accepts a
+structured payload that another AI or a human can fill, and returns an editable
+PowerPoint deck.
 
-## Why this project exists
+The current built-in baseline is `autoreport_editorial`, an Autoreport-owned
+editorial template designed for fast contract-first generation.
 
-Many teams already know what they want their recurring reports to say, but they
-still spend too much time rebuilding the same slide decks by hand. Autoreport
-aims to make those reports reproducible, template-driven, and easy to automate.
+## Product flow
 
-## Planned CLI usage
+1. inspect a template and export its contract
+2. scaffold or fill a `report_payload`
+3. generate an editable `.pptx`
+
+Autoreport does not call an LLM during generation.
+The AI-friendly layer is the exported contract and payload structure, so deck
+generation stays deterministic and near-instant.
+
+## CLI
+
+Inspect the built-in editorial template contract:
 
 ```bash
-autoreport generate examples/weekly_report.yaml --output output/weekly_report.pptx
+autoreport inspect-template --built-in autoreport_editorial
 ```
 
-The CLI validates the YAML input, shapes it into a fixed weekly slide template,
-and writes a `.pptx` presentation.
+Scaffold a starter payload from a saved contract:
 
-## Planned web demo usage
+```bash
+autoreport scaffold-payload examples/autoreport_editorial_template_contract.yaml
+```
+
+Generate a deck from a payload file:
+
+```bash
+autoreport generate examples/autoreport_editorial_report_payload.yaml --output output/autoreport_demo.pptx
+```
+
+Generate against a user-owned `.pptx` template:
+
+```bash
+autoreport inspect-template --template path/to/template.pptx --output output/template_contract.yaml
+autoreport generate output/report_payload.yaml --template path/to/template.pptx --output output/custom_deck.pptx
+```
+
+## Web demo
+
+Run the local demo:
 
 ```bash
 uvicorn autoreport.web.app:app --host 0.0.0.0 --port 8000
 ```
 
-The web demo accepts pasted weekly report YAML, validates it through the same
-core pipeline used by the CLI, and returns a generated `.pptx` for download.
+The web demo currently targets the built-in editorial template only.
+It shows the contract, lets you edit the payload YAML, supports uploaded image
+refs such as `image_1`, and returns a generated `.pptx` for immediate download.
+
+## Example documents
+
+- `examples/autoreport_editorial_template_contract.yaml`
+- `examples/autoreport_editorial_report_payload.yaml`
 
 ## Data handling
 
 Autoreport is designed as a generation engine, not a storage service.
 
-By default, submitted YAML content is processed only to validate the request and
-generate the requested `.pptx` output. The generated file is intended for
-immediate download and cleanup, and the default web demo flow does not retain
-submitted document bodies or generated presentations after request handling.
+Submitted payloads are processed only long enough to validate the request and
+generate the requested `.pptx`. The default web demo flow cleans up temporary
+generated files after download and does not retain payload contents by default.
 
-Because the source code is public, anyone can modify and self-host the project
-with different storage behavior. That is outside the default behavior and not
-the intended operating policy of this project.
+## Roadmap frame
 
-## Roadmap
-
-- v0.1: Deterministic weekly-report CLI with YAML validation and `.pptx` output.
-- v0.2: Public web demo plus core hardening for template compatibility and errors.
-- v0.3: Template-aware autofill for user-owned PowerPoint templates, fit/spill
-  policies, and diagnostics for layout safety.
-- v0.4: Optional AI-assisted text shaping, richer layout support, and broader
-  workflow automation on top of the template-aware engine.
+- v0.3: template-aware PPTX autofill, contract export, deterministic fill/spill, and editable deck output
+- v0.4: broader workflow automation, richer template patterns, and optional AI-assisted authoring on top of the contract-first engine

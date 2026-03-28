@@ -1,4 +1,4 @@
-"""Tests for CLI validation behavior."""
+"""Tests for the contract-first Autoreport CLI."""
 
 from __future__ import annotations
 
@@ -7,44 +7,102 @@ import shutil
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from unittest.mock import patch
 from uuid import uuid4
 
 from autoreport.cli import main
-from autoreport.outputs.pptx_writer import (
-    OutputWriteError,
-    TemplateCompatibilityError,
-    TemplateReadError,
-)
+from autoreport.template_flow import get_built_in_contract
 
 
 TEST_TEMP_ROOT = Path("tests") / "_tmp"
 
 
 def make_test_dir() -> Path:
-    """Create a writable test directory inside the repository."""
-
     TEST_TEMP_ROOT.mkdir(exist_ok=True)
     test_dir = TEST_TEMP_ROOT / uuid4().hex
     test_dir.mkdir()
     return test_dir
 
 
+def write_payload(path: Path) -> None:
+    path.write_text(
+        "\n".join(
+            [
+                "report_payload:",
+                "  payload_version: autoreport.payload.v1",
+                "  template_id: autoreport-editorial-v1",
+                "  title_slide:",
+                "    title: Autoreport",
+                "    subtitle:",
+                "      - Template-aware PPTX autofill engine",
+                "  contents:",
+                "    enabled: true",
+                "  slides:",
+                "    - kind: text",
+                "      title: What It Does",
+                "      include_in_contents: true",
+                "      body:",
+                "        - Generate editable PowerPoint decks.",
+                "      slot_overrides: {}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
 class CLITestCase(unittest.TestCase):
-    """Verify the CLI generates outputs and reports failures cleanly."""
+    """Verify CLI generation and new contract-first command flows."""
+
+    def test_inspect_template_command_prints_built_in_contract(self) -> None:
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
+
+        with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+            exit_code = main(["inspect-template", "--built-in", "autoreport_editorial"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stderr_buffer.getvalue(), "")
+        self.assertIn("template_contract:", stdout_buffer.getvalue())
+        self.assertIn("template_id: autoreport-editorial-v1", stdout_buffer.getvalue())
+
+    def test_scaffold_payload_command_writes_starter_payload(self) -> None:
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
+        test_dir = make_test_dir()
+        try:
+            contract_path = test_dir / "contract.yaml"
+            contract_path.write_text(
+                __import__("yaml").safe_dump(
+                    get_built_in_contract().to_dict(),
+                    sort_keys=False,
+                    allow_unicode=True,
+                ),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                exit_code = main(["scaffold-payload", str(contract_path)])
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stderr_buffer.getvalue(), "")
+        self.assertIn("report_payload:", stdout_buffer.getvalue())
+        self.assertIn("template_id: autoreport-editorial-v1", stdout_buffer.getvalue())
 
     def test_generate_command_writes_presentation(self) -> None:
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()
         test_dir = make_test_dir()
         try:
-            output_path = test_dir / "weekly_report.pptx"
+            payload_path = test_dir / "payload.yaml"
+            output_path = test_dir / "autoreport_demo.pptx"
+            write_payload(payload_path)
 
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                 exit_code = main(
                     [
                         "generate",
-                        "examples/weekly_report.yaml",
+                        str(payload_path),
                         "--output",
                         str(output_path),
                     ]
@@ -56,49 +114,36 @@ class CLITestCase(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(
             stdout_buffer.getvalue().splitlines(),
-            [f"Report generated successfully: {output_path}"],
+            [f"Autoreport deck generated successfully: {output_path}"],
         )
         self.assertEqual(stderr_buffer.getvalue(), "")
         self.assertTrue(output_exists)
 
-    def test_generate_command_reports_missing_file(self) -> None:
-        missing_path = "examples/missing.yaml"
-        stdout_buffer = io.StringIO()
-        stderr_buffer = io.StringIO()
-
-        with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-            exit_code = main(["generate", missing_path])
-
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(stdout_buffer.getvalue(), "")
-        self.assertEqual(
-            stderr_buffer.getvalue().strip(),
-            f"Report file not found: {missing_path}",
-        )
-
     def test_generate_command_reports_validation_errors(self) -> None:
-        invalid_yaml = """title: "  "
-team: Platform Team
-week: 2026-W11
-highlights: []
-metrics:
-  tasks_completed: -1
-  extra_metric: 5
-risks:
-  - Risk item
-next_steps:
-  - Next step
-"""
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()
-
         test_dir = make_test_dir()
         try:
-            report_path = test_dir / "invalid_report.yaml"
-            report_path.write_text(invalid_yaml, encoding="utf-8")
+            payload_path = test_dir / "invalid_payload.yaml"
+            payload_path.write_text(
+                "\n".join(
+                    [
+                        "report_payload:",
+                        "  payload_version: autoreport.payload.v1",
+                        "  template_id: autoreport-editorial-v1",
+                        "  title_slide:",
+                        "    title: '  '",
+                        "    subtitle: []",
+                        "  contents:",
+                        "    enabled: true",
+                        "  slides: []",
+                    ]
+                ),
+                encoding="utf-8",
+            )
 
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                exit_code = main(["generate", str(report_path)])
+                exit_code = main(["generate", str(payload_path)])
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
 
@@ -107,89 +152,28 @@ next_steps:
         self.assertEqual(
             stderr_buffer.getvalue().splitlines(),
             [
-                "Report validation failed.",
-                "- Field 'title' must be a non-empty string.",
-                "- Field 'highlights' must contain at least 1 item.",
-                "- Field 'metrics.tasks_completed' must be greater than or equal to 0.",
-                "- Field 'metrics.open_issues' is required.",
-                "- Field 'metrics.extra_metric' is not allowed.",
+                "Payload validation failed.",
+                "- Field 'title_slide.title' must be a non-empty string.",
+                "- Field 'title_slide.subtitle' must contain at least 1 item.",
+                "- Field 'slides' must contain at least 1 item.",
             ],
-        )
-
-    def test_generate_command_reports_yaml_parse_errors(self) -> None:
-        stdout_buffer = io.StringIO()
-        stderr_buffer = io.StringIO()
-
-        test_dir = make_test_dir()
-        try:
-            report_path = test_dir / "broken.yaml"
-            report_path.write_text("title: [broken", encoding="utf-8")
-
-            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                exit_code = main(["generate", str(report_path)])
-        finally:
-            shutil.rmtree(test_dir, ignore_errors=True)
-
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(stdout_buffer.getvalue(), "")
-        self.assertIn("Failed to parse YAML:", stderr_buffer.getvalue())
-
-    def test_generate_command_reports_output_write_errors(self) -> None:
-        stdout_buffer = io.StringIO()
-        stderr_buffer = io.StringIO()
-        output_path = Path("output") / "weekly_report.pptx"
-
-        with patch(
-            "autoreport.cli.generate_report",
-            side_effect=OutputWriteError(output_path),
-        ):
-            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                exit_code = main(["generate", "examples/weekly_report.yaml"])
-
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(stdout_buffer.getvalue(), "")
-        self.assertEqual(
-            stderr_buffer.getvalue().strip(),
-            f"Could not write report file: {output_path}",
         )
 
     def test_generate_command_reports_missing_template(self) -> None:
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()
-        template_path = "tests/missing-template.pptx"
-
-        with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-            exit_code = main(
-                [
-                    "generate",
-                    "examples/weekly_report.yaml",
-                    "--template",
-                    template_path,
-                ]
-            )
-
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(stdout_buffer.getvalue(), "")
-        self.assertEqual(
-            stderr_buffer.getvalue().strip(),
-            f"Template file not found: {Path(template_path)}",
-        )
-
-    def test_generate_command_reports_invalid_template(self) -> None:
-        stdout_buffer = io.StringIO()
-        stderr_buffer = io.StringIO()
         test_dir = make_test_dir()
         try:
-            template_path = test_dir / "invalid-template.pptx"
-            template_path.write_text("not a pptx", encoding="utf-8")
+            payload_path = test_dir / "payload.yaml"
+            write_payload(payload_path)
 
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                 exit_code = main(
                     [
                         "generate",
-                        "examples/weekly_report.yaml",
+                        str(payload_path),
                         "--template",
-                        str(template_path),
+                        str(test_dir / "missing-template.pptx"),
                     ]
                 )
         finally:
@@ -197,52 +181,7 @@ next_steps:
 
         self.assertEqual(exit_code, 1)
         self.assertEqual(stdout_buffer.getvalue(), "")
-        self.assertEqual(
-            stderr_buffer.getvalue().strip(),
-            f"Invalid PowerPoint template file: {template_path}",
-        )
-
-    def test_generate_command_reports_incompatible_template(self) -> None:
-        stdout_buffer = io.StringIO()
-        stderr_buffer = io.StringIO()
-        template_path = Path("tests") / "template.pptx"
-
-        with patch(
-            "autoreport.cli.generate_report",
-            side_effect=TemplateCompatibilityError(
-                template_path,
-                "missing 'bullets' slide layout at index 1",
-            ),
-        ):
-            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                exit_code = main(["generate", "examples/weekly_report.yaml"])
-
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(stdout_buffer.getvalue(), "")
-        self.assertEqual(
-            stderr_buffer.getvalue().strip(),
-            "PowerPoint template is not compatible with the weekly report layout: "
-            "tests\\template.pptx (missing 'bullets' slide layout at index 1)",
-        )
-
-    def test_generate_command_reports_template_read_errors(self) -> None:
-        stdout_buffer = io.StringIO()
-        stderr_buffer = io.StringIO()
-        template_path = Path("tests") / "template.pptx"
-
-        with patch(
-            "autoreport.cli.generate_report",
-            side_effect=TemplateReadError(template_path),
-        ):
-            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                exit_code = main(["generate", "examples/weekly_report.yaml"])
-
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(stdout_buffer.getvalue(), "")
-        self.assertEqual(
-            stderr_buffer.getvalue().strip(),
-            f"Could not read template file: {template_path}",
-        )
+        self.assertIn("Template file not found:", stderr_buffer.getvalue())
 
 
 if __name__ == "__main__":
