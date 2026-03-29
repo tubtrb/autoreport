@@ -1,7 +1,8 @@
-"""Tests for PowerPoint writer compatibility and template error handling."""
+"""Tests for PowerPoint writer output and template loading behavior."""
 
 from __future__ import annotations
 
+import base64
 import shutil
 import unittest
 from pathlib import Path
@@ -10,93 +11,31 @@ from uuid import uuid4
 
 from pptx import Presentation
 
-from autoreport.outputs.pptx_writer import (
-    PowerPointWriter,
-    TemplateCompatibilityError,
-    TemplateLoadError,
-    TemplateReadError,
+from autoreport.outputs.pptx_writer import PowerPointWriter, TemplateLoadError, TemplateReadError
+from autoreport.templates.autofill import (
+    FillPlan,
+    PlannedImageFill,
+    PlannedSlide,
+    PlannedTextFill,
+    SlotDescriptor,
 )
 
 
 TEST_TEMP_ROOT = Path("tests") / "_tmp"
+PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII="
+)
 
 
 def make_test_dir() -> Path:
-    """Create a writable test directory inside the repository."""
-
     TEST_TEMP_ROOT.mkdir(exist_ok=True)
     test_dir = TEST_TEMP_ROOT / uuid4().hex
     test_dir.mkdir()
     return test_dir
 
 
-class _FakeSlideShapes:
-    def __init__(self, *, has_title: bool) -> None:
-        self.title = object() if has_title else None
-
-
-class _FakePlaceholder:
-    def __init__(self) -> None:
-        self.text_frame = object()
-
-
-class _FakeSlide:
-    def __init__(self, *, has_title: bool, has_placeholder: bool) -> None:
-        self.shapes = _FakeSlideShapes(has_title=has_title)
-        self._placeholders = {1: _FakePlaceholder()} if has_placeholder else {}
-
-    @property
-    def placeholders(self) -> dict[int, object]:
-        return self._placeholders
-
-
-class _FakeSlides:
-    def __init__(self, scenarios: list[tuple[bool, bool]]) -> None:
-        self._scenarios = iter(scenarios)
-
-    def add_slide(self, _layout: object) -> _FakeSlide:
-        has_title, has_placeholder = next(self._scenarios)
-        return _FakeSlide(
-            has_title=has_title,
-            has_placeholder=has_placeholder,
-        )
-
-
-class _FakePresentation:
-    def __init__(self, *, layout_count: int, scenarios: list[tuple[bool, bool]]) -> None:
-        self.slide_layouts = [object() for _ in range(layout_count)]
-        self.slides = _FakeSlides(scenarios)
-
-
 class PowerPointWriterTestCase(unittest.TestCase):
-    """Verify writer-level template compatibility and load errors."""
-
-    def test_writer_rejects_template_without_required_layouts(self) -> None:
-        writer = PowerPointWriter()
-        presentation = _FakePresentation(layout_count=1, scenarios=[(True, True)])
-
-        with self.assertRaises(TemplateCompatibilityError) as context:
-            writer._ensure_weekly_template_compatibility(
-                presentation,
-                template_path=Path("template.pptx"),
-            )
-
-        self.assertIn("missing 'bullets' slide layout at index 1", str(context.exception))
-
-    def test_writer_rejects_template_without_required_placeholder(self) -> None:
-        writer = PowerPointWriter()
-        presentation = _FakePresentation(
-            layout_count=2,
-            scenarios=[(True, True), (True, False)],
-        )
-
-        with self.assertRaises(TemplateCompatibilityError) as context:
-            writer._ensure_weekly_template_compatibility(
-                presentation,
-                template_path=Path("template.pptx"),
-            )
-
-        self.assertIn("missing placeholder 1", str(context.exception))
+    """Verify writer-level output and file loading behavior."""
 
     def test_load_presentation_raises_template_load_error_for_invalid_file(self) -> None:
         writer = PowerPointWriter()
@@ -125,3 +64,103 @@ class PowerPointWriterTestCase(unittest.TestCase):
                     writer._load_presentation(template_path)
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_write_fill_plan_supports_text_box_and_image_slots(self) -> None:
+        writer = PowerPointWriter()
+        test_dir = make_test_dir()
+        try:
+            image_path = test_dir / "workflow.png"
+            image_path.write_bytes(PNG_BYTES)
+            output_path = test_dir / "writer-output.pptx"
+            presentation = Presentation()
+            fill_plan = FillPlan(
+                slides=[
+                    PlannedSlide(
+                        pattern_id="text_image.editorial",
+                        kind="text_image",
+                        layout_name="Blank",
+                        layout_index=6,
+                        slide_title="Autoreport",
+                        text_fills=[
+                            PlannedTextFill(
+                                slot=SlotDescriptor(
+                                    slot_name="title",
+                                    alias="title",
+                                    slot_type="title",
+                                    layout_index=6,
+                                    placeholder_index=None,
+                                    x=600000,
+                                    y=600000,
+                                    width=5000000,
+                                    height=700000,
+                                ),
+                                text="Autoreport",
+                                font_size=28,
+                            ),
+                            PlannedTextFill(
+                                slot=SlotDescriptor(
+                                    slot_name="body_1",
+                                    alias="body_1",
+                                    slot_type="text",
+                                    layout_index=6,
+                                    placeholder_index=None,
+                                    x=600000,
+                                    y=1600000,
+                                    width=5000000,
+                                    height=1800000,
+                                ),
+                                items=[
+                                    "Generate editable PowerPoint decks.",
+                                    "Fill template slots deterministically.",
+                                ],
+                                font_size=18,
+                            ),
+                        ],
+                        image_fills=[
+                            PlannedImageFill(
+                                slot=SlotDescriptor(
+                                    slot_name="image_1",
+                                    alias="image_1",
+                                    slot_type="image",
+                                    layout_index=6,
+                                    placeholder_index=None,
+                                    x=6500000,
+                                    y=1600000,
+                                    width=2200000,
+                                    height=1800000,
+                                ),
+                                image_path=image_path,
+                                fit="contain",
+                            )
+                        ],
+                    )
+                ]
+            )
+
+            writer.write_fill_plan(
+                presentation=presentation,
+                output_path=output_path,
+                fill_plan=fill_plan,
+            )
+
+            written = Presentation(str(output_path))
+            texts = [
+                shape.text
+                for shape in written.slides[0].shapes
+                if hasattr(shape, "text") and shape.text
+            ]
+            image_shapes = [
+                shape
+                for shape in written.slides[0].shapes
+                if hasattr(shape, "image")
+            ]
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        self.assertIn("Autoreport", texts)
+        self.assertIn("Generate editable PowerPoint decks.", "\n".join(texts))
+        self.assertGreaterEqual(len(image_shapes), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

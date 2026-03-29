@@ -21,16 +21,16 @@ Do not commit generated files from `output/` by default.
 
 Use names that preserve version and browser context, for example:
 
-- `output/playwright/homepage/autoreport-v0.2.1-homepage-full.png`
-- `output/playwright/homepage/autoreport-v0.2.1-chrome-success-full.png`
-- `output/playwright/homepage/autoreport-v0.2.1-edge-success-full.png`
+- `output/playwright/homepage/autoreport-v0.3.0-homepage-full.png`
+- `output/playwright/homepage/autoreport-v0.3.0-chrome-success-full.png`
+- `output/playwright/homepage/autoreport-v0.3.0-edge-success-full.png`
 
 ## What To Mention In Summaries
 
 - browser: `msedge` or `chrome`
 - route exercised: usually `http://127.0.0.1:8000/`
 - whether example loading was used
-- whether `weekly_report.pptx` download was observed
+- whether `autoreport_demo.pptx` download was observed
 - whether the visible success state matched the current UI copy
 
 ## Promotion Rule

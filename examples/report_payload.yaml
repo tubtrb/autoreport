@@ -1,0 +1,29 @@
+report_payload:
+  payload_version: autoreport.payload.v1
+  template_id: autoreport-editorial-v1
+  title_slide:
+    title: Autoreport
+    subtitle:
+      - Template-aware PPTX autofill engine
+  contents:
+    enabled: true
+  slides:
+    - kind: text
+      title: What It Does
+      include_in_contents: true
+      pattern_id: text.editorial
+      body:
+        - Generate editable PowerPoint decks from structured inputs.
+        - Describe the slide goal and supporting bullets instead of drawing placeholder geometry.
+        - The compiler resolves this authoring block into the runtime report payload automatically.
+      slot_overrides: {}
+    - kind: metrics
+      title: Adoption Snapshot
+      include_in_contents: true
+      pattern_id: metrics.editorial
+      items:
+        - label: Templates profiled
+          value: 12
+        - label: Decks generated
+          value: 24
+      slot_overrides: {}

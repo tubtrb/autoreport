@@ -19,9 +19,13 @@ that live in the repository. Use `write-doc-markdown` for WordPress-style post g
 - Read `../../../README.md`.
 - Read `../../../pyproject.toml`.
 - Read any relevant repo-tracked `release-note-*.md` files when version framing or historical messaging matters.
-- Read `../../../examples/weekly_report.yaml`.
+- Read `../../../examples/autoreport_editorial_template_contract.yaml`.
+- Read `../../../examples/autoreport_editorial_report_payload.yaml`.
+- Read `../../../examples/report_payload.yaml`.
+- Read `../../../examples/report_payload.json`.
 - Read `../public-repo-safety/SKILL.md` before final public signoff or before promoting screenshots into tracked docs.
 - If the user wants a WordPress-style post, switch to `../write-doc-markdown/SKILL.md`.
+- If the task should sync versioned posts into the private publishing repo, also consult `../autorelease-handoff/SKILL.md`.
 - If the user wants the docs backed by fresh smoke-test evidence, browser captures, or release signoff notes, also consult `../release-verification/SKILL.md`.
 - If docs describe a runtime behavior, inspect the matching code/tests before editing.
 
@@ -46,9 +50,9 @@ that live in the repository. Use `write-doc-markdown` for WordPress-style post g
 
 ## Current Constraints
 
-- README currently describes a deterministic weekly report pipeline with CLI and web-demo entry points.
+- README should describe the contract-first Autoreport flow with CLI and web-demo entry points.
 - Package name, version, and entrypoint metadata should be taken from `pyproject.toml`, not copied into skill docs as fixed values.
-- The example YAML file still carries a `v0.1` comment at the top.
+- Public examples should point to the current contract/payload files, not the retired weekly-only example.
 - Some validator strings still mention `v0.1`; changing them is a contract change, not just copy editing.
 
 ## Output Contract

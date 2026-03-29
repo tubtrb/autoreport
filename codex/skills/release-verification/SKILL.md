@@ -42,9 +42,10 @@ artifacts, and feed those results into release notes or a user guide.
 - On Windows in this repo, use `msedge` first when it is already available, then run a cross-check in `chrome` when Chrome is installed.
 - For the current web demo, verify:
   - `/healthz` responds successfully
-  - `/` loads with the expected homepage title
-  - example YAML can be loaded or pasted
-  - PPTX generation starts a `weekly_report.pptx` download
+  - `/` loads with the expected starter-manual copy
+  - bundled starter screenshots resolve through `/starter-assets/{filename}`
+  - the default or edited YAML can be generated without breaking the starter flow
+  - PPTX generation starts an `autoreport_demo.pptx` download
   - the success state matches the current UI contract
 
 4. Capture artifacts while the verification is fresh.
@@ -64,9 +65,9 @@ artifacts, and feed those results into release notes or a user guide.
 
 ## Current Repo Defaults
 
-- The current product is a deterministic weekly report generator with CLI and FastAPI web entry points.
+- The current product is a deterministic contract-first PPTX generator with CLI, a user-facing FastAPI app, and a separate debug FastAPI app.
 - The web demo contract is anchored by `autoreport/web/app.py` and `tests/test_web_app.py`.
-- The current success path returns a file download named `weekly_report.pptx`.
+- The current success path returns a file download named `autoreport_demo.pptx`.
 - Generated artifacts in `output/` are not for commit by default.
 
 ## Output Contract

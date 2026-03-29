@@ -11,13 +11,19 @@ from time import perf_counter
 from uuid import uuid4
 
 import yaml
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from starlette.background import BackgroundTask
 
 from autoreport.engine.generator import generate_report_from_mapping
 from autoreport.loader import parse_yaml_text
+from autoreport.template_flow import (
+    materialize_authoring_payload,
+    detect_payload_kind,
+    get_built_in_contract,
+    materialize_report_payload,
+    serialize_document,
+)
 from autoreport.validator import ValidationError
 
 
@@ -25,21 +31,167 @@ LOGGER = logging.getLogger("autoreport.web")
 MEDIA_TYPE_PPTX = (
     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 )
-DEFAULT_EXAMPLE_YAML = """title: Weekly Business Review
-team: Platform Team
-week: 2026-W11
-highlights:
-  - Revenue finished above plan.
-  - Customer escalations declined week over week.
-metrics:
-  tasks_completed: 8
-  open_issues: 3
-risks:
-  - Slide rendering still needs branding polish.
-next_steps:
-  - Share the generated deck with stakeholders.
-"""
+ALLOWED_UPLOAD_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
+_BUILT_IN_CONTRACT = get_built_in_contract()
+_STARTER_ASSET_DIR = (Path(__file__).resolve().parent / "assets" / "starter")
+_STARTER_APP_WORKSPACE_PATH = (_STARTER_ASSET_DIR / "app-workspace.png").as_posix()
+_STARTER_APP_UPLOADS_PATH = (_STARTER_ASSET_DIR / "app-uploads.png").as_posix()
+_STARTER_APP_WORKSPACE_REF = "starter_app_workspace"
+_STARTER_APP_UPLOADS_REF = "starter_app_uploads"
+_STARTER_BUNDLED_UPLOADS = (
+    {
+        "ref": _STARTER_APP_WORKSPACE_REF,
+        "filename": "app-workspace.png",
+        "path": Path(_STARTER_APP_WORKSPACE_PATH),
+    },
+    {
+        "ref": _STARTER_APP_UPLOADS_REF,
+        "filename": "app-uploads.png",
+        "path": Path(_STARTER_APP_UPLOADS_PATH),
+    },
+)
+AI_DRAFT_PROMPT_YAML = """
+# Paste this brief into another AI and ask it to fill the report_content draft below.
+# Goal: draft slide-ready content for Autoreport. The app will normalize report_content
+# into authoring_payload and then compile the runtime report_payload automatically.
+# How Autoreport uses this draft:
+# - Each item in report_content.slides becomes one deck slide.
+# - The number of slide entries is the number of content slides in the deck.
+# - pattern_id selects the PPT layout pattern, so it must come from template_contract.
+# - In report_content, kind is optional when pattern_id already matches template_contract.
+# - slots.title / slots.body_1 / slots.image_* / slots.caption_* map to template placeholders.
+# Rules for the other AI:
+# 1. Return the final answer as one fenced ```yaml code block.
+# 2. Inside that code block, keep the top-level key as report_content.
+# 3. Do not write any prose before or after the fenced YAML block.
+# 4. Do not open a second code block and do not split the YAML across plain text and code.
+# 5. Do not declare the total slide count anywhere. Autoreport infers it from slides[*].
+# 6. Choose pattern_id values from the template contract.
+# 7. Put narrative text into slots.body_1.
+# 8. Only use text_image patterns when the user explicitly wants a visual and can provide or upload a real image later.
+# 9. If no real image is available, do not add slots.image_* or caption_* fields. Use text.editorial or metrics.editorial instead.
+# 10. When a real image will be provided later, describe it in slots.image_1 / image_2 / image_3.
+# 11. Actual image files are uploaded later in the web app or passed as CLI paths.
+# 12. If the template contract exposes 2-image or 3-image patterns, use them only when the user truly has that many visuals.
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Replace with the deck title
+      subtitle_1: |
+        Replace with a concise subtitle
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. Add the first section title
+        2. Add the second section title
+  slides:
+    - pattern_id: text.editorial
+      slots:
+        title: First section title
+        body_1: |
+          Write the main narrative for this slide.
+""".strip()
+WEBSITE_INTRO_EXAMPLE_YAML = f"""
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport Website Quick Manual
+      subtitle_1: |
+        Built-in app screenshots for the starter flow
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. Published Guide And Updates Routes
+        2. Edit The Starter Deck YAML
+        3. Upload Images And Generate
+  slides:
+    - pattern_id: text.editorial
+      slots:
+        title: Published Guide And Updates Routes
+        body_1: |
+          When the release docs are published, the main reader routes are Home
+          `/`, User Guide `/guide/`, and the Updates hub under
+          `/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`.
+          This starter deck keeps the faster in-app walkthrough inside the main
+          editor so users can learn the browser flow and generate immediately.
+    - pattern_id: text_image.editorial
+      slots:
+        title: Edit The Starter Deck YAML
+        body_1: |
+          The main editor already includes the AI prompt comments and this
+          starter manual YAML in one place.
+          Edit the titles and body text directly, keep the built-in screenshots
+          if they explain the workflow well, and use Reset Starter Example to
+          restore the packaged manual.
+        image_1: {_STARTER_APP_WORKSPACE_REF}
+        caption_1: Starter editor, reset, and generate controls in one workspace
+    - pattern_id: text_image.editorial
+      slots:
+        title: Upload Images And Generate
+        body_1: |
+          The built-in manual already ships with screenshots, so the default
+          deck can generate without any extra upload.
+          Use Image Uploads only when you replace a built-in visual or add a
+          new image ref such as image_1, then press Generate PPTX to download
+          the editable deck.
+        image_1: {_STARTER_APP_UPLOADS_REF}
+        caption_1: Upload new visuals only when the current YAML needs them
+""".strip()
+AI_DRAFT_PROMPT_HEADER = AI_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
+PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML = (
+    f"{AI_DRAFT_PROMPT_HEADER}\n{WEBSITE_INTRO_EXAMPLE_YAML}"
+).strip()
+WEBSITE_VISUAL_EXAMPLE_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport Website Demo
+      subtitle_1: |
+        Show one real screenshot, explain the workflow, and generate the deck
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. What The User Sees
+        2. Screenshot-Based Walkthrough
+        3. Why It Feels Simple
+  slides:
+    - pattern_id: text.editorial
+      slots:
+        title: What The User Sees
+        body_1: |
+          The website is built for one simple workflow.
+          The starter YAML already includes the AI prompt at the top, so the
+          user edits one block, uploads a real image only when a slide needs
+          it, and generates an editable PPTX immediately.
+    - pattern_id: text_image.editorial
+      slots:
+        title: Screenshot-Based Walkthrough
+        body_1: |
+          Upload one real screenshot of the Autoreport website and keep it bound
+          to image_1 for this example.
+          This slide shows users that the visual can be replaced, removed, or
+          updated without rebuilding the whole deck.
+        image_1: image_1
+        caption_1: Replace this with a real website screenshot upload
+    - pattern_id: metrics.editorial
+      slots:
+        title: Why It Feels Simple
+        body_1: |
+          - First step: paste or edit YAML in one editor
+          - Visual step: upload or replace a real screenshot
+          - Output: generate an editable PowerPoint deck
+          - Flexibility: add, remove, or swap uploaded images easily
+""".strip()
 app = FastAPI(
     title="Autoreport Demo",
     docs_url=None,
@@ -48,16 +200,19 @@ app = FastAPI(
 )
 
 
-class GenerateRequest(BaseModel):
-    """JSON payload used by the demo generation endpoint."""
-
-    report_yaml: str
-
-
 def _render_demo_html() -> str:
-    """Build the single-page demo HTML."""
-
-    example_json = json.dumps(DEFAULT_EXAMPLE_YAML.strip())
+    prompted_intro_example_json = json.dumps(PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML)
+    starter_bundled_uploads_json = json.dumps(
+        [
+            {
+                "ref": item["ref"],
+                "filename": item["filename"],
+                "url": f"/starter-assets/{item['filename']}",
+                "builtIn": True,
+            }
+            for item in _STARTER_BUNDLED_UPLOADS
+        ]
+    )
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -66,570 +221,369 @@ def _render_demo_html() -> str:
     <title>Autoreport Demo</title>
     <style>
       :root {
-        color-scheme: light;
-        --bg: #fdfbf7;
+        --bg: #f4f1e8;
         --surface: #ffffff;
-        --surface-muted: #f8fafc;
-        --text: #1e293b;
-        --muted: #64748b;
-        --accent: #064e3b;
-        --accent-soft: rgba(6, 78, 59, 0.08);
-        --border: #e2e8f0;
-        --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
-        --error-bg: #fef2f2;
-        --error-text: #b91c1c;
-        --error-border: #fecaca;
-        --success-bg: #ecfdf5;
-        --success-text: #065f46;
-        --success-border: #bbf7d0;
-        --loading-bg: #eff6ff;
-        --loading-text: #1d4ed8;
-        --loading-border: #bfdbfe;
+        --panel: #f8fafc;
+        --text: #172033;
+        --muted: #5b687a;
+        --accent: #0b6a58;
+        --accent-soft: #e8f8f2;
+        --border: #d5deea;
+        --shadow: 0 24px 52px rgba(15, 23, 42, 0.08);
       }
-
-      * {
-        box-sizing: border-box;
-      }
-
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
         background:
-          linear-gradient(180deg, rgba(6, 78, 59, 0.05) 0%, rgba(6, 78, 59, 0) 28%),
-          radial-gradient(circle at top right, rgba(6, 78, 59, 0.08), rgba(6, 78, 59, 0) 30%),
+          radial-gradient(circle at top right, rgba(11,106,88,0.08), transparent 24%),
+          linear-gradient(180deg, rgba(11,106,88,0.05), transparent 32%),
           var(--bg);
         color: var(--text);
         font-family: "Segoe UI", Arial, sans-serif;
       }
-
-      main {
-        max-width: 1120px;
-        margin: 0 auto;
-        padding: 48px 20px 72px;
-      }
-
-      .page {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 28px;
-      }
-
-      .hero {
-        width: 100%;
-        text-align: center;
-        padding: 8px 12px 0;
-      }
-
-      .hero h1 {
-        margin: 0 0 14px;
-        font-size: clamp(2.1rem, 4vw, 3.6rem);
-        line-height: 1.08;
-        letter-spacing: -0.04em;
-        color: var(--accent);
-      }
-
-      .hero p {
-        margin: 0 auto;
-        max-width: 760px;
-        font-size: clamp(1rem, 1.8vw, 1.15rem);
-        line-height: 1.75;
-        color: var(--muted);
-      }
-
-      .hero .subcopy {
-        margin-top: 12px;
-        max-width: 700px;
-        font-size: 0.98rem;
-      }
-
-      .main-card {
-        width: 100%;
-        background: var(--surface);
-        border: 1px solid rgba(15, 23, 42, 0.05);
-        border-radius: 24px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
-      }
-
-      .main-card-inner {
-        display: flex;
-        flex-direction: column;
-        gap: 28px;
-        padding: 24px;
-      }
-
-      .editor-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 28px;
-      }
-
-      .editor-pane,
-      .status-pane {
-        min-width: 0;
-      }
-
-      .pane-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 14px;
-      }
-
-      .pane-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.98rem;
-        font-weight: 700;
-        color: var(--text);
-      }
-
-      .pane-title-mark {
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: var(--accent);
-        box-shadow: 0 0 0 6px var(--accent-soft);
-      }
-
-      .ghost-button,
-      .primary-button {
-        border: none;
-        cursor: pointer;
-        font: inherit;
-        transition:
-          transform 0.16s ease,
-          background-color 0.16s ease,
-          color 0.16s ease,
-          box-shadow 0.16s ease;
-      }
-
-      .ghost-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 14px;
-        border-radius: 999px;
-        background: #ecfdf5;
-        color: var(--accent);
-        font-size: 0.92rem;
-        font-weight: 600;
-      }
-
-      .ghost-button:hover {
-        background: #d1fae5;
-      }
-
-      .primary-button {
-        display: flex;
-        width: 100%;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 14px 18px;
-        border-radius: 16px;
-        background: var(--accent);
-        color: #ffffff;
-        font-size: 1rem;
-        font-weight: 700;
-        box-shadow: 0 16px 30px rgba(6, 78, 59, 0.26);
-      }
-
-      .primary-button:hover {
-        background: #047857;
-      }
-
-      .primary-button:active,
-      .ghost-button:active {
-        transform: scale(0.99);
-      }
-
-      .primary-button:disabled {
-        background: #7aa899;
-        cursor: wait;
-        box-shadow: none;
-      }
-
+      main { max-width: 1420px; margin: 0 auto; padding: 36px 24px 56px; }
+      h1 { margin: 0 0 12px; text-align: center; color: var(--accent); font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -0.04em; }
+      .hero-copy { max-width: 880px; margin: 0 auto 28px; text-align: center; color: var(--muted); line-height: 1.7; }
+      .card { background: var(--surface); border: 1px solid rgba(15,23,42,0.06); border-radius: 24px; box-shadow: var(--shadow); padding: 28px; }
+      .workspace { display: grid; grid-template-columns: minmax(760px, 1.6fr) 340px; gap: 20px; align-items: start; }
+      .panel, .rail-box { min-width: 0; }
+      .rail { display: grid; gap: 16px; align-self: start; position: sticky; top: 20px; }
+      .panel h2, .rail-box h2, .upload-box h2 { margin: 0 0 8px; font-size: 1rem; }
+      .panel-copy, .footnote { color: var(--muted); line-height: 1.6; font-size: 0.95rem; }
       textarea {
         width: 100%;
-        min-height: 360px;
+        min-height: 420px;
         border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 18px 18px 20px;
-        resize: vertical;
-        background: var(--surface-muted);
+        border-radius: 16px;
+        padding: 16px;
+        background: var(--panel);
         color: var(--text);
-        font: 0.95rem/1.6 "Cascadia Mono", "Consolas", monospace;
-        outline: none;
-        transition:
-          border-color 0.16s ease,
-          box-shadow 0.16s ease,
-          background-color 0.16s ease;
+        font: 0.9rem/1.6 "Cascadia Mono", Consolas, monospace;
+        resize: vertical;
       }
-
-      textarea:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 4px rgba(6, 78, 59, 0.08);
-        background: #ffffff;
-      }
-
-      .status-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-        height: 100%;
-      }
-
-      .status-card {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-        justify-content: center;
-        gap: 14px;
-        min-height: 172px;
-        padding: 20px;
-        border-radius: 18px;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-      }
-
-      .status-label {
-        font-size: 0.76rem;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-
-      .status-panel {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 14px 15px;
-        border-radius: 14px;
-        border: 1px solid var(--border);
-        background: #ffffff;
-      }
-
-      .status-panel.status-idle {
-        border-color: var(--border);
-        color: var(--muted);
-      }
-
-      .status-panel.status-loading {
-        background: var(--loading-bg);
-        border-color: var(--loading-border);
-        color: var(--loading-text);
-      }
-
-      .status-panel.status-success {
-        background: var(--success-bg);
-        border-color: var(--success-border);
-        color: var(--success-text);
-      }
-
-      .status-panel.status-error {
-        background: var(--error-bg);
-        border-color: var(--error-border);
-        color: var(--error-text);
-      }
-
-      .status-icon {
-        display: inline-flex;
-        width: 18px;
-        height: 18px;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 18px;
-        margin-top: 2px;
+      textarea[readonly] { opacity: 0.94; }
+      .primary-actions, .mini-actions { display: grid; gap: 10px; }
+      .primary-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
+      button {
+        border: none;
         border-radius: 999px;
-        border: 2px solid currentColor;
-        font-size: 0.72rem;
-        line-height: 1;
+        padding: 10px 16px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
       }
-
-      .status-icon.loading {
-        border-top-color: transparent;
-        animation: spin 0.9s linear infinite;
+      .ghost { background: var(--accent-soft); color: var(--accent); }
+      .primary { width: 100%; padding: 14px 18px; border-radius: 16px; background: var(--accent); color: #fff; }
+      .rail-box, .upload-box, details { border: 1px solid var(--border); border-radius: 18px; background: var(--panel); padding: 18px; }
+      .upload-box { margin-top: 18px; }
+      details { margin-top: 18px; }
+      details summary { cursor: pointer; font-weight: 700; color: var(--text); }
+      .upload-list, .status-errors, .status-hints, .howto-list { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
+      .upload-list { list-style: none; padding: 0; display: grid; gap: 10px; }
+      .upload-item { border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 12px; }
+      .upload-preview { width: 100%; max-height: 180px; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #f5f7fb; margin-bottom: 10px; }
+      .upload-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+      .upload-ref { display: inline-flex; min-width: 74px; justify-content: center; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font: 0.82rem/1.2 "Cascadia Mono", Consolas, monospace; font-weight: 700; margin-right: 8px; }
+      .upload-kind { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #334155; font-size: 0.8rem; font-weight: 700; }
+      .howto-list { color: var(--muted); }
+      .status-errors { color: #b91c1c; }
+      .status-hints { color: var(--accent); }
+      code { font-family: "Cascadia Mono", Consolas, monospace; }
+      @media (max-width: 1240px) {
+        .workspace { grid-template-columns: 1fr; }
+        .rail { position: static; }
       }
-
-      .status-copy {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: 0;
-      }
-
-      .status-copy p {
-        margin: 0;
-        line-height: 1.65;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: inherit;
-      }
-
-      .error-list {
-        display: none;
-        margin: 0;
-        padding-left: 18px;
-        font-size: 0.9rem;
-        line-height: 1.65;
-      }
-
-      .error-list.visible {
-        display: block;
-      }
-
-      .footnote {
-        margin: 0;
-        font-size: 0.9rem;
-        line-height: 1.65;
-        color: var(--muted);
-      }
-
-      .footer-note {
-        margin: 0;
-        font-size: 0.92rem;
-        color: var(--muted);
-      }
-
-      @keyframes spin {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      @media (min-width: 980px) {
-        .main-card-inner {
-          padding: 30px 32px;
-        }
-
-        .editor-layout {
-          grid-template-columns: minmax(0, 1fr) 300px;
-          align-items: stretch;
-        }
-      }
-
-      @media (max-width: 720px) {
-        main {
-          padding: 28px 14px 52px;
-        }
-
-        .main-card-inner {
-          padding: 18px;
-        }
-
-        .pane-header {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        textarea {
-          min-height: 300px;
-        }
+      @media (max-width: 980px) {
+        .primary-actions { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
     <main>
-      <div class="page">
-        <section class="hero">
-          <h1>Paste YAML and get a PPTX instantly.</h1>
-          <p>
-            This demo validates weekly report YAML against the current schema and
-            generates a PowerPoint deck right away.
-          </p>
-          <p class="subcopy">
-            Use the sample input or paste your own report data. Submitted content
-            is processed only to generate the file, and generated PPTX output is
-            cleaned up after download by default.
-          </p>
-        </section>
-
-        <section class="main-card">
-          <div class="main-card-inner">
-            <div class="editor-layout">
-              <div class="editor-pane">
-                <div class="pane-header">
-                  <div class="pane-title">
-                    <span class="pane-title-mark" aria-hidden="true"></span>
-                    <span>YAML Input</span>
-                  </div>
-                  <button id="load-example" class="ghost-button" type="button">
-                    Load Example
-                  </button>
-                </div>
-                <textarea
-                  id="report-yaml"
-                  spellcheck="false"
-                  aria-label="Report YAML input"
-                  placeholder="Paste your YAML here..."
-                ></textarea>
-              </div>
-
-              <aside class="status-pane">
-                <div class="status-stack">
-                  <section class="status-card">
-                    <div class="status-label">Current Status</div>
-                    <div id="status-panel" class="status-panel status-idle" aria-live="polite">
-                      <span id="status-icon" class="status-icon" aria-hidden="true">i</span>
-                      <div class="status-copy">
-                        <p id="status-message">
-                          Load the example or paste your own YAML, then generate a PPTX.
-                        </p>
-                        <ul id="error-list" class="error-list"></ul>
-                      </div>
-                    </div>
-                  </section>
-
-                  <button id="generate-button" class="primary-button" type="button">
-                    <span id="generate-label">Generate PPTX</span>
-                  </button>
-
-                  <p class="footnote">
-                    Current scope: built-in weekly template, pasted YAML input,
-                    instant download
-                  </p>
-                </div>
-              </aside>
+      <h1>Edit the starter deck and generate an Autoreport PPTX.</h1>
+      <p class="hero-copy">
+        Start from the built-in website manual below. The AI prompt and the captured screenshots
+        are already inside the starter YAML, so there is one path: edit the starter, replace
+        images when needed, and generate the PPTX.
+      </p>
+      <section class="card">
+        <div class="workspace">
+          <div class="panel">
+            <h2>Starter Deck YAML</h2>
+            <p class="panel-copy">
+              Start from the built-in website manual below with the AI prompt comments and the
+              captured screenshots already attached. Edit the draft directly. Upload files only
+              when you replace a built-in visual or add refs such as <code>image_1</code>.
+            </p>
+            <textarea id="payload-yaml" aria-label="Working draft"></textarea>
+            <div class="primary-actions">
+              <button id="reset-starter" class="ghost" type="button">Reset Starter Example</button>
+              <button id="generate-button" class="primary" type="button">Generate PPTX</button>
+            </div>
+            <div class="upload-box">
+              <h2>Image Uploads</h2>
+              <p class="panel-copy">
+                The starter deck already includes bundled screenshots, and they are shown below.
+                Upload real visuals here only when your draft replaces a built-in image or adds
+                <code>image_1</code>, <code>image_2</code>, or another upload ref.
+              </p>
+              <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
+              <ul id="upload-list" class="upload-list"></ul>
             </div>
           </div>
-        </section>
-
-        <p class="footer-note">
-          Autoreport Public Demo - Submitted YAML is not retained, and generated
-          PPTX files are cleaned up after download.
-        </p>
-      </div>
+          <aside class="rail">
+            <div class="rail-box">
+              <h2>How To Use</h2>
+              <p class="panel-copy">
+                This page is intentionally simple. The starter YAML already includes the AI prompt,
+                the website manual draft, and the bundled screenshots. Edit that one block, replace
+                visuals only when needed, and generate the deck.
+              </p>
+              <ul class="howto-list">
+                <li>The main editor starts with AI prompt comments, the starter manual draft, and built-in screenshots.</li>
+                <li>Edit the starter draft directly in the main editor.</li>
+                <li>Use Image Uploads only when you replace a built-in screenshot or add refs such as <code>image_1</code>.</li>
+                <li>You can add or remove uploads before generating.</li>
+                <li>Press <code>Generate PPTX</code>.</li>
+              </ul>
+              <div id="status-message" class="panel-copy">
+                The starter manual is loaded with the AI prompt and the built-in screenshots.
+                Edit the draft, replace visuals if needed, and generate the PPTX.
+              </div>
+              <ul id="status-errors" class="status-errors"></ul>
+              <ul id="status-hints" class="status-hints"></ul>
+              <p class="footnote">
+                Current scope: built-in editorial template, starter manual editing, bundled
+                screenshots, uploaded image refs, and instant PPTX download.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
     </main>
-
     <script>
-      const EXAMPLE_YAML = __EXAMPLE_YAML_JSON__;
-      const textarea = document.getElementById("report-yaml");
-      const loadExampleButton = document.getElementById("load-example");
-      const generateButton = document.getElementById("generate-button");
-      const statusPanel = document.getElementById("status-panel");
-      const statusIcon = document.getElementById("status-icon");
-      const statusMessageNode = document.getElementById("status-message");
-      const errorList = document.getElementById("error-list");
-      const generateLabel = document.getElementById("generate-label");
+      const PROMPTED_WEBSITE_INTRO_EXAMPLE = __PROMPTED_INTRO_EXAMPLE_JSON__;
+      const STARTER_BUNDLED_UPLOADS = __STARTER_BUNDLED_UPLOADS_JSON__;
+      const payloadNode = document.getElementById("payload-yaml");
+      const uploadList = document.getElementById("upload-list");
+      const fileInput = document.getElementById("image-files");
+      const statusMessage = document.getElementById("status-message");
+      const statusErrors = document.getElementById("status-errors");
+      const statusHints = document.getElementById("status-hints");
 
-      function setStatus(mode, message, errors = []) {
-        statusPanel.className = `status-panel status-${mode}`;
-        statusMessageNode.textContent = message;
-        errorList.innerHTML = "";
-        errorList.classList.toggle("visible", errors.length > 0);
+      let uploadedRefs = [];
 
-        if (mode === "loading") {
-          statusIcon.textContent = "";
-          statusIcon.className = "status-icon loading";
-          generateLabel.textContent = "Generating...";
-        } else if (mode === "success") {
-          statusIcon.textContent = "OK";
-          statusIcon.className = "status-icon";
-          generateLabel.textContent = "Generate Again";
-        } else if (mode === "error") {
-          statusIcon.textContent = "!";
-          statusIcon.className = "status-icon";
-          generateLabel.textContent = "Generate PPTX";
-        } else {
-          statusIcon.textContent = "i";
-          statusIcon.className = "status-icon";
-          generateLabel.textContent = "Generate PPTX";
-        }
-
-        for (const item of errors) {
+      function setStatus(message, errors = [], hints = []) {
+        statusMessage.textContent = message;
+        statusErrors.innerHTML = "";
+        statusHints.innerHTML = "";
+        for (const error of errors) {
           const li = document.createElement("li");
-          li.textContent = item;
-          errorList.appendChild(li);
+          li.textContent = error;
+          statusErrors.appendChild(li);
+        }
+        for (const hint of hints) {
+          const li = document.createElement("li");
+          li.textContent = hint;
+          statusHints.appendChild(li);
         }
       }
 
-      function setBusy(isBusy, message) {
-        generateButton.disabled = isBusy;
-        if (isBusy) {
-          setStatus("loading", message);
-        }
-      }
-
-      loadExampleButton.addEventListener("click", () => {
-        textarea.value = EXAMPLE_YAML;
-        setStatus(
-          "idle",
-          "Sample YAML loaded. Review the content or generate the PPTX right away."
-        );
-      });
-
-      generateButton.addEventListener("click", async () => {
-        if (!textarea.value.trim()) {
-          setStatus("error", "Generation failed. Please provide valid YAML input.");
+      function renderUploads() {
+        uploadList.innerHTML = "";
+        if (!uploadedRefs.length) {
+          const li = document.createElement("li");
+          li.className = "upload-item";
+          li.textContent = "No uploaded files yet.";
+          uploadList.appendChild(li);
           return;
         }
 
-        setBusy(
-          true,
-          "Validating the YAML input and generating your PPTX file..."
-        );
-
-        try {
-          const response = await fetch("/api/generate", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              report_yaml: textarea.value,
-            }),
-          });
-
-          if (!response.ok) {
-            const payload = await response.json();
-            generateButton.disabled = false;
-            setStatus(
-              "error",
-              payload.message || "Generation failed. Review the error details and try again.",
-              payload.errors || []
-            );
-            return;
+        for (const item of uploadedRefs) {
+          const li = document.createElement("li");
+          li.className = "upload-item";
+          if (item.previewUrl) {
+            const preview = document.createElement("img");
+            preview.className = "upload-preview";
+            preview.src = item.previewUrl;
+            preview.alt = item.filename || item.file.name;
+            li.appendChild(preview);
           }
 
+          const meta = document.createElement("div");
+          meta.className = "upload-meta";
+
+          const refBadge = document.createElement("span");
+          refBadge.className = "upload-ref";
+          refBadge.textContent = item.ref;
+
+          const kindBadge = document.createElement("span");
+          kindBadge.className = "upload-kind";
+          kindBadge.textContent = item.builtIn ? "Built-In" : "Uploaded";
+
+          const name = document.createElement("span");
+          name.textContent = item.filename || item.file.name;
+
+          meta.append(refBadge, kindBadge, name);
+          const actions = document.createElement("div");
+          actions.className = "mini-actions";
+
+          const insertRefButton = document.createElement("button");
+          insertRefButton.type = "button";
+          insertRefButton.className = "ghost";
+          insertRefButton.textContent = "Insert Ref";
+          insertRefButton.addEventListener("click", () => {
+            const start = payloadNode.selectionStart ?? payloadNode.value.length;
+            const end = payloadNode.selectionEnd ?? payloadNode.value.length;
+            payloadNode.setRangeText(item.ref, start, end, "end");
+            setStatus(`${item.ref} was inserted at the current cursor.`);
+          });
+
+          const removeRefButton = document.createElement("button");
+          removeRefButton.type = "button";
+          removeRefButton.className = "ghost";
+          removeRefButton.textContent = item.builtIn ? "Hide Built-In" : "Remove Upload";
+          removeRefButton.addEventListener("click", () => {
+            if (item.previewUrl && !item.builtIn) {
+              URL.revokeObjectURL(item.previewUrl);
+            }
+            uploadedRefs = uploadedRefs.filter((entry) => entry.ref !== item.ref);
+            renderUploads();
+            setStatus(
+              item.builtIn
+                ? `${item.ref} was hidden from the starter upload list.`
+                : `${item.ref} was removed from this browser session.`,
+              [],
+              uploadedRefs.length
+                ? [`Remaining refs: ${uploadedRefs.map((entry) => entry.ref).join(", ")}`]
+                : ["No upload refs remain. Reset Starter Example to restore the built-in screenshots."]
+            );
+          });
+
+          actions.append(insertRefButton, removeRefButton);
+          li.append(meta, actions);
+          uploadList.appendChild(li);
+        }
+      }
+
+      function getStarterUploads() {
+        return STARTER_BUNDLED_UPLOADS.map((item) => ({ ...item }));
+      }
+
+      function nextUploadRef() {
+        let index = 1;
+        while (uploadedRefs.some((item) => item.ref === `image_${index}`)) {
+          index += 1;
+        }
+        return `image_${index}`;
+      }
+
+      async function postPayload(url) {
+        const formData = new FormData();
+        formData.append("payload_yaml", payloadNode.value.trim());
+        const manifest = uploadedRefs.filter((item) => !item.builtIn).map((item) => ({
+          ref: item.ref,
+          field_name: item.ref,
+          filename: item.file.name,
+        }));
+        formData.append("image_manifest", JSON.stringify(manifest));
+        for (const item of uploadedRefs.filter((entry) => !entry.builtIn)) {
+          formData.append(item.ref, item.file, item.file.name);
+        }
+        return fetch(url, { method: "POST", body: formData });
+      }
+
+      payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
+      uploadedRefs = getStarterUploads();
+      renderUploads();
+
+      document.getElementById("reset-starter").addEventListener("click", () => {
+        payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
+        const userUploads = uploadedRefs.filter((item) => !item.builtIn);
+        uploadedRefs = getStarterUploads().concat(userUploads);
+        renderUploads();
+        setStatus(
+          "Starter example restored.",
+          [],
+          [
+            "The AI prompt comments are back at the top of the starter YAML.",
+            "The built-in screenshots are back in the starter manual.",
+            "The Image Uploads panel now shows the built-in starter screenshots.",
+            "Upload image files only when you replace a built-in visual or add refs such as image_1."
+          ]
+        );
+      });
+
+      fileInput.addEventListener("change", () => {
+        const newUploads = Array.from(fileInput.files || []).map((file) => ({
+          ref: nextUploadRef(),
+          file,
+          filename: file.name,
+          previewUrl: URL.createObjectURL(file),
+          builtIn: false,
+        }));
+        uploadedRefs = uploadedRefs.concat(newUploads);
+        fileInput.value = "";
+        renderUploads();
+        if (uploadedRefs.length) {
+          setStatus(
+            "Uploads are ready.",
+            [],
+            [`Available refs: ${uploadedRefs.map((item) => item.ref).join(", ")}`]
+          );
+        } else {
+          setStatus("No uploads selected.");
+        }
+      });
+
+      document.getElementById("generate-button").addEventListener("click", async () => {
+        if (!payloadNode.value.trim()) {
+          setStatus("Generation failed. Please provide payload YAML.", [], ["Reset the starter example to begin again."]);
+          return;
+        }
+        const button = document.getElementById("generate-button");
+        button.disabled = true;
+        setStatus("Validating the payload and generating your Autoreport deck...");
+        try {
+          const response = await postPayload("/api/generate");
+          if (!response.ok) {
+            const payload = await response.json();
+            button.disabled = false;
+            setStatus(payload.message || "Generation failed.", payload.errors || [], payload.hints || []);
+            return;
+          }
           const blob = await response.blob();
           const downloadUrl = URL.createObjectURL(blob);
           const anchor = document.createElement("a");
           anchor.href = downloadUrl;
-          anchor.download = "weekly_report.pptx";
+          anchor.download = "autoreport_demo.pptx";
           document.body.appendChild(anchor);
           anchor.click();
           anchor.remove();
           URL.revokeObjectURL(downloadUrl);
-
-          generateButton.disabled = false;
-          setStatus("success", "Generation complete. Your download should begin shortly.");
+          button.disabled = false;
+          setStatus("Generation complete. Your Autoreport deck download should begin shortly.");
         } catch (error) {
-          generateButton.disabled = false;
-          setStatus(
-            "error",
-            "A network error occurred. Please wait a moment and try again."
-          );
+          button.disabled = false;
+          setStatus("A network error occurred. Please try again in a moment.");
         }
       });
     </script>
   </body>
-</html>""".replace("__EXAMPLE_YAML_JSON__", example_json)
+</html>""".replace(
+        "__PROMPTED_INTRO_EXAMPLE_JSON__",
+        prompted_intro_example_json,
+    ).replace(
+        "__STARTER_BUNDLED_UPLOADS_JSON__",
+        starter_bundled_uploads_json,
+    )
 
 
 INDEX_HTML = _render_demo_html()
 
 
 def _cleanup_temp_dir(path: Path) -> None:
-    """Delete temporary output artifacts after the response is sent."""
-
     shutil.rmtree(path, ignore_errors=True)
 
 
@@ -640,8 +594,6 @@ def _log_result(
     started_at: float,
     error_type: str | None = None,
 ) -> None:
-    """Write structured request outcome logs without persisting YAML content."""
-
     duration_ms = round((perf_counter() - started_at) * 1000, 2)
     LOGGER.info(
         "request_id=%s result=%s duration_ms=%s error_type=%s",
@@ -659,8 +611,6 @@ def _error_response(
     message: str,
     errors: list[str] | None = None,
 ) -> JSONResponse:
-    """Build a consistent JSON error response."""
-
     payload: dict[str, object] = {
         "error_type": error_type,
         "message": message,
@@ -670,43 +620,105 @@ def _error_response(
     return JSONResponse(status_code=status_code, content=payload)
 
 
+def _collect_missing_uploaded_image_errors(
+    raw_data: dict[str, object],
+    *,
+    available_image_refs: set[str],
+) -> list[str]:
+    payload_kind = detect_payload_kind(raw_data)
+    if payload_kind not in {"authoring", "content"}:
+        return []
+
+    authoring_payload, _ = materialize_authoring_payload(
+        raw_data,
+        _BUILT_IN_CONTRACT,
+        available_image_refs=available_image_refs,
+        enforce_image_refs=False,
+    )
+    errors: list[str] = []
+    for slide in authoring_payload.slides:
+        for image in slide.assets.images:
+            if image.path is not None or image.ref is None:
+                continue
+            if image.ref not in available_image_refs:
+                errors.append(
+                    f"Slide {slide.slide_no} needs an uploaded image for ref '{image.ref}'. "
+                    "Upload the matching file below before generating, or replace the draft image note with a real file path/ref."
+                )
+    return errors
+
+
+def _merge_available_image_refs(uploaded_image_refs: dict[str, Path]) -> dict[str, Path]:
+    available_refs = {
+        item["ref"]: item["path"]
+        for item in _STARTER_BUNDLED_UPLOADS
+    }
+    available_refs.update(uploaded_image_refs)
+    return available_refs
+
+
 @app.get("/", response_class=HTMLResponse)
 def demo_page() -> HTMLResponse:
-    """Serve the public demo page."""
-
     return HTMLResponse(INDEX_HTML)
 
 
 @app.get("/healthz")
 def healthcheck() -> dict[str, str]:
-    """Return a lightweight health response for deployment checks."""
-
     return {"status": "ok"}
 
 
-@app.post("/api/generate", response_model=None)
-def generate_demo_report(payload: GenerateRequest) -> FileResponse | JSONResponse:
-    """Generate a weekly report PPTX from pasted YAML text."""
+@app.get("/starter-assets/{filename}", response_model=None)
+def starter_asset(filename: str) -> FileResponse | Response:
+    for item in _STARTER_BUNDLED_UPLOADS:
+        if item["filename"] == filename:
+            return FileResponse(item["path"])
+    return Response(status_code=404)
 
+
+@app.get("/favicon.ico")
+def favicon() -> Response:
+    return Response(status_code=204)
+
+
+@app.post("/api/compile")
+async def compile_demo_payload(request: Request) -> JSONResponse:
     request_id = uuid4().hex
     started_at = perf_counter()
     temp_dir_path: Path | None = None
 
     try:
-        raw_data = parse_yaml_text(payload.report_yaml)
-        temp_dir_path = Path(tempfile.mkdtemp(prefix="autoreport-web-"))
-        output_path = temp_dir_path / "weekly_report.pptx"
-        generated_path = generate_report_from_mapping(
-            raw_data,
-            output_path=output_path,
-        )
+        raw_data, image_refs, temp_dir_path = await _parse_request_payload(request)
+        available_image_refs = _merge_available_image_refs(image_refs)
+        payload_kind = detect_payload_kind(raw_data)
+        normalized_authoring_yaml: str | None = None
+        hints: list[str] = []
+
+        if payload_kind in {"authoring", "content"}:
+            normalized_authoring, hints = materialize_authoring_payload(
+                raw_data,
+                _BUILT_IN_CONTRACT,
+                available_image_refs=available_image_refs.keys(),
+                enforce_image_refs=False,
+            )
+            normalized_authoring_yaml = serialize_document(
+                normalized_authoring.to_dict(),
+                fmt="yaml",
+            ).strip()
+            compiled_payload = materialize_report_payload(
+                normalized_authoring.to_dict(),
+                _BUILT_IN_CONTRACT,
+                available_image_refs=available_image_refs.keys(),
+                enforce_image_refs=False,
+            )
+        else:
+            compiled_payload = materialize_report_payload(
+                raw_data,
+                _BUILT_IN_CONTRACT,
+                available_image_refs=available_image_refs.keys(),
+                enforce_image_refs=False,
+            )
     except yaml.YAMLError as exc:
-        _log_result(
-            request_id=request_id,
-            result="error",
-            started_at=started_at,
-            error_type="yaml_parse_error",
-        )
+        _log_result(request_id=request_id, result="error", started_at=started_at, error_type="yaml_parse_error")
         if temp_dir_path is not None:
             _cleanup_temp_dir(temp_dir_path)
         return _error_response(
@@ -715,27 +727,17 @@ def generate_demo_report(payload: GenerateRequest) -> FileResponse | JSONRespons
             message=f"Failed to parse YAML: {exc}",
         )
     except ValidationError as exc:
-        _log_result(
-            request_id=request_id,
-            result="error",
-            started_at=started_at,
-            error_type="validation_error",
-        )
+        _log_result(request_id=request_id, result="error", started_at=started_at, error_type="validation_error")
         if temp_dir_path is not None:
             _cleanup_temp_dir(temp_dir_path)
         return _error_response(
             status_code=422,
             error_type="validation_error",
-            message="Report validation failed.",
+            message="Payload validation failed.",
             errors=exc.errors,
         )
     except Exception:
-        _log_result(
-            request_id=request_id,
-            result="error",
-            started_at=started_at,
-            error_type="internal_error",
-        )
+        _log_result(request_id=request_id, result="error", started_at=started_at, error_type="internal_error")
         if temp_dir_path is not None:
             _cleanup_temp_dir(temp_dir_path)
         return _error_response(
@@ -744,14 +746,164 @@ def generate_demo_report(payload: GenerateRequest) -> FileResponse | JSONRespons
             message="An unexpected internal error occurred.",
         )
 
-    _log_result(
-        request_id=request_id,
-        result="success",
-        started_at=started_at,
+    _log_result(request_id=request_id, result="success", started_at=started_at)
+    return JSONResponse(
+        {
+            "payload_kind": payload_kind,
+            "normalized_authoring_yaml": normalized_authoring_yaml,
+            "compiled_yaml": serialize_document(compiled_payload.to_dict(), fmt="yaml").strip(),
+            "slide_count": len(compiled_payload.slides),
+            "hints": hints,
+        }
     )
+
+
+@app.post("/api/generate", response_model=None)
+async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
+    request_id = uuid4().hex
+    started_at = perf_counter()
+    temp_dir_path: Path | None = None
+
+    try:
+        raw_data, image_refs, temp_dir_path = await _parse_request_payload(
+            request,
+            keep_temp_dir=True,
+        )
+        available_image_refs = _merge_available_image_refs(image_refs)
+        missing_image_errors = _collect_missing_uploaded_image_errors(
+            raw_data,
+            available_image_refs=set(available_image_refs.keys()),
+        )
+        if missing_image_errors:
+            _log_result(request_id=request_id, result="error", started_at=started_at, error_type="validation_error")
+            _cleanup_temp_dir(temp_dir_path)
+            return _error_response(
+                status_code=422,
+                error_type="validation_error",
+                message="Payload validation failed.",
+                errors=missing_image_errors,
+            )
+        output_path = temp_dir_path / "autoreport_demo.pptx"
+        generated_path = generate_report_from_mapping(
+            raw_data,
+            output_path=output_path,
+            image_refs=available_image_refs,
+        )
+    except yaml.YAMLError as exc:
+        _log_result(request_id=request_id, result="error", started_at=started_at, error_type="yaml_parse_error")
+        if temp_dir_path is not None:
+            _cleanup_temp_dir(temp_dir_path)
+        return _error_response(
+            status_code=400,
+            error_type="yaml_parse_error",
+            message=f"Failed to parse YAML: {exc}",
+        )
+    except ValidationError as exc:
+        _log_result(request_id=request_id, result="error", started_at=started_at, error_type="validation_error")
+        if temp_dir_path is not None:
+            _cleanup_temp_dir(temp_dir_path)
+        return _error_response(
+            status_code=422,
+            error_type="validation_error",
+            message="Payload validation failed.",
+            errors=exc.errors,
+        )
+    except Exception:
+        _log_result(request_id=request_id, result="error", started_at=started_at, error_type="internal_error")
+        if temp_dir_path is not None:
+            _cleanup_temp_dir(temp_dir_path)
+        return _error_response(
+            status_code=500,
+            error_type="internal_error",
+            message="An unexpected internal error occurred.",
+        )
+
+    _log_result(request_id=request_id, result="success", started_at=started_at)
     return FileResponse(
         path=generated_path,
         media_type=MEDIA_TYPE_PPTX,
-        filename="weekly_report.pptx",
+        filename="autoreport_demo.pptx",
         background=BackgroundTask(_cleanup_temp_dir, temp_dir_path),
     )
+
+
+async def _parse_request_payload(
+    request: Request,
+    *,
+    keep_temp_dir: bool = False,
+) -> tuple[dict[str, object], dict[str, Path], Path | None]:
+    form = await request.form()
+    payload_yaml = form.get("payload_yaml")
+    image_manifest_raw = form.get("image_manifest", "[]")
+    if not isinstance(payload_yaml, str):
+        raise ValidationError(["Field 'payload_yaml' is required."])
+    if not isinstance(image_manifest_raw, str):
+        image_manifest_raw = "[]"
+
+    try:
+        image_manifest = json.loads(image_manifest_raw)
+    except json.JSONDecodeError as exc:
+        raise ValidationError(
+            ["Field 'image_manifest' must be a valid JSON list."]
+        ) from exc
+    if not isinstance(image_manifest, list):
+        raise ValidationError(["Field 'image_manifest' must be a JSON list."])
+
+    temp_dir_path = Path(tempfile.mkdtemp(prefix="autoreport-web-"))
+    image_refs = await _collect_uploaded_images(
+        form=form,
+        image_manifest=image_manifest,
+        temp_dir_path=temp_dir_path,
+    )
+    raw_data = parse_yaml_text(payload_yaml)
+
+    if keep_temp_dir:
+        return raw_data, image_refs, temp_dir_path
+
+    _cleanup_temp_dir(temp_dir_path)
+    return raw_data, image_refs, None
+
+
+async def _collect_uploaded_images(
+    *,
+    form,
+    image_manifest: list[object],
+    temp_dir_path: Path,
+) -> dict[str, Path]:
+    refs: dict[str, Path] = {}
+    used_refs: set[str] = set()
+    for index, item in enumerate(image_manifest):
+        if not isinstance(item, dict):
+            raise ValidationError(
+                [f"Field 'image_manifest[{index}]' must be an object."]
+            )
+        ref = item.get("ref")
+        field_name = item.get("field_name")
+        if not isinstance(ref, str) or not ref.strip():
+            raise ValidationError(
+                [f"Field 'image_manifest[{index}].ref' must be a non-empty string."]
+            )
+        if not isinstance(field_name, str) or not field_name.strip():
+            raise ValidationError(
+                [f"Field 'image_manifest[{index}].field_name' must be a non-empty string."]
+            )
+        if ref in used_refs:
+            raise ValidationError(
+                [f"Field 'image_manifest[{index}].ref' must be unique."]
+            )
+        upload = form.get(field_name)
+        if not (hasattr(upload, "filename") and hasattr(upload, "read")):
+            raise ValidationError(
+                [f"Field 'image_manifest[{index}].ref' does not match an uploaded file."]
+            )
+        suffix = Path(upload.filename or "").suffix.lower()
+        if suffix not in ALLOWED_UPLOAD_SUFFIXES:
+            raise ValidationError(
+                [f"Field 'image_manifest[{index}].ref' has an unsupported file type."]
+            )
+        target_path = temp_dir_path / f"{ref}{suffix}"
+        content = await upload.read()
+        target_path.write_bytes(content)
+        refs[ref] = target_path
+        used_refs.add(ref)
+    return refs

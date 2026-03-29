@@ -1,0 +1,152 @@
+# Template-Aware Autofill Engine
+
+This note describes the current contract-first Autoreport runtime.
+The product is no longer framed as a fixed weekly-report generator.
+It is a template-aware PPTX autofill engine that exposes template contracts and
+accepts structured payloads that another AI can fill directly.
+
+## Product definition
+
+Autoreport now follows this public flow:
+
+1. inspect a template
+2. export a machine-readable `template_contract`
+3. ask another AI or a human to draft `report_content`
+4. normalize that into `authoring_payload`
+5. compile it into a runtime `report_payload`
+6. generate an editable `.pptx`
+
+The template owns layout decisions.
+Autoreport owns:
+
+- template profiling
+- contract export
+- payload validation
+- slot mapping
+- fit and spill policy
+- editable `.pptx` output
+- diagnostics for risky layouts
+
+## Current runtime flow
+
+```mermaid
+flowchart TD
+    TEMPLATE["Built-in or user-owned template"] --> PROFILE["TemplateProfile"]
+    PROFILE --> CONTRACT["template_contract"]
+    CONTRACT --> DRAFT["report_content"]
+    DRAFT --> AUTHOR["authoring_payload"]
+    AUTHOR --> COMPILE["compile_authoring_payload(...)"]
+    COMPILE --> PAYLOAD["report_payload"]
+    PAYLOAD --> VALIDATE["validate_payload(...)"]
+    VALIDATE --> PLAN["FillPlan"]
+    PLAN --> FIT["fit / shrink / spill pass"]
+    FIT --> WRITE["PowerPointWriter.write_fill_plan(...)"]
+    FIT --> DIAG["DiagnosticReport"]
+```
+
+## Core internal types
+
+- `TemplateProfile`: profiled title pattern, contents pattern, and reusable slide patterns
+- `PatternProfile`: one reusable generation pattern with ordered slots
+- `SlotDescriptor`: slot metadata, geometry, font defaults, ordering, and slot type
+- `TemplateContract`: public export model for the inspected template
+- `AuthoringPayload`: public authoring model used by humans or another AI
+- `ReportPayload`: public generation payload model
+- `FillPlan`: ordered slide plan ready to write into PowerPoint
+- `FitResult`: fit, shrink, spill, or overflow outcome for one slot
+- `DiagnosticReport`: warnings and errors collected during profiling and fitting
+
+## Built-in editorial template
+
+The built-in public template is `autoreport_editorial`.
+It is product-owned, text-first by default, and exposed as a real public
+contract rather than an internal fallback.
+
+Current built-in patterns:
+
+- `cover.editorial`
+- `contents.editorial`
+- `text.editorial`
+- `metrics.editorial`
+- `text_image.editorial`
+- `text_image.editorial.two_horizontal`
+- `text_image.editorial.two_vertical`
+- `text_image.editorial.three_horizontal`
+- `text_image.editorial.three_vertical`
+
+The built-in chrome is still authored locally and written at generation time.
+Autoreport does not vendor third-party template branding into the runtime path.
+
+## Public contracts
+
+`template_contract`
+
+- `contract_version`
+- `template_id`
+- `template_label`
+- `template_source`
+- `title_slide`
+- `contents_slide`
+- `slide_patterns`
+
+`report_payload`
+
+- `payload_version`
+- `template_id`
+- `title_slide`
+- `contents`
+- `slides`
+
+`authoring_payload`
+
+- `payload_version`
+- `template_id`
+- `deck_context`
+- `title_slide`
+- `contents`
+- `slides`
+
+`report_content`
+
+- `title_slide`
+- `contents_slide`
+- `slides`
+
+Current first-phase slide kinds:
+
+- `text`
+- `metrics`
+- `text_image`
+
+`report_content` is the primary AI-facing draft contract.
+`authoring_payload` is the normalized public authoring contract.
+`report_payload` stays supported as the compiled runtime payload and the
+backward-compatible direct generation input.
+
+`slot_overrides` are still supported for exact placeholder-level replacement
+when the runtime payload needs placeholder-level control.
+
+## Current policies
+
+- Template interpretation is placeholder-first for user-owned `.pptx` files.
+- The built-in editorial path is cached and does not re-profile on each web request.
+- Authoring compilation resolves a deterministic `pattern_id` before generation begins.
+- Slide titles remain the source for `Contents` generation.
+- Text still prefers the default font size, then shrinks, then spills onto continuation slides.
+- Image handling currently supports explicit `contain` and `cover` fit policies.
+- The user-facing web app defaults to an AI-friendly `report_content` prompt and keeps compile/runtime inspection secondary.
+- The developer-facing debug web app is the place for explicit contract, normalization, and compiled runtime inspection.
+- Both web apps reuse the same compile/generate route behavior; external template upload in the web surface is deferred.
+
+## What is intentionally out of scope today
+
+- Server-side LLM calls in the generation path
+- Arbitrary visual layout invention at generation time
+- Every possible `.pptx` edge case
+- Public web upload of arbitrary external PowerPoint templates
+
+## Reference posture
+
+Autoreport keeps the Python + `python-pptx` generation path as the runtime
+engine. External tools such as `PptxGenJS` or design sandbox worktrees can
+inform template authoring, but they are not part of the runtime path here.

@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autoreport"
-version = "0.2.1"
-description = "Deterministic weekly report generator with CLI and public web demo entry points."
+version = "0.3.0"
+description = "Template-contract-first PPTX deck generator with CLI and public web demo entry points."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -17,6 +17,7 @@ dependencies = [
   "fastapi>=0.115",
   "httpx>=0.28",
   "PyYAML>=6.0",
+  "python-multipart>=0.0.22",
   "python-pptx>=1.0.2",
   "uvicorn>=0.34",
 ]

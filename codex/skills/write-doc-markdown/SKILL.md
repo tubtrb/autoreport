@@ -20,6 +20,7 @@ Autoreport public voice. It supports three fixed modes:
 - Read `../public-repo-safety/SKILL.md` before promoting local screenshots or draft assets into repo-bound public docs.
 - Read `../release-docs/SKILL.md` when public wording and repo docs alignment matter.
 - Read `../release-verification/SKILL.md` when the user wants fresh screenshots, browser proof, or release-time verification while drafting.
+- Read `../autorelease-handoff/SKILL.md` when the posts should be synced into the private `autorelease` repo, especially before branch wrap-up, PR merge, or tagging.
 - Read only the reference file for the selected mode:
   - `references/development-log-style.md`
   - `references/release-note-style.md`
@@ -69,6 +70,11 @@ If the user does not clearly specify the mode, ask one short question.
   - `릴리즈 노트` -> English
   - `사용 가이드` -> English
 - Save to a `.md` file only when the user clearly asks for file output or gives a path.
+
+5. Hand off branch-ready posts when appropriate.
+- `docs/posts/` is the local staging area, not the final publishing repository.
+- If the user is wrapping up a branch or preparing a version handoff, run `autorelease-handoff` after the posts are ready.
+- Prefer the automated handoff script over manual copy/paste so the `autorelease` contract and asset paths stay consistent.
 
 ## Mode Requirements
 

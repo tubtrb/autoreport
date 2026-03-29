@@ -1,0 +1,47 @@
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport Website Quick Manual
+      subtitle_1: |
+        Built-in app screenshots for the starter flow
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. Published Guide And Updates Routes
+        2. Edit The Starter Deck YAML
+        3. Upload Images And Generate
+  slides:
+    - pattern_id: text.editorial
+      slots:
+        title: Published Guide And Updates Routes
+        body_1: |
+          When the release docs are published, the main reader routes are Home
+          `/`, User Guide `/guide/`, and the Updates hub under
+          `/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`.
+          This starter deck keeps the faster in-app walkthrough inside the main
+          editor so users can learn the browser flow and generate immediately.
+    - pattern_id: text_image.editorial
+      slots:
+        title: Edit The Starter Deck YAML
+        body_1: |
+          The main editor already includes the AI prompt comments and this
+          starter manual YAML in one place.
+          Edit the titles and body text directly, keep the built-in screenshots
+          if they explain the workflow well, and use Reset Starter Example to
+          restore the packaged manual.
+        image_1: starter_app_workspace
+        caption_1: Starter editor, reset, and generate controls in one workspace
+    - pattern_id: text_image.editorial
+      slots:
+        title: Upload Images And Generate
+        body_1: |
+          The built-in manual already ships with screenshots, so the default
+          deck can generate without any extra upload.
+          Use Image Uploads only when you replace a built-in visual or add a
+          new image ref such as image_1, then press Generate PPTX to download
+          the editable deck.
+        image_1: starter_app_uploads
+        caption_1: Upload new visuals only when the current YAML needs them
