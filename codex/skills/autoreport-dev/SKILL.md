@@ -26,6 +26,7 @@ and routes deeper work to one primary focused skill.
   - Loader/schema/example/tests -> `../report-schema/SKILL.md`
   - Template/generator/writer -> `../pptx-output/SKILL.md`
   - FastAPI/demo HTML/API -> `../web-demo/SKILL.md`
+  - Remote deployment handover, EC2 drift checks, public-server mismatch, or entrypoint verification -> `../remote-deployment-handover/SKILL.md`
   - Public repo safety, leak scans, and screenshot hygiene -> `../public-repo-safety/SKILL.md`
   - Release readiness checks, browser smoke tests, and evidence capture -> `../release-verification/SKILL.md`
   - README/release/package messaging -> `../release-docs/SKILL.md`

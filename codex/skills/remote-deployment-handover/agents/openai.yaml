@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remote Deployment Handover"
+  short_description: "Handle EC2 public-app handoffs and drift checks"
+  default_prompt: "Use $remote-deployment-handover to verify the Autoreport public deployment, fix main-vs-server drift, and confirm the public app is serving the text-first homepage."

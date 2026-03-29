@@ -46,6 +46,7 @@
 - Template shaping, generation orchestration, writer behavior, template compatibility -> `pptx-output`
 - Active `codex/v0.3-*` task worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
 - FastAPI user app, debug app, shared web API routes, HTML surfaces, API error shape, web tests -> `web-demo`
+- Remote EC2/public app handover, deployment drift checks, systemd/nginx or container refresh, and public-vs-debug entrypoint confirmation -> `remote-deployment-handover`
 - Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`
 - README, release notes, packaging metadata, public wording alignment -> `release-docs`
