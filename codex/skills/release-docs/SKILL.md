@@ -24,6 +24,7 @@ that live in the repository. Use `write-doc-markdown` for WordPress-style post g
 - Read `../../../examples/report_payload.yaml`.
 - Read `../../../examples/report_payload.json`.
 - Read `../public-repo-safety/SKILL.md` before final public signoff or before promoting screenshots into tracked docs.
+- If the task also creates a release backup tag or refreshes release branches after merge, consult `../release-tagging/SKILL.md`.
 - If the user wants a WordPress-style post, switch to `../write-doc-markdown/SKILL.md`.
 - If the task should sync versioned posts into the private publishing repo, also consult `../autorelease-handoff/SKILL.md`.
 - If the user wants the docs backed by fresh smoke-test evidence, browser captures, or release signoff notes, also consult `../release-verification/SKILL.md`.

@@ -29,6 +29,7 @@ and routes deeper work to one primary focused skill.
   - Public repo safety, leak scans, and screenshot hygiene -> `../public-repo-safety/SKILL.md`
   - Release readiness checks, browser smoke tests, and evidence capture -> `../release-verification/SKILL.md`
   - README/release/package messaging -> `../release-docs/SKILL.md`
+  - Release backup tags, merged-source-branch cleanup, or refreshing `codex/next` from `main` -> `../release-tagging/SKILL.md`
   - WordPress-style development logs, release notes, and user guides -> `../write-doc-markdown/SKILL.md`
   - Handoff of versioned posts into the private `autorelease` repo -> `../autorelease-handoff/SKILL.md`
 - If a focused skill is missing, continue with this umbrella guidance and report the coverage gap.

@@ -49,6 +49,7 @@
 - Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`
 - README, release notes, packaging metadata, public wording alignment -> `release-docs`
+- Release backup tags, merged-source-branch cleanup, and refreshing `codex/next` from `main` -> `release-tagging`
 - WordPress-style public Markdown posts for development logs, release notes, and user guides -> `write-doc-markdown`
 - Versioned post handoff from `docs/posts/` into the private `autorelease` publishing repo -> `autorelease-handoff`
 - If a task genuinely spans multiple surfaces, keep one primary skill and consult adjacent skills only where necessary.
@@ -69,7 +70,7 @@
 - The user app should stay optimized for the single "copy AI package -> paste draft -> generate" flow.
 - If a task needs extra panes, inspection widgets, manual helpers, or internal compile/normalize visibility, add or refine them in the debug app before cluttering the user app.
 - Shared compile/generate route behavior may be reused between the two apps, but the debug app must not become a hidden second implementation of the generation pipeline.
-- For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `codex/v0.3-master`, pushed, and the active task worktrees have been synchronized onto that pushed base.
+- For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `main`, pushed, and `codex/next` has been refreshed from that pushed `main` when `next` is part of the active branch flow.
 - When old sibling directories from retired `codex/v0.3-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
 - If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v0.3-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.
 - For master-thread orchestration, once branch-specific instructions have been written into each active worktree's `.codex/master-next.txt`, treat that file as the only authoritative branch-specific instruction channel.
@@ -81,4 +82,5 @@
 - Before any public push, PR, release, publish-ready doc handoff, or claim that the repo is safe to share publicly, load `codex/skills/public-repo-safety/SKILL.md` and run its blocker checks.
 - If `public-repo-safety` finds a blocker in a tracked file or a non-ignored untracked file, stop the public-sharing flow until the finding is removed or intentionally resolved.
 - Do not promote ignored screenshots or local artifacts into tracked docs paths without reviewing them through `public-repo-safety`.
+- When a release backup tag is created in this repository, prefer an annotated `v<version>` tag on the merged `main` release commit, then delete the merged source branch and refresh `codex/next` from the updated `main` unless the user explicitly asks for a different branch flow.
 - If a task ends a branch, prepares a tag, or wraps up versioned public posts under `docs/posts/`, run `codex/skills/autorelease-handoff/SKILL.md` unless the user explicitly opts out of the private publishing handoff.

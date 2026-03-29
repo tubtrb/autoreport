@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Tagging"
+  short_description: "Tag releases, clean merged branches, and refresh next from main."
+  default_prompt: "Use $release-tagging to create or verify an annotated release backup tag in autoreport, clean up the merged source branch, and sync codex/next from main."

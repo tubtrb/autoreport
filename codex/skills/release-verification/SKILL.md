@@ -20,6 +20,7 @@ artifacts, and feed those results into release notes or a user guide.
 - Read `../public-repo-safety/SKILL.md` before declaring anything ready for public release.
 - Read `references/release-checklist.md`.
 - Read `references/browser-evidence.md` when browser screenshots or download proof are needed.
+- If the task continues into tag creation, merged-source-branch cleanup, or `codex/next` refresh after signoff, also read `../release-tagging/SKILL.md`.
 - Read the focused surface skill when verification targets one subsystem:
   - `../web-demo/SKILL.md` for homepage and `/api/generate`
   - `../release-docs/SKILL.md` for repo-tracked release wording
