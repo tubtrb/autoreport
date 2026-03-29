@@ -26,7 +26,9 @@ sys.modules[SPEC.name] = HANDOFF_MODULE
 SPEC.loader.exec_module(HANDOFF_MODULE)
 
 PostSpec = HANDOFF_MODULE.PostSpec
+PublicServiceInfo = HANDOFF_MODULE.PublicServiceInfo
 build_specs = HANDOFF_MODULE.build_specs
+transform_homepage_body = HANDOFF_MODULE.transform_homepage_body
 transform_guide_body = HANDOFF_MODULE.transform_guide_body
 transform_release_notes_body = HANDOFF_MODULE.transform_release_notes_body
 
@@ -35,7 +37,19 @@ class HandoffRewriteTestCase(unittest.TestCase):
     """Keep the guide and release-note handoff rewrites aligned with v0.3 copy."""
 
     def make_args(self) -> argparse.Namespace:
-        return argparse.Namespace(source_ref="codex/v0.3-master")
+        return argparse.Namespace(
+            source_ref="codex/v0.3-master",
+            public_service_info=PublicServiceInfo(
+                as_of="2026-03-29",
+                release_home="http://auto-report.org/",
+                release_guide="http://auto-report.org/guide/",
+                release_updates="http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/",
+                hosted_demo_primary="http://3.36.96.47/",
+                hosted_demo_alternate="http://ec2-3-36-96-47.ap-northeast-2.compute.amazonaws.com/",
+                hosted_demo_healthcheck="http://3.36.96.47/healthz",
+                hosted_demo_healthcheck_expected='{"status":"ok"}',
+            ),
+        )
 
     def make_spec(self, *, slug: str = "guide", source_asset_dir: str = "guide-image-v0.3.0") -> object:
         return PostSpec(
@@ -85,6 +99,9 @@ class HandoffRewriteTestCase(unittest.TestCase):
             "The `codex/v0.3-master` build was verified with the contract-facing CLI and web test suites.",
             rewritten,
         )
+        self.assertIn("## Live service", rewritten)
+        self.assertIn("Release-facing site home: `http://auto-report.org/`", rewritten)
+        self.assertIn("Hosted demo app: `http://3.36.96.47/`", rewritten)
 
     def test_transform_release_notes_body_rewrites_workspace_reference(self) -> None:
         body = "\n".join(
@@ -100,10 +117,42 @@ class HandoffRewriteTestCase(unittest.TestCase):
         rewritten = transform_release_notes_body(body, self.make_spec(), self.make_args())
 
         self.assertIn("This release now exposes the refreshed flow.", rewritten)
+        self.assertIn("## Live service", rewritten)
+        self.assertIn(
+            "Release-facing user guide: `http://auto-report.org/guide/`",
+            rewritten,
+        )
         self.assertIn("## Verification for this release", rewritten)
         self.assertIn(
             "This release note reflects the `codex/v0.3-master` branch and its verification run.",
             rewritten,
+        )
+
+    def test_transform_homepage_body_normalizes_live_service_section(self) -> None:
+        body = "\n".join(
+            [
+                "# Autoreport",
+                "",
+                "Intro paragraph.",
+                "",
+                "## Live service",
+                "",
+                "Old live service text.",
+                "",
+                "## Product overview",
+                "",
+                "- Overview bullet",
+            ]
+        )
+
+        rewritten = transform_homepage_body(body, self.make_args())
+
+        self.assertIn("## Live service", rewritten)
+        self.assertIn("Hosted demo health check: `http://3.36.96.47/healthz`", rewritten)
+        self.assertNotIn("Old live service text.", rewritten)
+        self.assertLess(
+            rewritten.index("## Live service"),
+            rewritten.index("## Product overview"),
         )
 
     def test_build_specs_omits_cover_image_when_guide_asset_is_missing(self) -> None:

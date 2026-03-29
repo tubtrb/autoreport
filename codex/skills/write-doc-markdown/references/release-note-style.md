@@ -11,6 +11,8 @@ Default to English unless the user explicitly asks for another language.
 - Title in the form `## Autoreport vX.Y.Z Release Notes`
 - `Release date: ...` near the top
 - Short intro paragraph about the release goal
+- `## Live service` near the top when the release note should point readers to
+  the current public site or hosted demo
 - `## What's included in this release`
 - `## Basic usage`
 - `## Supported input structure` when schema details matter
@@ -30,6 +32,9 @@ Default to English unless the user explicitly asks for another language.
 
 - Separate implemented behavior from future work.
 - Include commands only when they match the current repo behavior.
+- When the release is already publicly hosted, read
+  `docs/deployment/public-service-info.yaml` and use those exact URLs in the
+  live-service block.
 - Include limitations when the implementation is intentionally narrow.
 - Do not oversell roadmap items or imply unsupported flexibility.
 

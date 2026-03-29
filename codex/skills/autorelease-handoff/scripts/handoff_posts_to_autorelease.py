@@ -11,6 +11,8 @@ from datetime import date
 from pathlib import Path
 from typing import Callable
 
+import yaml
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover
@@ -19,6 +21,27 @@ except ModuleNotFoundError:  # pragma: no cover
 
 class HandoffError(Exception):
     """Raised when the autorelease handoff cannot be completed."""
+
+
+LIVE_SERVICE_SECTION_PATTERN = re.compile(
+    r"(?ms)^## Live service\r?\n.*?(?=^## |\Z)"
+)
+FRONT_MATTER_BODY_PATTERN = re.compile(
+    r"^(---\s*\r?\n.*?\r?\n---\s*\r?\n?)(.*)$",
+    re.DOTALL,
+)
+
+
+@dataclass(frozen=True)
+class PublicServiceInfo:
+    as_of: str
+    release_home: str
+    release_guide: str
+    release_updates: str
+    hosted_demo_primary: str
+    hosted_demo_alternate: str | None = None
+    hosted_demo_healthcheck: str | None = None
+    hosted_demo_healthcheck_expected: str | None = None
 
 
 @dataclass(frozen=True)
@@ -138,6 +161,41 @@ def slug_version(version: str) -> str:
     return version.replace(".", "-")
 
 
+def load_public_service_info(repo_root: Path) -> PublicServiceInfo:
+    info_path = repo_root / "docs" / "deployment" / "public-service-info.yaml"
+    if not info_path.exists():
+        raise HandoffError(f"Public service info file not found: {info_path}")
+
+    raw = yaml.safe_load(info_path.read_text(encoding="utf-8")) or {}
+    release_site = raw.get("release_site") or {}
+    hosted_demo = raw.get("hosted_demo") or {}
+
+    def required(section: dict[str, object], key: str) -> str:
+        value = str(section.get(key, "")).strip()
+        if not value:
+            raise HandoffError(
+                f"Missing '{key}' in public service info file: {info_path}"
+            )
+        return value
+
+    return PublicServiceInfo(
+        as_of=required(raw, "as_of"),
+        release_home=required(release_site, "home"),
+        release_guide=required(release_site, "guide"),
+        release_updates=required(release_site, "updates"),
+        hosted_demo_primary=required(hosted_demo, "primary"),
+        hosted_demo_alternate=str(
+            hosted_demo.get("alternate_hostname", "")
+        ).strip()
+        or None,
+        hosted_demo_healthcheck=str(hosted_demo.get("healthcheck", "")).strip() or None,
+        hosted_demo_healthcheck_expected=str(
+            hosted_demo.get("healthcheck_expected", "")
+        ).strip()
+        or None,
+    )
+
+
 def build_specs(args: argparse.Namespace) -> list[PostSpec]:
     repo_root = args.repo_root.resolve()
     autorelease_root = args.autorelease_root.resolve()
@@ -234,6 +292,44 @@ def transform_devlog_body(body: str, spec: PostSpec, _: argparse.Namespace) -> s
     return body
 
 
+def render_live_service_section(info: PublicServiceInfo) -> str:
+    lines = [
+        "## Live service",
+        "",
+        f"As of `{info.as_of}`, the public release pages and the hosted demo app are available at:",
+        "",
+        f"- Release-facing site home: `{info.release_home}`",
+        f"- Release-facing user guide: `{info.release_guide}`",
+        f"- Release-facing updates hub: `{info.release_updates}`",
+        f"- Hosted demo app: `{info.hosted_demo_primary}`",
+    ]
+    if info.hosted_demo_alternate:
+        lines.append(f"- Alternate EC2 hostname: `{info.hosted_demo_alternate}`")
+    if info.hosted_demo_healthcheck:
+        healthcheck_line = f"- Hosted demo health check: `{info.hosted_demo_healthcheck}`"
+        if info.hosted_demo_healthcheck_expected:
+            healthcheck_line += f" returns `{info.hosted_demo_healthcheck_expected}`"
+        lines.append(healthcheck_line)
+    return "\n".join(lines)
+
+
+def upsert_live_service_section(
+    body: str,
+    info: PublicServiceInfo,
+    *,
+    insert_before_heading: str,
+) -> str:
+    normalized = LIVE_SERVICE_SECTION_PATTERN.sub("", body).strip()
+    section = render_live_service_section(info)
+    if insert_before_heading in normalized:
+        return normalized.replace(
+            insert_before_heading,
+            section + "\n\n" + insert_before_heading,
+            1,
+        )
+    return normalized + "\n\n" + section
+
+
 def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) -> str:
     source_prefix = spec.source_asset_dir.name if spec.source_asset_dir else ""
     if source_prefix:
@@ -272,6 +368,11 @@ def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) ->
         "",
         body,
     )
+    body = upsert_live_service_section(
+        body,
+        args.public_service_info,
+        insert_before_heading="## What is Autoreport?",
+    )
     return body
 
 
@@ -306,7 +407,20 @@ def transform_release_notes_body(
             f"This release note reflects the `{args.source_ref}` branch and its verification run."
         )
     body = body.replace(current_branch_sentence, replacement)
+    body = upsert_live_service_section(
+        body,
+        args.public_service_info,
+        insert_before_heading="## What's included in this release",
+    )
     return body
+
+
+def transform_homepage_body(body: str, args: argparse.Namespace) -> str:
+    return upsert_live_service_section(
+        body,
+        args.public_service_info,
+        insert_before_heading="## Product overview",
+    )
 
 
 def render_front_matter(spec: PostSpec, args: argparse.Namespace) -> str:
@@ -361,7 +475,33 @@ def sync_assets(spec: PostSpec) -> None:
         shutil.copy2(source, destination)
 
 
-def validate_touched_posts(args: argparse.Namespace, specs: list[PostSpec]) -> None:
+def replace_markdown_body(text: str, body: str) -> str:
+    match = FRONT_MATTER_BODY_PATTERN.match(text)
+    if match is None:
+        raise HandoffError("Target Markdown file is missing valid front matter.")
+    return match.group(1).rstrip() + "\n\n" + body.strip() + "\n"
+
+
+def sync_homepage_live_service(args: argparse.Namespace) -> Path:
+    homepage_path = args.autorelease_root / "content" / "pages" / "main.md"
+    if not homepage_path.exists():
+        raise HandoffError(f"Autorelease homepage not found: {homepage_path}")
+    raw_text = homepage_path.read_text(encoding="utf-8")
+    _, body = parse_front_matter(raw_text)
+    transformed_body = transform_homepage_body(body, args)
+    homepage_path.write_text(
+        replace_markdown_body(raw_text, transformed_body),
+        encoding="utf-8",
+    )
+    return homepage_path
+
+
+def validate_touched_posts(
+    args: argparse.Namespace,
+    specs: list[PostSpec],
+    *,
+    extra_paths: list[Path] | None = None,
+) -> None:
     autorelease_src = args.autorelease_root / "src"
     sys.path.insert(0, str(autorelease_src))
     try:
@@ -377,6 +517,9 @@ def validate_touched_posts(args: argparse.Namespace, specs: list[PostSpec]) -> N
     for spec in specs:
         post = load_post(spec.target_path, args.autorelease_root)
         errors.extend(validate_post(post))
+    for path in extra_paths or []:
+        post = load_post(path, args.autorelease_root)
+        errors.extend(validate_post(post))
 
     if errors:
         raise HandoffError("\n".join(errors))
@@ -388,13 +531,15 @@ def main() -> int:
     args.autorelease_root = args.autorelease_root.resolve()
     args.version = args.version or read_project_version(args.repo_root)
     args.source_ref = args.source_ref or detect_source_ref(args.repo_root)
+    args.public_service_info = load_public_service_info(args.repo_root)
 
     specs = build_specs(args)
     for spec in specs:
         write_target_post(spec, args)
         sync_assets(spec)
 
-    validate_touched_posts(args, specs)
+    homepage_path = sync_homepage_live_service(args)
+    validate_touched_posts(args, specs, extra_paths=[homepage_path])
 
     print(
         "HANDOFF_OK "
@@ -404,6 +549,7 @@ def main() -> int:
     )
     for spec in specs:
         print(spec.target_path)
+    print(homepage_path)
     return 0
 
 

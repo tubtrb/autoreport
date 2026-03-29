@@ -12,6 +12,8 @@ Default to English unless the user explicitly asks for another language.
 - Title `# User Guide`
 - `Current version: ...` near the top
 - Intro that defines the guide as the current implementation reference
+- `## Live service` near the top when the public site or hosted demo should be
+  directly usable by readers
 - `## What is Autoreport?`
 - `## What the current version can do`
 - `## Basic usage`
@@ -31,6 +33,9 @@ Default to English unless the user explicitly asks for another language.
 
 - Use the current branch implementation by default.
 - Describe only what is demonstrably supported by code/tests/docs.
+- When the guide is meant for `autorelease`, read
+  `docs/deployment/public-service-info.yaml` and use those exact URLs in the
+  `## Live service` block instead of route-only placeholders.
 - Mention where users can check version-specific changes if that context helps.
 - Do not write speculative setup or future features as if they exist now.
 - Prefer showing or linking to an actual generated `.pptx` result in the published guide because it makes the output concrete for new readers.

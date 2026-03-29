@@ -14,6 +14,7 @@
 - Runtime behavior and error contracts: repository code plus tests.
 - Packaging and entrypoint metadata: `pyproject.toml`.
 - Public framing and usage examples: `README.md`.
+- Public server info for release-facing docs, homepage copy, and autorelease handoff: `docs/deployment/public-service-info.yaml`.
 - Public contract examples: `examples/autoreport_editorial_template_contract.yaml`, `examples/autoreport_editorial_report_content.yaml`, `examples/autoreport_editorial_authoring_payload.yaml`, `examples/autoreport_editorial_report_payload.yaml`.
 
 ## Repo Map
@@ -70,6 +71,7 @@
 - Use git history and tags for recovery, not stale bootstrap guidance left in tracked files after the product has already moved on.
 - Treat repo-operation tasks on `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, and shared architecture/process guidance as operational changes rather than draft-only docs work.
 - Unless the user explicitly asks to stop earlier or use a different branch flow, finish those repo-operation tasks by validating the changed guidance, running `public-repo-safety`, committing on `main`, pushing `origin/main`, and refreshing `codex/next` from that pushed `main`.
+- When public release-site URLs or hosted demo endpoints change, update `docs/deployment/public-service-info.yaml` in the same task and keep the writing/handoff skills aligned so the homepage, guide, and release-facing posts do not drift.
 - Keep the user-facing web app and the developer-facing debug app as separate tracked surfaces.
 - The user app should stay optimized for the single "copy AI package -> paste draft -> generate" flow.
 - If a task needs extra panes, inspection widgets, manual helpers, or internal compile/normalize visibility, add or refine them in the debug app before cluttering the user app.

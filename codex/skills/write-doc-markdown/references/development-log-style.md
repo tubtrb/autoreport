@@ -27,6 +27,9 @@ Default to Korean unless the user explicitly asks for another language.
 ## Content Rules
 
 - Use repo-tracked facts, tests, and docs as the source of truth.
+- When a development log explains the first public deployment or a live hosting
+  change, read `docs/deployment/public-service-info.yaml` and include a short
+  live-service section near the top instead of leaving readers to infer the URLs.
 - Mention development process details only when they are part of the actual repo history for that version.
 - Avoid internal bootstrap talk, hidden prompting, or tool orchestration details.
 - Do not end the post like a checklist; close with what the version means for the product.

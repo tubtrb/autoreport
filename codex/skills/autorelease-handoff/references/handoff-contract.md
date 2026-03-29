@@ -22,6 +22,16 @@ The final publishable contract lives in the private `autorelease` repository.
 The guide path is intentionally stable because `autorelease` publishes the main
 user guide at `/guide/` and updates that page in place across releases.
 
+## Live service synchronization
+
+- The tracked source of public server URLs is
+  `docs/deployment/public-service-info.yaml` in the `autoreport` repository.
+- Guide and release-note source posts should keep a `## Live service` section
+  near the top when they are meant for public readers.
+- The automated handoff is allowed to normalize that block so the stable guide
+  page and `../autorelease/content/pages/main.md` use the same live service
+  information.
+
 ## Why the script exists
 
 - `docs/posts/` files are usually plain Markdown, not full publishable handoff items.

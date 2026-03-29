@@ -23,6 +23,7 @@ This skill is especially important when:
 - Read `../autoreport-dev/SKILL.md`.
 - Read `../write-doc-markdown/SKILL.md` when the source post text is still being edited.
 - Read `../public-repo-safety/SKILL.md` before final public signoff.
+- Read `../../../docs/deployment/public-service-info.yaml`.
 - Read the sibling `autorelease` repository files:
   - `../autorelease/docs/authoring-contract.md`
   - `../autorelease/src/autorelease/content.py`
@@ -44,6 +45,9 @@ This skill is especially important when:
 3. Let the script own the contract conversion.
 - It rewrites the versioned source posts into the `autorelease` front matter contract.
 - It copies local screenshot/image assets into `content/assets/<slug>/`.
+- It keeps the tracked live-service block aligned from `docs/deployment/public-service-info.yaml`
+  so the stable guide page and the `autorelease` homepage can point to the
+  current public site and hosted demo.
 - It validates only the touched posts so unrelated dirty work in `autorelease` does not block the handoff.
 
 4. Report the result clearly.
@@ -64,6 +68,8 @@ This skill is especially important when:
   - `docs/posts/devlog-image-v<version>/`
   - `docs/posts/guide-image-v<version>/`
 - Guide handoff currently updates the stable `guide` page in `autorelease` rather than creating a versioned guide slug there.
+- The handoff also keeps `../autorelease/content/pages/main.md` aligned with the
+  tracked live-service block.
 
 ## Output Contract
 

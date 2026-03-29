@@ -16,6 +16,7 @@ Autoreport public voice. It supports three fixed modes:
 - Read `../../../AGENTS.md`.
 - Read `../autoreport-dev/SKILL.md`.
 - Read `../../../README.md` and `../../../pyproject.toml`.
+- Read `../../../docs/deployment/public-service-info.yaml` when the post may be handed off into `autorelease` or should mention the live public service.
 - Read current behavior from matching code/tests before making factual claims.
 - Read `../public-repo-safety/SKILL.md` before promoting local screenshots or draft assets into repo-bound public docs.
 - Read `../release-docs/SKILL.md` when public wording and repo docs alignment matter.
@@ -55,6 +56,9 @@ If the user does not clearly specify the mode, ask one short question.
 - Keep the structure and tone consistent with the chosen mode.
 - Summarize the style pattern; do not copy source articles verbatim.
 - Do not append WordPress site chrome such as share buttons, comment blocks, or subscription UI.
+- When the current public deployment is part of the reader journey, use the tracked
+  server info from `docs/deployment/public-service-info.yaml` rather than
+  inventing or paraphrasing URLs from memory.
 
 3. Keep public text product-facing.
 - Do not mention bootstrap rules, internal skill routing, or hidden process notes.
@@ -92,6 +96,8 @@ If the user does not clearly specify the mode, ask one short question.
 - Use a contract-style structure.
 - Default to English for external readers.
 - Include release date, included capabilities, basic usage, current limits, and next steps.
+- Include a short `## Live service` section near the top when the release is
+  meant to drive readers to the current public site or hosted demo.
 - Prefer clear bullets over narrative digressions.
 - Distinguish implemented behavior from planned follow-up work.
 - When practical, prefer claims backed by a fresh verification pass from `release-verification`.
@@ -101,6 +107,9 @@ If the user does not clearly specify the mode, ask one short question.
 - Use a stable, instructional tone.
 - Default to English for external readers.
 - Explain what the product is, what the current version can do, and how to run it.
+- Include a short `## Live service` section near the top using the tracked
+  public server info so readers can open the live site and hosted demo without
+  guessing at routes.
 - Keep the guide grounded in the current repo implementation.
 - Do not turn future roadmap ideas into present-tense guidance.
 - When possible, include or reference a real generated `.pptx` result so readers can see the expected output shape.

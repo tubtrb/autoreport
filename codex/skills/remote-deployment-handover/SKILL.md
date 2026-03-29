@@ -19,6 +19,7 @@ entrypoint being exposed.
 - Read `../autoreport-dev/SKILL.md`.
 - Read `references/public-deploy-checklist.md`.
 - Read `../../../docs/deployment/aws-ec2.md`.
+- Read `../../../docs/deployment/public-service-info.yaml`.
 - Read `../../../docs/deployment/remote-codex-handover.md` when a human-readable
   operator note is needed.
 - Read `../../../deploy/aws-ec2/autoreport.service`.
@@ -76,6 +77,9 @@ entrypoint being exposed.
 6. Finish with an operator handover.
 - Record the checked SHA, deployment mode, active entrypoint, commands run, and
   remaining blockers.
+- If the public site or hosted demo endpoints changed, update
+  `docs/deployment/public-service-info.yaml` in the same task so the guide,
+  release notes, and `autorelease` homepage do not drift.
 - If the task updates repo-tracked deployment guidance, keep
   `docs/deployment/remote-codex-handover.md`, this skill, and the routing notes
   in sync.
