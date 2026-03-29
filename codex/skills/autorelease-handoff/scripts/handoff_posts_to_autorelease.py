@@ -143,12 +143,16 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
     autorelease_root = args.autorelease_root.resolve()
     version = args.version
     slugged_version = slug_version(version)
+    posts_root = repo_root / "docs" / "posts"
+    devlog_asset_dir = optional_asset_dir(posts_root / f"devlog-image-v{version}")
+    guide_asset_dir = optional_asset_dir(posts_root / f"guide-image-v{version}")
+    guide_cover_image = None
+    if guide_asset_dir is not None and (guide_asset_dir / "image.png").exists():
+        guide_cover_image = "../assets/guide/image.png"
 
     devlog_slug = f"autoreport-v{slugged_version}-devlog"
     guide_slug = "guide"
     release_slug = f"autoreport-v{slugged_version}-release-notes"
-
-    posts_root = repo_root / "docs" / "posts"
     return [
         PostSpec(
             key="devlog",
@@ -162,7 +166,7 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
             ),
             tags=("development-log", "autoreport", f"v{version}"),
             transform_body=transform_devlog_body,
-            source_asset_dir=posts_root / f"devlog-image-v{version}",
+            source_asset_dir=devlog_asset_dir,
         ),
         PostSpec(
             key="guide",
@@ -176,8 +180,8 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
             ),
             tags=("user-guide", "autoreport", "contract-first", f"v{version}"),
             transform_body=transform_guide_body,
-            source_asset_dir=posts_root / f"guide-image-v{version}",
-            cover_image=f"../assets/{guide_slug}/image.png",
+            source_asset_dir=guide_asset_dir,
+            cover_image=guide_cover_image,
         ),
         PostSpec(
             key="release-note",
@@ -198,6 +202,12 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
             transform_body=transform_release_notes_body,
         ),
     ]
+
+
+def optional_asset_dir(path: Path) -> Path | None:
+    if not path.exists():
+        return None
+    return path
 
 
 def ensure_source_exists(spec: PostSpec) -> None:

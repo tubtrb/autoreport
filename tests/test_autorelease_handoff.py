@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -25,6 +26,7 @@ sys.modules[SPEC.name] = HANDOFF_MODULE
 SPEC.loader.exec_module(HANDOFF_MODULE)
 
 PostSpec = HANDOFF_MODULE.PostSpec
+build_specs = HANDOFF_MODULE.build_specs
 transform_guide_body = HANDOFF_MODULE.transform_guide_body
 transform_release_notes_body = HANDOFF_MODULE.transform_release_notes_body
 
@@ -103,6 +105,32 @@ class HandoffRewriteTestCase(unittest.TestCase):
             "This release note reflects the `codex/v0.3-master` branch and its verification run.",
             rewritten,
         )
+
+    def test_build_specs_omits_cover_image_when_guide_asset_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as autorelease_dir:
+            repo_root = Path(repo_dir)
+            posts_root = repo_root / "docs" / "posts"
+            posts_root.mkdir(parents=True)
+            for name in (
+                "autoreport-guide-v0.3.0.md",
+                "autoreport-v0.3.0-release-notes.md",
+                "autoreport-v0.3.0-development-log.md",
+            ):
+                (posts_root / name).write_text("# placeholder\n", encoding="utf-8")
+
+            args = argparse.Namespace(
+                repo_root=repo_root,
+                autorelease_root=Path(autorelease_dir),
+                version="0.3.0",
+            )
+
+            specs = build_specs(args)
+            guide_spec = next(spec for spec in specs if spec.key == "guide")
+            devlog_spec = next(spec for spec in specs if spec.key == "devlog")
+
+            self.assertIsNone(guide_spec.source_asset_dir)
+            self.assertIsNone(guide_spec.cover_image)
+            self.assertIsNone(devlog_spec.source_asset_dir)
 
 
 if __name__ == "__main__":
