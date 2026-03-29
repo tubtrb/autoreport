@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from io import BytesIO
 import unittest
 from unittest.mock import patch
@@ -14,14 +13,9 @@ from autoreport.web.app import (
     MEDIA_TYPE_PPTX,
     PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML,
     WEBSITE_INTRO_EXAMPLE_YAML,
-    WEBSITE_VISUAL_EXAMPLE_YAML,
     app,
 )
 
-
-PNG_BYTES = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII="
-)
 
 VALID_AUTHORING_PAYLOAD_YAML = """
 authoring_payload:
@@ -74,7 +68,7 @@ authoring_payload:
         image_orientation: auto
 """.strip()
 
-VALID_REPORT_CONTENT_WITH_DESCRIPTIVE_IMAGE_YAML = """
+VALID_REPORT_CONTENT_WITH_IMAGE_YAML = """
 report_content:
   title_slide:
     pattern_id: cover.editorial
@@ -88,33 +82,8 @@ report_content:
         title: Visual Proof
         body_1: |
           Explain what the visual should prove.
-        image_1: Middle East strategic map infographic
+        image_1: image_1
         caption_1: Example caption
-""".strip()
-
-VALID_REPORT_CONTENT_WITH_TWO_DESCRIPTIVE_IMAGES_YAML = """
-report_content:
-  title_slide:
-    pattern_id: cover.editorial
-    slots:
-      title: Autoreport
-      subtitle_1: |
-        Template-aware PPTX autofill engine
-  slides:
-    - pattern_id: text_image.editorial
-      slots:
-        title: First visual
-        body_1: |
-          First description.
-        image_1: First draft image note
-        caption_1: First caption
-    - pattern_id: text_image.editorial
-      slots:
-        title: Second visual
-        body_1: |
-          Second description.
-        image_1: Second draft image note
-        caption_1: Second caption
 """.strip()
 
 VALID_REPORT_CONTENT_YAML = """
@@ -156,26 +125,26 @@ report_content:
 title_slide:
 pattern_id: cover.editorial
 slots:
-title: 미국-이란 충돌과 중동 정세
+title: 誘멸뎅-?대? 異⑸룎怨?以묐룞 ?뺤꽭
 
 ```yaml
 - pattern_id: text.editorial
   kind: text
   slots:
-    title: 최근 전개와 핵심 쟁점
+    title: 理쒓렐 ?꾧컻? ?듭떖 ?곸젏
     body_1: |
-      최근 충돌은 복합적으로 전개되고 있다.
+      理쒓렐 異⑸룎? 蹂듯빀?곸쑝濡??꾧컻?섍퀬 ?덈떎.
 ```
 """.strip()
 
 
 class WebAppTestCase(unittest.TestCase):
-    """Verify the demo page, compile endpoint, and generation API behavior."""
+    """Verify the public demo page and its public-only API contract."""
 
     def setUp(self) -> None:
         self.client = TestClient(app)
 
-    def test_demo_page_renders_starter_first_homepage(self) -> None:
+    def test_demo_page_renders_text_first_homepage(self) -> None:
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
@@ -185,24 +154,22 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Reset Starter Example", response.text)
         self.assertIn("Generate PPTX", response.text)
         self.assertIn("report_content", response.text)
-        self.assertIn("Remove Upload", response.text)
-        self.assertIn("The starter manual is loaded with the AI prompt and the built-in screenshots.", response.text)
-        self.assertIn("# Paste this brief into another AI", response.text)
-        self.assertIn("starter_app_workspace", response.text)
-        self.assertIn("starter_app_uploads", response.text)
-        self.assertIn("app-workspace.png", response.text)
-        self.assertIn("app-uploads.png", response.text)
-        self.assertIn("/starter-assets/app-workspace.png", response.text)
-        self.assertIn("Built-In", response.text)
-        self.assertNotIn("autoreport/web/assets/starter/app-workspace.png", response.text)
+        self.assertIn("text-first", response.text)
+        self.assertIn("Keep public-web drafts to", response.text)
+        self.assertIn("debug app or CLI", response.text)
+        self.assertNotIn("Image Uploads", response.text)
+        self.assertNotIn("Remove Upload", response.text)
+        self.assertNotIn("starter_app_workspace", response.text)
+        self.assertNotIn("starter_app_uploads", response.text)
+        self.assertNotIn("app-workspace.png", response.text)
+        self.assertNotIn("/starter-assets/app-workspace.png", response.text)
+        self.assertNotIn("Built-In", response.text)
         self.assertNotIn("Advanced Debug: Compiled Report Payload", response.text)
         self.assertNotIn("Optional: View Template Contract", response.text)
         self.assertNotIn("Normalize Draft", response.text)
         self.assertNotIn("Copy AI Package", response.text)
         self.assertNotIn("Optional: AI Prompt Package", response.text)
         self.assertNotIn("Reset To AI Draft Prompt", response.text)
-        self.assertNotIn("Load Website Intro Example", response.text)
-        self.assertNotIn("Load Website Visual Example", response.text)
 
     def test_demo_page_defaults_to_prompted_website_intro_starter(self) -> None:
         response = self.client.get("/")
@@ -211,11 +178,13 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Autoreport Website Quick Manual", response.text)
         self.assertIn("Published Guide And Updates Routes", response.text)
         self.assertIn("Edit The Starter Deck YAML", response.text)
-        self.assertIn("Upload Images And Generate", response.text)
+        self.assertIn("Generate The Deck", response.text)
         self.assertIn("# Paste this brief into another AI", response.text)
         self.assertIn("report_content draft below", response.text)
-        self.assertIn("The main editor starts with AI prompt comments, the starter manual draft, and built-in screenshots.", response.text)
-        self.assertIn("Edit the starter draft directly in the main editor.", response.text)
+        self.assertIn(
+            "The main editor starts with AI prompt comments and the starter manual draft.",
+            response.text,
+        )
         self.assertIn("User Guide `/guide/`", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
@@ -223,12 +192,6 @@ class WebAppTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
-
-    def test_starter_asset_route_returns_bundled_image(self) -> None:
-        response = self.client.get("/starter-assets/app-workspace.png")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["content-type"], "image/png")
 
     def test_compile_endpoint_returns_compiled_runtime_payload(self) -> None:
         response = self.client.post(
@@ -285,21 +248,38 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.json()["payload_kind"], "content")
         self.assertIn("authoring_payload:", response.json()["normalized_authoring_yaml"])
 
-    def test_compile_endpoint_assigns_distinct_global_refs_to_multiple_descriptive_image_notes(self) -> None:
+    def test_compile_endpoint_rejects_image_backed_payloads_in_public_app(self) -> None:
         response = self.client.post(
             "/api/compile",
             data={
-                "payload_yaml": VALID_REPORT_CONTENT_WITH_TWO_DESCRIPTIVE_IMAGES_YAML,
+                "payload_yaml": VALID_REPORT_CONTENT_WITH_IMAGE_YAML,
                 "image_manifest": "[]",
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        normalized = response.json()["normalized_authoring_yaml"]
-        self.assertIn("ref: image_1", normalized)
-        self.assertIn("ref: image_2", normalized)
-        self.assertIn("Slide 1: image_1 was mapped to upload ref 'image_1'.", " ".join(response.json()["hints"]))
-        self.assertIn("Slide 2: image_1 was mapped to upload ref 'image_2'.", " ".join(response.json()["hints"]))
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error_type"], "validation_error")
+        self.assertEqual(response.json()["message"], "Payload validation failed.")
+        self.assertIn(
+            "The public web demo currently supports text and metrics slides only.",
+            response.json()["errors"],
+        )
+
+    def test_compile_endpoint_rejects_non_empty_image_manifest_in_public_app(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": VALID_REPORT_CONTENT_YAML,
+                "image_manifest": '[{"ref":"image_1","field_name":"image_1","filename":"workflow.png"}]',
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error_type"], "validation_error")
+        self.assertIn(
+            "The public web demo currently supports text and metrics slides only.",
+            response.json()["errors"],
+        )
 
     def test_compile_endpoint_rejects_mixed_partial_fence_ai_output(self) -> None:
         response = self.client.post(
@@ -373,13 +353,6 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         presentation = Presentation(BytesIO(response.content))
         self.assertEqual(len(presentation.slides), 5)
-        image_shapes = [
-            shape
-            for slide in presentation.slides
-            for shape in slide.shapes
-            if hasattr(shape, "image")
-        ]
-        self.assertGreaterEqual(len(image_shapes), 2)
 
     def test_generate_endpoint_accepts_prompted_built_in_website_intro_example(self) -> None:
         response = self.client.post(
@@ -393,104 +366,28 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         presentation = Presentation(BytesIO(response.content))
         self.assertEqual(len(presentation.slides), 5)
-        image_shapes = [
-            shape
-            for slide in presentation.slides
-            for shape in slide.shapes
-            if hasattr(shape, "image")
-        ]
-        self.assertGreaterEqual(len(image_shapes), 2)
 
-    def test_generate_endpoint_accepts_built_in_website_visual_example_with_upload(self) -> None:
-        response = self.client.post(
-            "/api/generate",
-            data={
-                "payload_yaml": WEBSITE_VISUAL_EXAMPLE_YAML,
-                "image_manifest": '[{"ref":"image_1","field_name":"image_1","filename":"website.png"}]',
-            },
-            files={
-                "image_1": ("website.png", PNG_BYTES, "image/png"),
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        presentation = Presentation(BytesIO(response.content))
-        self.assertEqual(len(presentation.slides), 5)
-
-    def test_generate_endpoint_reports_missing_upload_for_built_in_website_visual_example(self) -> None:
-        response = self.client.post(
-            "/api/generate",
-            data={
-                "payload_yaml": WEBSITE_VISUAL_EXAMPLE_YAML,
-                "image_manifest": "[]",
-            },
-        )
-
-        self.assertEqual(response.status_code, 422)
-        self.assertIn(
-            "Slide 2 needs an uploaded image for ref 'image_1'.",
-            " ".join(response.json()["errors"]),
-        )
-
-    def test_generate_endpoint_binds_uploaded_image_refs(self) -> None:
+    def test_generate_endpoint_rejects_image_backed_authoring_payload_in_public_app(self) -> None:
         response = self.client.post(
             "/api/generate",
             data={
                 "payload_yaml": VALID_TEXT_IMAGE_AUTHORING_PAYLOAD_YAML,
-                "image_manifest": '[{"ref":"image_1","field_name":"image_1","filename":"workflow.png"}]',
-            },
-            files={
-                "image_1": ("workflow.png", PNG_BYTES, "image/png"),
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        presentation = Presentation(BytesIO(response.content))
-        image_shapes = [
-            shape
-            for shape in presentation.slides[-1].shapes
-            if hasattr(shape, "image")
-        ]
-        self.assertGreaterEqual(len(image_shapes), 1)
-
-    def test_generate_endpoint_returns_friendly_missing_upload_error_for_report_content_image_notes(self) -> None:
-        response = self.client.post(
-            "/api/generate",
-            data={
-                "payload_yaml": VALID_REPORT_CONTENT_WITH_DESCRIPTIVE_IMAGE_YAML,
                 "image_manifest": "[]",
             },
         )
 
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response.json()["error_type"], "validation_error")
-        self.assertEqual(response.json()["message"], "Payload validation failed.")
-        self.assertTrue(
-            any(
-                "Slide 1 needs an uploaded image for ref 'image_1'." in item
-                for item in response.json()["errors"]
-            )
+        self.assertIn(
+            "The public web demo currently supports text and metrics slides only.",
+            response.json()["errors"],
         )
-
-    def test_generate_endpoint_returns_distinct_missing_upload_errors_for_multiple_descriptive_images(self) -> None:
-        response = self.client.post(
-            "/api/generate",
-            data={
-                "payload_yaml": VALID_REPORT_CONTENT_WITH_TWO_DESCRIPTIVE_IMAGES_YAML,
-                "image_manifest": "[]",
-            },
-        )
-
-        self.assertEqual(response.status_code, 422)
-        joined = " ".join(response.json()["errors"])
-        self.assertIn("Slide 1 needs an uploaded image for ref 'image_1'.", joined)
-        self.assertIn("Slide 2 needs an uploaded image for ref 'image_2'.", joined)
 
     def test_generate_endpoint_rejects_invalid_image_manifest_json(self) -> None:
         response = self.client.post(
             "/api/generate",
             data={
-                "payload_yaml": VALID_TEXT_IMAGE_AUTHORING_PAYLOAD_YAML,
+                "payload_yaml": VALID_REPORT_CONTENT_YAML,
                 "image_manifest": "[",
             },
         )

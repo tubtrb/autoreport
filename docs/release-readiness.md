@@ -9,8 +9,8 @@ the codebase and is backed by the current narrow checks.
 - CLI contract inspection with `inspect-template`
 - CLI payload scaffolding with `scaffold-payload`
 - CLI PPTX generation with `generate`
-- Web demo homepage rendering, bundled starter-manual assets, healthcheck, and PPTX download
-- Web demo image upload refs such as `image_1`
+- Web demo homepage rendering, text-first starter-manual flow, healthcheck, and PPTX download
+- Public web rejection of image-backed drafts
 
 ## Narrow Verification Commands
 
@@ -60,17 +60,17 @@ report_payload:
 ```
 
 Note: the scaffolded built-in editorial payload and the checked-in editorial
-example both keep the `text_image` and `image_1` reference path visible as
-shared contract examples. The smoke command above uses a minimal runnable
-payload fixture so release-prep docs do not need to rewrite that shared example
-file.
+example still keep the `text_image` and `image_1` reference path visible as
+shared cross-surface contract examples. The smoke command above uses a minimal
+runnable text-and-metrics fixture so public release-prep docs do not depend on
+the image-backed path.
 
 ## Current Release Scope
 
 - The CLI can inspect the built-in editorial template or a user-supplied `.pptx` template.
 - The public web demo exposes only the built-in editorial contract and starter-manual payload flow.
-- The bundled guide/app screenshots are available through `/starter-assets/{filename}` so the default starter deck can generate without a fresh upload.
-- The web demo accepts uploaded `.png`, `.jpg`, and `.jpeg` files and binds them through `image_*` refs.
+- The public web demo accepts text and metrics slides only and rejects image-backed drafts with a validation error.
+- Image-backed drafts remain available through the CLI and the separate debug web app.
 - The download path cleans up temporary output after the response is sent.
 
 ## Remaining Gaps Before Final Release Wrap-Up

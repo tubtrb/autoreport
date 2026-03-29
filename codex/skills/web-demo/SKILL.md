@@ -68,7 +68,7 @@ architecture docs together when practical.
 
 The intended web flow is:
 
-1. in the user app, the user starts from one built-in website manual example that already includes the AI prompt comments at the top plus bundled screenshots, edits that YAML directly, replaces or uploads images when needed, and generates the deck
+1. in the user app, the user starts from one built-in website manual example that already includes the AI prompt comments at the top, edits that YAML directly, keeps the draft text-first, and generates the deck
 2. the user app should stay minimal and avoid contract/debug panes unless the design is intentionally expanded again
 3. in the debug app, a developer can inspect the full contract, normalized `authoring_payload`, compiled `report_payload`, and upload refs in parallel panes
 4. both apps still validate and generate through the same shared routes and core pipeline
@@ -76,13 +76,15 @@ The intended web flow is:
 Current design expectations:
 
 - the user app should stay single-flow and user-facing rather than becoming a manual slide-builder
+- the public user app should hide image-upload controls and reject image-backed drafts with the standard validation error shape
 - the debug app is the right place for extra panes, debug controls, and internal inspection helpers
+- the debug app may still keep upload inspection so image-backed drafts remain testable outside the default public surface
 - template inspection and compiled runtime debugging belong primarily to the debug app, not the default user app
 - the web layer should reuse shared contract-export and validation code instead of re-implementing schema rules
 - the homepage should default to one editable starter example rather than an AI prompt package or a manual builder workflow
 - the default starter should keep the AI prompt comments at the top of the YAML so the page always begins from one self-contained editable block
-- the default starter may be image-backed when those visuals are bundled with the app and do not require the user to upload anything before the first generation
-- the default starter should act as a practical website manual, not just filler copy, when bundled screenshots are available
+- the default starter should stay text-first for the hosted public web flow
+- the default starter should act as a practical website manual, not just filler copy
 - compiled runtime payload inspection belongs primarily to the debug app and only secondarily to the user app
 - error payloads for template-driven validation should stay consistent with the existing web error shape
 - if contract download or skeleton generation is added, it should be covered by web tests in the same change

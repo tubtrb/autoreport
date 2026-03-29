@@ -11,7 +11,7 @@ The product flow is:
 
 1. start from one built-in starter example
 2. edit the YAML directly
-3. optionally upload real image files
+3. keep the public-web draft to text or metrics slides
 4. generate the deck
 
 The debugging flow is:
@@ -19,7 +19,7 @@ The debugging flow is:
 1. inspect the full template contract
 2. inspect normalization from `report_content` to `authoring_payload`
 3. inspect compilation into `report_payload`
-4. inspect upload refs and error states
+4. inspect upload refs and error states for image-backed drafts
 5. verify the shared routes and generation path end to end
 
 Trying to serve both flows in one screen made the product surface too noisy and
@@ -44,8 +44,8 @@ Allowed UI:
 
 - one large input area
 - one or two primary actions
-- upload controls for real image files
-- simple upload add/remove affordances when visuals are part of the starter flow
+- text-first helper copy about supported public slide kinds
+- a clear handoff to the debug app or CLI when images are needed
 
 Avoid in the user app:
 
@@ -84,12 +84,13 @@ Both apps should continue to share the same core API behavior:
 
 That means:
 
-- one validation policy
-- one error shape
+- one shared generation pipeline
+- one base error shape
 - one generation path
 - no duplicated schema logic
 
-The split is a UI split, not a runtime split.
+The split is mostly a UI split. The public app also adds one product guardrail:
+it rejects image-backed drafts so the default hosted surface stays text-first.
 
 ## Input contract posture
 

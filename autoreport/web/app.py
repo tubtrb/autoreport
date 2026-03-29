@@ -32,25 +32,12 @@ MEDIA_TYPE_PPTX = (
     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 )
 ALLOWED_UPLOAD_SUFFIXES = {".png", ".jpg", ".jpeg"}
+PUBLIC_WEB_IMAGE_DISABLED_ERRORS = [
+    "The public web demo currently supports text and metrics slides only.",
+    "Remove text_image patterns and image_* slots, or use the debug app or CLI for image-backed decks.",
+]
 
 _BUILT_IN_CONTRACT = get_built_in_contract()
-_STARTER_ASSET_DIR = (Path(__file__).resolve().parent / "assets" / "starter")
-_STARTER_APP_WORKSPACE_PATH = (_STARTER_ASSET_DIR / "app-workspace.png").as_posix()
-_STARTER_APP_UPLOADS_PATH = (_STARTER_ASSET_DIR / "app-uploads.png").as_posix()
-_STARTER_APP_WORKSPACE_REF = "starter_app_workspace"
-_STARTER_APP_UPLOADS_REF = "starter_app_uploads"
-_STARTER_BUNDLED_UPLOADS = (
-    {
-        "ref": _STARTER_APP_WORKSPACE_REF,
-        "filename": "app-workspace.png",
-        "path": Path(_STARTER_APP_WORKSPACE_PATH),
-    },
-    {
-        "ref": _STARTER_APP_UPLOADS_REF,
-        "filename": "app-uploads.png",
-        "path": Path(_STARTER_APP_UPLOADS_PATH),
-    },
-)
 AI_DRAFT_PROMPT_YAML = """
 # Paste this brief into another AI and ask it to fill the report_content draft below.
 # Goal: draft slide-ready content for Autoreport. The app will normalize report_content
@@ -69,11 +56,9 @@ AI_DRAFT_PROMPT_YAML = """
 # 5. Do not declare the total slide count anywhere. Autoreport infers it from slides[*].
 # 6. Choose pattern_id values from the template contract.
 # 7. Put narrative text into slots.body_1.
-# 8. Only use text_image patterns when the user explicitly wants a visual and can provide or upload a real image later.
-# 9. If no real image is available, do not add slots.image_* or caption_* fields. Use text.editorial or metrics.editorial instead.
-# 10. When a real image will be provided later, describe it in slots.image_1 / image_2 / image_3.
-# 11. Actual image files are uploaded later in the web app or passed as CLI paths.
-# 12. If the template contract exposes 2-image or 3-image patterns, use them only when the user truly has that many visuals.
+# 8. In the public web demo, stay with text.editorial or metrics.editorial slides.
+# 9. Do not add slots.image_* or caption_* fields in this public-web draft.
+# 10. If a deck truly needs visuals, switch that draft to the debug app or CLI path.
 report_content:
   title_slide:
     pattern_id: cover.editorial
@@ -102,7 +87,7 @@ report_content:
     slots:
       title: Autoreport Website Quick Manual
       subtitle_1: |
-        Built-in app screenshots for the starter flow
+        Text-first starter flow for the public web demo
   contents_slide:
     pattern_id: contents.editorial
     slots:
@@ -110,7 +95,7 @@ report_content:
       body_1: |
         1. Published Guide And Updates Routes
         2. Edit The Starter Deck YAML
-        3. Upload Images And Generate
+        3. Generate The Deck
   slides:
     - pattern_id: text.editorial
       slots:
@@ -121,77 +106,27 @@ report_content:
           `/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`.
           This starter deck keeps the faster in-app walkthrough inside the main
           editor so users can learn the browser flow and generate immediately.
-    - pattern_id: text_image.editorial
+    - pattern_id: text.editorial
       slots:
         title: Edit The Starter Deck YAML
         body_1: |
           The main editor already includes the AI prompt comments and this
-          starter manual YAML in one place.
-          Edit the titles and body text directly, keep the built-in screenshots
-          if they explain the workflow well, and use Reset Starter Example to
+          starter manual YAML in one place. Edit the titles and body text
+          directly, keep the draft text-first, and use Reset Starter Example to
           restore the packaged manual.
-        image_1: {_STARTER_APP_WORKSPACE_REF}
-        caption_1: Starter editor, reset, and generate controls in one workspace
-    - pattern_id: text_image.editorial
+    - pattern_id: metrics.editorial
       slots:
-        title: Upload Images And Generate
+        title: Generate The Deck
         body_1: |
-          The built-in manual already ships with screenshots, so the default
-          deck can generate without any extra upload.
-          Use Image Uploads only when you replace a built-in visual or add a
-          new image ref such as image_1, then press Generate PPTX to download
-          the editable deck.
-        image_1: {_STARTER_APP_UPLOADS_REF}
-        caption_1: Upload new visuals only when the current YAML needs them
+          Default flow: edit the starter YAML
+          Supported slide kinds: text.editorial and metrics.editorial
+          Image-backed decks: move them to the debug app or CLI
+          Output: generate an editable PowerPoint deck
 """.strip()
 AI_DRAFT_PROMPT_HEADER = AI_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
 PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML = (
     f"{AI_DRAFT_PROMPT_HEADER}\n{WEBSITE_INTRO_EXAMPLE_YAML}"
 ).strip()
-WEBSITE_VISUAL_EXAMPLE_YAML = """
-report_content:
-  title_slide:
-    pattern_id: cover.editorial
-    slots:
-      title: Autoreport Website Demo
-      subtitle_1: |
-        Show one real screenshot, explain the workflow, and generate the deck
-  contents_slide:
-    pattern_id: contents.editorial
-    slots:
-      title: Contents
-      body_1: |
-        1. What The User Sees
-        2. Screenshot-Based Walkthrough
-        3. Why It Feels Simple
-  slides:
-    - pattern_id: text.editorial
-      slots:
-        title: What The User Sees
-        body_1: |
-          The website is built for one simple workflow.
-          The starter YAML already includes the AI prompt at the top, so the
-          user edits one block, uploads a real image only when a slide needs
-          it, and generates an editable PPTX immediately.
-    - pattern_id: text_image.editorial
-      slots:
-        title: Screenshot-Based Walkthrough
-        body_1: |
-          Upload one real screenshot of the Autoreport website and keep it bound
-          to image_1 for this example.
-          This slide shows users that the visual can be replaced, removed, or
-          updated without rebuilding the whole deck.
-        image_1: image_1
-        caption_1: Replace this with a real website screenshot upload
-    - pattern_id: metrics.editorial
-      slots:
-        title: Why It Feels Simple
-        body_1: |
-          - First step: paste or edit YAML in one editor
-          - Visual step: upload or replace a real screenshot
-          - Output: generate an editable PowerPoint deck
-          - Flexibility: add, remove, or swap uploaded images easily
-""".strip()
 app = FastAPI(
     title="Autoreport Demo",
     docs_url=None,
@@ -202,17 +137,6 @@ app = FastAPI(
 
 def _render_demo_html() -> str:
     prompted_intro_example_json = json.dumps(PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML)
-    starter_bundled_uploads_json = json.dumps(
-        [
-            {
-                "ref": item["ref"],
-                "filename": item["filename"],
-                "url": f"/starter-assets/{item['filename']}",
-                "builtIn": True,
-            }
-            for item in _STARTER_BUNDLED_UPLOADS
-        ]
-    )
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -249,7 +173,7 @@ def _render_demo_html() -> str:
       .workspace { display: grid; grid-template-columns: minmax(760px, 1.6fr) 340px; gap: 20px; align-items: start; }
       .panel, .rail-box { min-width: 0; }
       .rail { display: grid; gap: 16px; align-self: start; position: sticky; top: 20px; }
-      .panel h2, .rail-box h2, .upload-box h2 { margin: 0 0 8px; font-size: 1rem; }
+      .panel h2, .rail-box h2 { margin: 0 0 8px; font-size: 1rem; }
       .panel-copy, .footnote { color: var(--muted); line-height: 1.6; font-size: 0.95rem; }
       textarea {
         width: 100%;
@@ -275,17 +199,8 @@ def _render_demo_html() -> str:
       }
       .ghost { background: var(--accent-soft); color: var(--accent); }
       .primary { width: 100%; padding: 14px 18px; border-radius: 16px; background: var(--accent); color: #fff; }
-      .rail-box, .upload-box, details { border: 1px solid var(--border); border-radius: 18px; background: var(--panel); padding: 18px; }
-      .upload-box { margin-top: 18px; }
-      details { margin-top: 18px; }
-      details summary { cursor: pointer; font-weight: 700; color: var(--text); }
-      .upload-list, .status-errors, .status-hints, .howto-list { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
-      .upload-list { list-style: none; padding: 0; display: grid; gap: 10px; }
-      .upload-item { border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 12px; }
-      .upload-preview { width: 100%; max-height: 180px; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #f5f7fb; margin-bottom: 10px; }
-      .upload-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
-      .upload-ref { display: inline-flex; min-width: 74px; justify-content: center; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font: 0.82rem/1.2 "Cascadia Mono", Consolas, monospace; font-weight: 700; margin-right: 8px; }
-      .upload-kind { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #334155; font-size: 0.8rem; font-weight: 700; }
+      .rail-box { border: 1px solid var(--border); border-radius: 18px; background: var(--panel); padding: 18px; }
+      .status-errors, .status-hints, .howto-list { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
       .howto-list { color: var(--muted); }
       .status-errors { color: #b91c1c; }
       .status-hints { color: var(--accent); }
@@ -303,59 +218,51 @@ def _render_demo_html() -> str:
     <main>
       <h1>Edit the starter deck and generate an Autoreport PPTX.</h1>
       <p class="hero-copy">
-        Start from the built-in website manual below. The AI prompt and the captured screenshots
-        are already inside the starter YAML, so there is one path: edit the starter, replace
-        images when needed, and generate the PPTX.
+        Start from the built-in website manual below. The public demo is now
+        text-first, so the flow stays simple: edit the starter YAML, keep the
+        draft to text and metrics slides, and generate the PPTX.
       </p>
       <section class="card">
         <div class="workspace">
           <div class="panel">
             <h2>Starter Deck YAML</h2>
             <p class="panel-copy">
-              Start from the built-in website manual below with the AI prompt comments and the
-              captured screenshots already attached. Edit the draft directly. Upload files only
-              when you replace a built-in visual or add refs such as <code>image_1</code>.
+              Start from the built-in website manual below with the AI prompt
+              comments at the top. Edit the draft directly, keep the public-web
+              flow to <code>text.editorial</code> and
+              <code>metrics.editorial</code>, and generate the deck.
             </p>
             <textarea id="payload-yaml" aria-label="Working draft"></textarea>
             <div class="primary-actions">
               <button id="reset-starter" class="ghost" type="button">Reset Starter Example</button>
               <button id="generate-button" class="primary" type="button">Generate PPTX</button>
             </div>
-            <div class="upload-box">
-              <h2>Image Uploads</h2>
-              <p class="panel-copy">
-                The starter deck already includes bundled screenshots, and they are shown below.
-                Upload real visuals here only when your draft replaces a built-in image or adds
-                <code>image_1</code>, <code>image_2</code>, or another upload ref.
-              </p>
-              <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
-              <ul id="upload-list" class="upload-list"></ul>
-            </div>
           </div>
           <aside class="rail">
             <div class="rail-box">
               <h2>How To Use</h2>
               <p class="panel-copy">
-                This page is intentionally simple. The starter YAML already includes the AI prompt,
-                the website manual draft, and the bundled screenshots. Edit that one block, replace
-                visuals only when needed, and generate the deck.
+                This page is intentionally simple. The starter YAML already
+                includes the AI prompt and the website manual draft. Edit that
+                one block, keep the public flow text-first, and generate the
+                deck.
               </p>
               <ul class="howto-list">
-                <li>The main editor starts with AI prompt comments, the starter manual draft, and built-in screenshots.</li>
+                <li>The main editor starts with AI prompt comments and the starter manual draft.</li>
                 <li>Edit the starter draft directly in the main editor.</li>
-                <li>Use Image Uploads only when you replace a built-in screenshot or add refs such as <code>image_1</code>.</li>
-                <li>You can add or remove uploads before generating.</li>
+                <li>Keep public-web drafts to <code>text.editorial</code> and <code>metrics.editorial</code>.</li>
+                <li>If a deck needs image-backed slides, move that draft to the debug app or CLI.</li>
                 <li>Press <code>Generate PPTX</code>.</li>
               </ul>
               <div id="status-message" class="panel-copy">
-                The starter manual is loaded with the AI prompt and the built-in screenshots.
-                Edit the draft, replace visuals if needed, and generate the PPTX.
+                The starter manual is loaded with the AI prompt and the text-first
+                website walkthrough. Edit the draft and generate the PPTX.
               </div>
               <ul id="status-errors" class="status-errors"></ul>
               <ul id="status-hints" class="status-hints"></ul>
               <p class="footnote">
-                Current scope: built-in editorial template, starter manual editing, bundled
-                screenshots, uploaded image refs, and instant PPTX download.
+                Current scope: built-in editorial template, starter manual editing,
+                text and metrics slides, and instant PPTX download.
               </p>
             </div>
           </aside>
@@ -364,15 +271,10 @@ def _render_demo_html() -> str:
     </main>
     <script>
       const PROMPTED_WEBSITE_INTRO_EXAMPLE = __PROMPTED_INTRO_EXAMPLE_JSON__;
-      const STARTER_BUNDLED_UPLOADS = __STARTER_BUNDLED_UPLOADS_JSON__;
       const payloadNode = document.getElementById("payload-yaml");
-      const uploadList = document.getElementById("upload-list");
-      const fileInput = document.getElementById("image-files");
       const statusMessage = document.getElementById("status-message");
       const statusErrors = document.getElementById("status-errors");
       const statusHints = document.getElementById("status-hints");
-
-      let uploadedRefs = [];
 
       function setStatus(message, errors = [], hints = []) {
         statusMessage.textContent = message;
@@ -390,151 +292,27 @@ def _render_demo_html() -> str:
         }
       }
 
-      function renderUploads() {
-        uploadList.innerHTML = "";
-        if (!uploadedRefs.length) {
-          const li = document.createElement("li");
-          li.className = "upload-item";
-          li.textContent = "No uploaded files yet.";
-          uploadList.appendChild(li);
-          return;
-        }
-
-        for (const item of uploadedRefs) {
-          const li = document.createElement("li");
-          li.className = "upload-item";
-          if (item.previewUrl) {
-            const preview = document.createElement("img");
-            preview.className = "upload-preview";
-            preview.src = item.previewUrl;
-            preview.alt = item.filename || item.file.name;
-            li.appendChild(preview);
-          }
-
-          const meta = document.createElement("div");
-          meta.className = "upload-meta";
-
-          const refBadge = document.createElement("span");
-          refBadge.className = "upload-ref";
-          refBadge.textContent = item.ref;
-
-          const kindBadge = document.createElement("span");
-          kindBadge.className = "upload-kind";
-          kindBadge.textContent = item.builtIn ? "Built-In" : "Uploaded";
-
-          const name = document.createElement("span");
-          name.textContent = item.filename || item.file.name;
-
-          meta.append(refBadge, kindBadge, name);
-          const actions = document.createElement("div");
-          actions.className = "mini-actions";
-
-          const insertRefButton = document.createElement("button");
-          insertRefButton.type = "button";
-          insertRefButton.className = "ghost";
-          insertRefButton.textContent = "Insert Ref";
-          insertRefButton.addEventListener("click", () => {
-            const start = payloadNode.selectionStart ?? payloadNode.value.length;
-            const end = payloadNode.selectionEnd ?? payloadNode.value.length;
-            payloadNode.setRangeText(item.ref, start, end, "end");
-            setStatus(`${item.ref} was inserted at the current cursor.`);
-          });
-
-          const removeRefButton = document.createElement("button");
-          removeRefButton.type = "button";
-          removeRefButton.className = "ghost";
-          removeRefButton.textContent = item.builtIn ? "Hide Built-In" : "Remove Upload";
-          removeRefButton.addEventListener("click", () => {
-            if (item.previewUrl && !item.builtIn) {
-              URL.revokeObjectURL(item.previewUrl);
-            }
-            uploadedRefs = uploadedRefs.filter((entry) => entry.ref !== item.ref);
-            renderUploads();
-            setStatus(
-              item.builtIn
-                ? `${item.ref} was hidden from the starter upload list.`
-                : `${item.ref} was removed from this browser session.`,
-              [],
-              uploadedRefs.length
-                ? [`Remaining refs: ${uploadedRefs.map((entry) => entry.ref).join(", ")}`]
-                : ["No upload refs remain. Reset Starter Example to restore the built-in screenshots."]
-            );
-          });
-
-          actions.append(insertRefButton, removeRefButton);
-          li.append(meta, actions);
-          uploadList.appendChild(li);
-        }
-      }
-
-      function getStarterUploads() {
-        return STARTER_BUNDLED_UPLOADS.map((item) => ({ ...item }));
-      }
-
-      function nextUploadRef() {
-        let index = 1;
-        while (uploadedRefs.some((item) => item.ref === `image_${index}`)) {
-          index += 1;
-        }
-        return `image_${index}`;
-      }
-
       async function postPayload(url) {
         const formData = new FormData();
         formData.append("payload_yaml", payloadNode.value.trim());
-        const manifest = uploadedRefs.filter((item) => !item.builtIn).map((item) => ({
-          ref: item.ref,
-          field_name: item.ref,
-          filename: item.file.name,
-        }));
-        formData.append("image_manifest", JSON.stringify(manifest));
-        for (const item of uploadedRefs.filter((entry) => !entry.builtIn)) {
-          formData.append(item.ref, item.file, item.file.name);
-        }
+        formData.append("image_manifest", "[]");
         return fetch(url, { method: "POST", body: formData });
       }
 
       payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
-      uploadedRefs = getStarterUploads();
-      renderUploads();
 
       document.getElementById("reset-starter").addEventListener("click", () => {
         payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
-        const userUploads = uploadedRefs.filter((item) => !item.builtIn);
-        uploadedRefs = getStarterUploads().concat(userUploads);
-        renderUploads();
         setStatus(
           "Starter example restored.",
           [],
           [
             "The AI prompt comments are back at the top of the starter YAML.",
-            "The built-in screenshots are back in the starter manual.",
-            "The Image Uploads panel now shows the built-in starter screenshots.",
-            "Upload image files only when you replace a built-in visual or add refs such as image_1."
+            "The built-in website walkthrough is back in the starter YAML.",
+            "The public web flow stays on text and metrics slides.",
+            "Use the debug app or CLI when a deck needs images."
           ]
         );
-      });
-
-      fileInput.addEventListener("change", () => {
-        const newUploads = Array.from(fileInput.files || []).map((file) => ({
-          ref: nextUploadRef(),
-          file,
-          filename: file.name,
-          previewUrl: URL.createObjectURL(file),
-          builtIn: false,
-        }));
-        uploadedRefs = uploadedRefs.concat(newUploads);
-        fileInput.value = "";
-        renderUploads();
-        if (uploadedRefs.length) {
-          setStatus(
-            "Uploads are ready.",
-            [],
-            [`Available refs: ${uploadedRefs.map((item) => item.ref).join(", ")}`]
-          );
-        } else {
-          setStatus("No uploads selected.");
-        }
       });
 
       document.getElementById("generate-button").addEventListener("click", async () => {
@@ -574,9 +352,6 @@ def _render_demo_html() -> str:
 </html>""".replace(
         "__PROMPTED_INTRO_EXAMPLE_JSON__",
         prompted_intro_example_json,
-    ).replace(
-        "__STARTER_BUNDLED_UPLOADS_JSON__",
-        starter_bundled_uploads_json,
     )
 
 
@@ -620,6 +395,30 @@ def _error_response(
     return JSONResponse(status_code=status_code, content=payload)
 
 
+def _is_public_user_app(request: Request) -> bool:
+    return request.app is app
+
+
+def _authoring_payload_uses_images(authoring_payload) -> bool:
+    return any(
+        bool(slide.assets.images)
+        or (
+            slide.layout_request is not None
+            and slide.layout_request.kind == "text_image"
+        )
+        for slide in authoring_payload.slides
+    )
+
+
+def _report_payload_uses_images(compiled_payload) -> bool:
+    return any(
+        slide.kind == "text_image"
+        or slide.image is not None
+        or any(override.image is not None for override in slide.slot_overrides.values())
+        for slide in compiled_payload.slides
+    )
+
+
 def _collect_missing_uploaded_image_errors(
     raw_data: dict[str, object],
     *,
@@ -648,13 +447,16 @@ def _collect_missing_uploaded_image_errors(
     return errors
 
 
-def _merge_available_image_refs(uploaded_image_refs: dict[str, Path]) -> dict[str, Path]:
-    available_refs = {
-        item["ref"]: item["path"]
-        for item in _STARTER_BUNDLED_UPLOADS
-    }
-    available_refs.update(uploaded_image_refs)
-    return available_refs
+def _collect_public_demo_image_errors(
+    *,
+    authoring_payload=None,
+    compiled_payload=None,
+) -> list[str]:
+    if authoring_payload is not None and _authoring_payload_uses_images(authoring_payload):
+        return list(PUBLIC_WEB_IMAGE_DISABLED_ERRORS)
+    if compiled_payload is not None and _report_payload_uses_images(compiled_payload):
+        return list(PUBLIC_WEB_IMAGE_DISABLED_ERRORS)
+    return []
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -665,14 +467,6 @@ def demo_page() -> HTMLResponse:
 @app.get("/healthz")
 def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.get("/starter-assets/{filename}", response_model=None)
-def starter_asset(filename: str) -> FileResponse | Response:
-    for item in _STARTER_BUNDLED_UPLOADS:
-        if item["filename"] == filename:
-            return FileResponse(item["path"])
-    return Response(status_code=404)
 
 
 @app.get("/favicon.ico")
@@ -688,10 +482,11 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
 
     try:
         raw_data, image_refs, temp_dir_path = await _parse_request_payload(request)
-        available_image_refs = _merge_available_image_refs(image_refs)
+        available_image_refs = image_refs
         payload_kind = detect_payload_kind(raw_data)
         normalized_authoring_yaml: str | None = None
         hints: list[str] = []
+        normalized_authoring = None
 
         if payload_kind in {"authoring", "content"}:
             normalized_authoring, hints = materialize_authoring_payload(
@@ -710,6 +505,25 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
                 available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
+            if _is_public_user_app(request):
+                public_image_errors = _collect_public_demo_image_errors(
+                    authoring_payload=normalized_authoring,
+                )
+                if public_image_errors:
+                    _log_result(
+                        request_id=request_id,
+                        result="error",
+                        started_at=started_at,
+                        error_type="validation_error",
+                    )
+                    if temp_dir_path is not None:
+                        _cleanup_temp_dir(temp_dir_path)
+                    return _error_response(
+                        status_code=422,
+                        error_type="validation_error",
+                        message="Payload validation failed.",
+                        errors=public_image_errors,
+                    )
         else:
             compiled_payload = materialize_report_payload(
                 raw_data,
@@ -717,6 +531,25 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
                 available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
+            if _is_public_user_app(request):
+                public_image_errors = _collect_public_demo_image_errors(
+                    compiled_payload=compiled_payload,
+                )
+                if public_image_errors:
+                    _log_result(
+                        request_id=request_id,
+                        result="error",
+                        started_at=started_at,
+                        error_type="validation_error",
+                    )
+                    if temp_dir_path is not None:
+                        _cleanup_temp_dir(temp_dir_path)
+                    return _error_response(
+                        status_code=422,
+                        error_type="validation_error",
+                        message="Payload validation failed.",
+                        errors=public_image_errors,
+                    )
     except yaml.YAMLError as exc:
         _log_result(request_id=request_id, result="error", started_at=started_at, error_type="yaml_parse_error")
         if temp_dir_path is not None:
@@ -769,7 +602,43 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
             request,
             keep_temp_dir=True,
         )
-        available_image_refs = _merge_available_image_refs(image_refs)
+        available_image_refs = image_refs
+        payload_kind = detect_payload_kind(raw_data)
+        if _is_public_user_app(request):
+            if payload_kind in {"authoring", "content"}:
+                normalized_authoring, _ = materialize_authoring_payload(
+                    raw_data,
+                    _BUILT_IN_CONTRACT,
+                    available_image_refs=available_image_refs.keys(),
+                    enforce_image_refs=False,
+                )
+                public_image_errors = _collect_public_demo_image_errors(
+                    authoring_payload=normalized_authoring,
+                )
+            else:
+                compiled_payload = materialize_report_payload(
+                    raw_data,
+                    _BUILT_IN_CONTRACT,
+                    available_image_refs=available_image_refs.keys(),
+                    enforce_image_refs=False,
+                )
+                public_image_errors = _collect_public_demo_image_errors(
+                    compiled_payload=compiled_payload,
+                )
+            if public_image_errors:
+                _log_result(
+                    request_id=request_id,
+                    result="error",
+                    started_at=started_at,
+                    error_type="validation_error",
+                )
+                _cleanup_temp_dir(temp_dir_path)
+                return _error_response(
+                    status_code=422,
+                    error_type="validation_error",
+                    message="Payload validation failed.",
+                    errors=public_image_errors,
+                )
         missing_image_errors = _collect_missing_uploaded_image_errors(
             raw_data,
             available_image_refs=set(available_image_refs.keys()),
@@ -848,6 +717,8 @@ async def _parse_request_payload(
         ) from exc
     if not isinstance(image_manifest, list):
         raise ValidationError(["Field 'image_manifest' must be a JSON list."])
+    if _is_public_user_app(request) and image_manifest:
+        raise ValidationError(list(PUBLIC_WEB_IMAGE_DISABLED_ERRORS))
 
     temp_dir_path = Path(tempfile.mkdtemp(prefix="autoreport-web-"))
     image_refs = await _collect_uploaded_images(

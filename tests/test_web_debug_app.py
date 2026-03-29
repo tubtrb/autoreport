@@ -26,6 +26,24 @@ report_content:
           Debug content
 """.strip()
 
+VALID_TEXT_IMAGE_REPORT_CONTENT_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Debug Deck
+      subtitle_1: |
+        Debug subtitle
+  slides:
+    - pattern_id: text_image.editorial
+      slots:
+        title: Visual proof
+        body_1: |
+          Keep image-backed drafts available in the debug app.
+        image_1: image_1
+        caption_1: Debug caption
+""".strip()
+
 
 class WebDebugAppTestCase(unittest.TestCase):
     def setUp(self) -> None:
@@ -51,6 +69,20 @@ class WebDebugAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["payload_kind"], "content")
         self.assertIn("report_payload:", response.json()["compiled_yaml"])
+
+    def test_debug_compile_route_keeps_image_backed_drafts_available(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": VALID_TEXT_IMAGE_REPORT_CONTENT_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["payload_kind"], "content")
+        self.assertIn("kind: text_image", response.json()["normalized_authoring_yaml"])
+        self.assertIn("ref: image_1", response.json()["normalized_authoring_yaml"])
 
 
 if __name__ == "__main__":

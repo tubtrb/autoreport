@@ -35,13 +35,13 @@ User-app UI contract:
 
 - Start from one built-in editable starter example by default.
 - Keep the AI prompt comments at the top of that starter YAML so the page always starts from one self-contained editable block.
-- The default starter may include bundled screenshots when those assets ship with the app and do not require any upload before first generation.
+- Keep the default public starter text-first for the current hosted flow.
 - Keep one large working input area as the primary surface.
 - Treat total slide count as dynamic; infer it from the draft, not from a separate input field.
-- Keep the user app minimal: reset the starter example, edit YAML, upload real images when refs are used, and generate.
+- Keep the user app minimal: reset the starter example, edit YAML, keep to text or metrics slides, and generate.
 - Avoid helper panes such as template-contract or compiled-runtime inspection in the default user app when they do not directly improve the main flow.
 - Avoid manual slide-by-slide builder controls in the user app.
-- If the starter includes bundled visuals, make it explicit that uploads are only needed when the user replaces those visuals or adds new image refs.
+- Make it explicit that image-backed drafts belong in the debug app or CLI rather than the default public page.
 
 ## Debug App Contract
 
@@ -88,8 +88,8 @@ Expected behavior:
 
 For image-backed slides:
 
-- AI drafts may describe desired visuals inside `slots.image_*`.
-- Real image files are supplied later through upload refs such as `image_1` in the web apps or filesystem paths in the CLI.
+- The public user app should reject them with the standard validation error shape.
+- The debug app may still accept upload refs such as `image_1`, and the CLI may still accept filesystem paths.
 
 ## Successful Responses
 

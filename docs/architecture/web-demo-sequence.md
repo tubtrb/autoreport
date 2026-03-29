@@ -18,19 +18,15 @@ sequenceDiagram
     User->>Browser: Open user app
     Browser->>App: GET /
     App-->>Browser: starter-manual HTML + prompted YAML
-    opt Bundled screenshot previews
-        Browser->>App: GET /starter-assets/{filename}
-        App-->>Browser: built-in screenshot file
-    end
 
     User->>Browser: Keep or edit the starter manual YAML
-    opt Replace bundled visuals or add new ones
-        User->>Browser: Upload image files
-        Browser-->>User: refs stay available in the Image Uploads panel
+    opt Draft asks for images
+        Browser->>API: POST /api/compile or /api/generate with image-backed YAML
+        API-->>Browser: 422 JSON validation_error
     end
 
     User->>Browser: Click Generate PPTX
-    Browser->>API: POST /api/generate { payload_yaml, image_manifest, uploads }
+    Browser->>API: POST /api/generate { payload_yaml, image_manifest=[] }
     API->>Loader: parse_yaml_text(payload_yaml)
     Loader-->>API: raw mapping
     API->>Generator: generate_report_from_mapping(raw_data, image_refs, output_path)
@@ -51,16 +47,17 @@ sequenceDiagram
 ```
 
 The debug app still reuses the same `/api/compile` and `/api/generate` logic.
-Its difference is the HTML surface, not the execution path, and it is the place
-where compile/runtime inspection remains explicit.
+Its difference is the HTML surface plus a public-app guardrail: the default user
+app rejects image-backed drafts, while the debug app remains the place where
+compile/runtime inspection and upload-backed testing stay explicit.
 
 ## Inspection points
 
 - `GET /` in `autoreport/web/app.py` is the simplified starter-manual user flow.
-- `GET /starter-assets/{filename}` exposes only the bundled built-in screenshots used by that starter.
 - `GET /` in `autoreport/web/debug_app.py` is the developer-facing inspection flow.
 - `POST /api/compile` accepts multipart form data, not raw JSON, and is primarily surfaced by the debug app.
 - `POST /api/generate` also accepts multipart form data and returns a download.
+- The public app path now keeps `image_manifest` empty and rejects image-backed payloads.
 - Temporary files are cleaned up after requests complete.
 
 ## Source of truth

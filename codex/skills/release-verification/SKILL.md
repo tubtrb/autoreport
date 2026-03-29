@@ -44,7 +44,8 @@ artifacts, and feed those results into release notes or a user guide.
 - For the current web demo, verify:
   - `/healthz` responds successfully
   - `/` loads with the expected starter-manual copy
-  - bundled starter screenshots resolve through `/starter-assets/{filename}`
+  - the public starter stays text-first and does not show image-upload controls
+  - image-backed drafts are rejected on the public web path
   - the default or edited YAML can be generated without breaking the starter flow
   - PPTX generation starts an `autoreport_demo.pptx` download
   - the success state matches the current UI contract
