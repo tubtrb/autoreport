@@ -231,17 +231,23 @@ def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) ->
             f"]({source_prefix}/",
             f"](../assets/{spec.slug}/",
         )
-    body = body.replace(
-        "This guide reflects the current implementation of Autoreport on the active branch.",
+    body = re.sub(
+        r"(?m)^This guide reflects .*?active branch\.",
         f"This guide reflects the Autoreport implementation at `{args.source_ref}`.",
+        body,
+        count=1,
     )
-    body = body.replace(
-        "On the current branch, the success state changes to",
-        "In this handoff build, the success state changes to",
+    body = re.sub(
+        r"\bOn the current branch,",
+        "In this handoff build,",
+        body,
+        count=1,
     )
-    body = body.replace(
-        "The current branch was verified with the web contract tests and real browser smoke checks.",
-        f"The `{args.source_ref}` build was verified with the web contract tests and real browser smoke checks.",
+    body = re.sub(
+        r"(?m)^The current branch was verified with (.+?)\.$",
+        rf"The `{args.source_ref}` build was verified with \1.",
+        body,
+        count=1,
     )
     body = body.replace(
         "## Verification on the current branch",
@@ -264,9 +270,11 @@ def transform_release_notes_body(
     _: PostSpec,
     args: argparse.Namespace,
 ) -> str:
-    body = body.replace(
-        "The current branch now exposes",
+    body = re.sub(
+        r"\bThe current branch now exposes\b",
         "This release now exposes",
+        body,
+        count=1,
     )
     body = body.replace(
         "Clearer current-branch release verification using focused tests and browser smoke checks",

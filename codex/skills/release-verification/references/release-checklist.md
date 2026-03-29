@@ -17,12 +17,12 @@ be backed by fresh proof from the current branch.
 
 ## Web Demo Minimum Bar
 
-For the current `v0.2.x` web demo, the minimum browser signoff should include:
+For the current `v0.3.x` web demo, the minimum browser signoff should include:
 
 - homepage loads at `/`
 - demo title is visible
-- example YAML is present or can be loaded
-- generating the deck triggers `weekly_report.pptx`
+- starter YAML is present
+- generating the deck triggers `autoreport_demo.pptx`
 - success-state copy is visible after generation
 
 ## Cross-Browser Rule
