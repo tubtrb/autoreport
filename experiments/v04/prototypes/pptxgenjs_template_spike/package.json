@@ -1,0 +1,11 @@
+{
+  "name": "pptxgenjs-template-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate_templates.mjs"
+  },
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  }
+}

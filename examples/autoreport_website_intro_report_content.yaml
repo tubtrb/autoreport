@@ -1,0 +1,39 @@
+report_content:
+  title_slide:
+    pattern_id: cover.editorial
+    slots:
+      title: Autoreport Website Overview
+      subtitle_1: |
+        Fast, contract-first PPT generation for AI-assisted workflows
+  contents_slide:
+    pattern_id: contents.editorial
+    slots:
+      title: Contents
+      body_1: |
+        1. What Autoreport Does
+        2. How The Web Flow Works
+        3. Why Teams Use It
+  slides:
+    - pattern_id: text.editorial
+      slots:
+        title: What Autoreport Does
+        body_1: |
+          Autoreport converts structured YAML into an editable PowerPoint deck.
+          The system keeps deck generation deterministic by validating the draft
+          against a template contract before it generates the final PPTX.
+    - pattern_id: text.editorial
+      slots:
+        title: How The Web Flow Works
+        body_1: |
+          The user copies one AI prompt package, asks another AI to draft
+          report_content, pastes the YAML into the web editor, and generates
+          the deck immediately.
+          When images are truly needed, real files can be uploaded later.
+    - pattern_id: metrics.editorial
+      slots:
+        title: Why Teams Use It
+        body_1: |
+          - Input shape: report_content or authoring_payload
+          - Slide count: inferred dynamically from slides
+          - Runtime: deterministic local PPTX generation
+          - Editing result: editable PowerPoint output

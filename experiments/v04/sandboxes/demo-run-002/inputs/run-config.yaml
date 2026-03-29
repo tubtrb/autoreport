@@ -1,0 +1,10 @@
+trigger:
+  name: mixed-template-alpha
+  source: incubator2
+  cadence: on_demand
+built_in: autoreport_editorial
+template_path: ../../prototypes/pptxgenjs_template_spike/generated/v04-text-image-template.pptx
+plan_options:
+  include_text_shaping: false
+  include_human_review: true
+  include_publish_handoff: false

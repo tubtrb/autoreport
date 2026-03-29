@@ -103,6 +103,99 @@ class WorkstreamRuntimeTests(unittest.TestCase):
         self.assertIn("must\n  be a single shared reminder", orchestrator_skill_text)
         self.assertIn("must\n  not regenerate or paraphrase branch-specific instructions", orchestration_ref_text)
 
+    def test_stale_code_cleanup_policy_is_present_in_bootstrap_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agents_text = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+        autoreport_skill_text = (
+            repo_root / "codex" / "skills" / "autoreport-dev" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestrator_skill_text = (
+            repo_root / "codex" / "skills" / "workstream-orchestrator" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestration_ref_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "workstream-orchestrator"
+            / "references"
+            / "orchestration.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("stale code", agents_text)
+        self.assertIn("Do not keep \"old but maybe useful later\" tracked code", agents_text)
+        self.assertIn("remove the stale predecessor path in the same task", autoreport_skill_text)
+        self.assertIn("stale predecessor code", orchestrator_skill_text)
+        self.assertIn("Treat stale tracked code", orchestration_ref_text)
+
+    def test_skill_freshness_policy_is_present_in_bootstrap_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agents_text = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+        autoreport_skill_text = (
+            repo_root / "codex" / "skills" / "autoreport-dev" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestrator_skill_text = (
+            repo_root / "codex" / "skills" / "workstream-orchestrator" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        orchestration_ref_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "workstream-orchestrator"
+            / "references"
+            / "orchestration.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("repo-local skills under `codex/skills/` as part of the live operating surface", agents_text)
+        self.assertIn("Stale agent or skill guidance is a blocker", agents_text)
+        self.assertIn("refresh the relevant skill text in the same task", autoreport_skill_text)
+        self.assertIn("stale tracked skill guidance as a blocker for landing", orchestrator_skill_text)
+        self.assertIn("bootstrap guidance should move", orchestration_ref_text)
+
+    def test_web_surface_split_policy_is_present_in_bootstrap_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agents_text = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+        web_skill_text = (
+            repo_root / "codex" / "skills" / "web-demo" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        web_contract_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "web-demo"
+            / "references"
+            / "web-contract.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("user-facing web app and the developer-facing debug app as separate tracked surfaces", agents_text)
+        self.assertIn("user app should stay single-flow", web_skill_text)
+        self.assertIn("Do not collapse these two surfaces back into one crowded homepage", web_contract_text)
+
+    def test_ai_draft_response_contract_is_present_in_skill_docs(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        report_schema_skill_text = (
+            repo_root / "codex" / "skills" / "report-schema" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        report_schema_ref_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "report-schema"
+            / "references"
+            / "weekly-report-schema.md"
+        ).read_text(encoding="utf-8")
+        web_contract_text = (
+            repo_root
+            / "codex"
+            / "skills"
+            / "web-demo"
+            / "references"
+            / "web-contract.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("one fenced `yaml` code block", report_schema_skill_text)
+        self.assertIn("Mixed AI output", report_schema_ref_text)
+        self.assertIn("exactly one fenced `yaml` code block", web_contract_text)
+
     def test_report_example_templates_cover_required_fields(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         status_template = json.loads(

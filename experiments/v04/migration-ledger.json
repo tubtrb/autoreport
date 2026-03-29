@@ -1,0 +1,122 @@
+{
+  "policy": "lean_reset",
+  "baseline": {
+    "branch": "codex/v0.3-master",
+    "product_template": "autoreport_editorial",
+    "slide_kinds": [
+      "text",
+      "metrics",
+      "text_image"
+    ]
+  },
+  "scoped_decisions": {
+    "pptxgenjs_lane": "authoring_only"
+  },
+  "artifact_decisions": [
+    {
+      "source": "design/README.md",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "design/branch-boundaries.md",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "design/pptxgenjs-template-authoring-spike.md",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "design/pptxgenjs-editorial-template-translation.md",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "design/pptxgenjs-image-placeholder-followup-spike.md",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "design/workflow-automation-orchestration.md",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "notes/README.md",
+      "decision": "leave_behind"
+    },
+    {
+      "source": "prototypes/richer_layout_spike.py",
+      "decision": "carry_as_is"
+    },
+    {
+      "source": "prototypes/text_shaping_spike.py",
+      "decision": "carry_as_is"
+    },
+    {
+      "source": "prototypes/workflow_automation_spike.py",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "prototypes/workflow_automation_sandbox.py",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "prototypes/pptxgenjs_template_spike",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "sandboxes/demo-run-001",
+      "decision": "leave_behind"
+    },
+    {
+      "source": "sandboxes/design-preview-001",
+      "decision": "leave_behind"
+    },
+    {
+      "source": "validation/bootstrap-checklist.md",
+      "decision": "leave_behind"
+    },
+    {
+      "source": "validation/pptxgenjs-template-authoring-report.md",
+      "decision": "leave_behind"
+    },
+    {
+      "source": "validation/pptxgenjs-image-placeholder-followup-report.md",
+      "decision": "leave_behind"
+    },
+    {
+      "source": "validation/presentationgo-reference-analysis.md",
+      "decision": "leave_behind"
+    },
+    {
+      "source": "validation/workflow-automation-checklist.md",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "tests/test_v04_prototype_scaffolds.py",
+      "decision": "carry_as_is"
+    },
+    {
+      "source": "tests/test_workflow_automation_spike.py",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "tests/test_workflow_automation_sandbox.py",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "tests/test_pptxgenjs_template_spike.py",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "tests/test_pptxgenjs_image_placeholder_followup.py",
+      "decision": "carry_retarget"
+    },
+    {
+      "source": "tests/test_pptxgenjs_reference_design.py",
+      "decision": "carry_retarget"
+    }
+  ],
+  "deferred": [
+    "runtime image-text placeholder patch",
+    "promotion into autoreport runtime paths",
+    "public release framing"
+  ]
+}

@@ -81,6 +81,22 @@ root unless the user explicitly sets another interpreter.
 `generation-preview` and `web-authoring-ux` may move in parallel once contract
 field names and slot rules are stable enough.
 
+## Stale-code policy
+
+- When a branch changes a public contract, homepage flow, example payload, or
+  helper path, master review should look for the superseded predecessor path in
+  the touched files.
+- Treat stale tracked code, stale sample payloads, stale copy, or duplicate
+  old/new product flows as blockers instead of leaving them for a later cleanup
+  sweep.
+- Apply the same rule to `AGENTS.md` and repo-local skills under `codex/skills/`:
+  if the product or workflow changed, bootstrap guidance should move in the same
+  task so later agents do not inherit stale repo assumptions.
+- The only valid reason to keep both old and new paths is intentional
+  compatibility, and that compatibility should be explicit in docs and tests.
+- Git history and tags are the rollback mechanism; they are not a reason to
+  keep dead code in the live repo.
+
 ## Git ownership policy
 
 - Workers own code changes, local tests, and local WIP commits.

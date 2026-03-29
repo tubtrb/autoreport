@@ -46,6 +46,10 @@ template_contract:
           required: true
           orientation: stack
           order: 1
+      image_count: 0
+      image_layout: stack
+      caption_slots: 0
+      body_slot_count: 1
     - pattern_id: metrics.editorial
       kind: metrics
       layout_name: Blank
@@ -60,6 +64,10 @@ template_contract:
           required: true
           orientation: stack
           order: 1
+      image_count: 0
+      image_layout: stack
+      caption_slots: 0
+      body_slot_count: 1
     - pattern_id: text_image.editorial
       kind: text_image
       layout_name: Blank
@@ -86,3 +94,163 @@ template_contract:
           required: false
           orientation: stack
           order: 1
+      image_count: 1
+      image_layout: stack
+      caption_slots: 1
+      body_slot_count: 1
+    - pattern_id: text_image.editorial.two_horizontal
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: title
+          slot_type: title
+          required: true
+        - slot_id: text_image.body_1
+          alias: body_1
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 1
+        - slot_id: text_image.image_2
+          alias: image_2
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 2
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 1
+      image_count: 2
+      image_layout: horizontal
+      caption_slots: 1
+      body_slot_count: 1
+    - pattern_id: text_image.editorial.two_vertical
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: title
+          slot_type: title
+          required: true
+        - slot_id: text_image.body_1
+          alias: body_1
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: vertical
+          order: 1
+        - slot_id: text_image.image_2
+          alias: image_2
+          slot_type: image
+          required: true
+          orientation: vertical
+          order: 2
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: vertical
+          order: 1
+      image_count: 2
+      image_layout: vertical
+      caption_slots: 1
+      body_slot_count: 1
+    - pattern_id: text_image.editorial.three_horizontal
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: title
+          slot_type: title
+          required: true
+        - slot_id: text_image.body_1
+          alias: body_1
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 1
+        - slot_id: text_image.image_2
+          alias: image_2
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 2
+        - slot_id: text_image.image_3
+          alias: image_3
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 3
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 1
+      image_count: 3
+      image_layout: horizontal
+      caption_slots: 1
+      body_slot_count: 1
+    - pattern_id: text_image.editorial.three_vertical
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: title
+          slot_type: title
+          required: true
+        - slot_id: text_image.body_1
+          alias: body_1
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: vertical
+          order: 1
+        - slot_id: text_image.image_2
+          alias: image_2
+          slot_type: image
+          required: true
+          orientation: vertical
+          order: 2
+        - slot_id: text_image.image_3
+          alias: image_3
+          slot_type: image
+          required: true
+          orientation: vertical
+          order: 3
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: vertical
+          order: 1
+      image_count: 3
+      image_layout: vertical
+      caption_slots: 1
+      body_slot_count: 1

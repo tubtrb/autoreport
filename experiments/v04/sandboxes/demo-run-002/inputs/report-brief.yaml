@@ -1,0 +1,15 @@
+title_slide:
+  title: Autoreport Mixed Workflow Alpha
+  subtitle:
+    - Mixed user-template rehearsal after runtime hardening
+slides:
+  - kind: text_image
+    title: Mixed Layout Check
+    include_in_contents: true
+    body:
+      - Workflow automation now profiles and fills a mixed user-owned template without routing body text into the image placeholder.
+      - Human review still stays explicit even when the generation path is deterministic.
+    image:
+      ref: image_1
+      fit: contain
+    caption: Mixed template preview after runtime hardening.

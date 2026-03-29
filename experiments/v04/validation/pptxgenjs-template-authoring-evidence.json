@@ -1,0 +1,611 @@
+{
+  "versions": {
+    "node": "v24.13.1",
+    "npm": "11.8.0",
+    "python": "3.14.3"
+  },
+  "templates": [
+    {
+      "template_path": "experiments\\v04\\prototypes\\pptxgenjs_template_spike\\generated\\v04-minimal-text-template.pptx",
+      "template_filename": "v04-minimal-text-template.pptx",
+      "inspection_success": true,
+      "contract_success": true,
+      "generation_success": true,
+      "contract_summary": {
+        "template_id": "template-bb7997259d91",
+        "template_source": "user_template",
+        "slides": [
+          {
+            "section": "title_slide",
+            "kind": "system",
+            "layout_name": "V04 Minimal Title",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "contents_slide",
+            "kind": "system",
+            "layout_name": "V04 Minimal Body",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "text",
+            "kind": "text",
+            "layout_name": "V04 Minimal Body",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "metrics",
+            "kind": "metrics",
+            "layout_name": "V04 Minimal Body",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          }
+        ]
+      },
+      "placeholder_dump": [
+        {
+          "index": 0,
+          "name": "DEFAULT",
+          "placeholders": []
+        },
+        {
+          "index": 1,
+          "name": "V04 Minimal Title",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "left": 640080,
+              "top": 502920,
+              "width": 10789920,
+              "height": 685800
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "left": 822960,
+              "top": 1417320,
+              "width": 9966960,
+              "height": 868680
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "name": "V04 Minimal Body",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "left": 640080,
+              "top": 457200,
+              "width": 10789920,
+              "height": 640080
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "left": 731520,
+              "top": 1417320,
+              "width": 10241280,
+              "height": 4434840
+            }
+          ]
+        }
+      ],
+      "inspection_template_id": "template-bb7997259d91",
+      "contract_template_id": "template-bb7997259d91",
+      "image_placeholder_indices": [],
+      "generated_output_path": "tmp/v04-minimal-text-template-generated.pptx",
+      "generated_slide_titles": [
+        "Autoreport",
+        "Contents",
+        "What It Does",
+        "Adoption Snapshot"
+      ],
+      "generated_slide_count": 4,
+      "generated_shape_dump": [
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Autoreport"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Template-aware PPTX autofill engine"
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Contents"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "What It Does\nAdoption Snapshot"
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "What It Does"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Generate editable PowerPoint decks from structured inputs.\nDescribe the slide goal and supporting bullets instead of drawing placeholder geometry.\nThe compiler resolves this authoring block into the runtime report payload automatically."
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Adoption Snapshot"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Templates profiled: 12\nDecks generated: 24"
+          }
+        ]
+      ],
+      "text_written_to_image_placeholder": false
+    },
+    {
+      "template_path": "experiments\\v04\\prototypes\\pptxgenjs_template_spike\\generated\\v04-stacked-text-template.pptx",
+      "template_filename": "v04-stacked-text-template.pptx",
+      "inspection_success": true,
+      "contract_success": true,
+      "generation_success": true,
+      "contract_summary": {
+        "template_id": "template-3e438d2b51af",
+        "template_source": "user_template",
+        "slides": [
+          {
+            "section": "title_slide",
+            "kind": "system",
+            "layout_name": "V04 Stacked Title",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "contents_slide",
+            "kind": "system",
+            "layout_name": "V04 Stacked Body",
+            "text_slot_count": 3,
+            "text_orientations": [
+              "stack",
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "text",
+            "kind": "text",
+            "layout_name": "V04 Stacked Body",
+            "text_slot_count": 3,
+            "text_orientations": [
+              "stack",
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "metrics",
+            "kind": "metrics",
+            "layout_name": "V04 Stacked Body",
+            "text_slot_count": 3,
+            "text_orientations": [
+              "stack",
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          }
+        ]
+      },
+      "placeholder_dump": [
+        {
+          "index": 0,
+          "name": "DEFAULT",
+          "placeholders": []
+        },
+        {
+          "index": 1,
+          "name": "V04 Stacked Title",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "left": 640080,
+              "top": 502920,
+              "width": 10789920,
+              "height": 685800
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "left": 822960,
+              "top": 1417320,
+              "width": 9966960,
+              "height": 868680
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "name": "V04 Stacked Body",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "left": 640080,
+              "top": 411480,
+              "width": 10789920,
+              "height": 640080
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "left": 822960,
+              "top": 1508760,
+              "width": 10058400,
+              "height": 1828800
+            },
+            {
+              "idx": 102,
+              "type": "body",
+              "name": "Text 0",
+              "left": 822960,
+              "top": 3520440,
+              "width": 10058400,
+              "height": 1828800
+            }
+          ]
+        }
+      ],
+      "inspection_template_id": "template-3e438d2b51af",
+      "contract_template_id": "template-3e438d2b51af",
+      "image_placeholder_indices": [],
+      "generated_output_path": "tmp/v04-stacked-text-template-generated.pptx",
+      "generated_slide_titles": [
+        "Autoreport",
+        "Contents",
+        "What It Does",
+        "Adoption Snapshot"
+      ],
+      "generated_slide_count": 4,
+      "generated_shape_dump": [
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Autoreport"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Template-aware PPTX autofill engine"
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Contents"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "What It Does"
+          },
+          {
+            "placeholder_index": 102,
+            "placeholder_type": "body",
+            "text": "Adoption Snapshot"
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "What It Does"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Generate editable PowerPoint decks from structured inputs.\nDescribe the slide goal and supporting bullets instead of drawing placeholder geometry."
+          },
+          {
+            "placeholder_index": 102,
+            "placeholder_type": "body",
+            "text": "The compiler resolves this authoring block into the runtime report payload automatically."
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Adoption Snapshot"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Templates profiled: 12"
+          },
+          {
+            "placeholder_index": 102,
+            "placeholder_type": "body",
+            "text": "Decks generated: 24"
+          }
+        ]
+      ],
+      "text_written_to_image_placeholder": false
+    },
+    {
+      "template_path": "experiments\\v04\\prototypes\\pptxgenjs_template_spike\\generated\\v04-text-image-template.pptx",
+      "template_filename": "v04-text-image-template.pptx",
+      "inspection_success": true,
+      "contract_success": true,
+      "generation_success": true,
+      "contract_summary": {
+        "template_id": "template-daf4cf044239",
+        "template_source": "user_template",
+        "slides": [
+          {
+            "section": "title_slide",
+            "kind": "system",
+            "layout_name": "V04 Text Image Title",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "contents_slide",
+            "kind": "system",
+            "layout_name": "V04 Text Image Body",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "text",
+            "kind": "text",
+            "layout_name": "V04 Text Image Body",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "metrics",
+            "kind": "metrics",
+            "layout_name": "V04 Text Image Body",
+            "text_slot_count": 2,
+            "text_orientations": [
+              "stack"
+            ],
+            "image_slot_count": 0,
+            "image_orientations": []
+          },
+          {
+            "section": "text_image",
+            "kind": "text_image",
+            "layout_name": "V04 Text Image Body",
+            "text_slot_count": 3,
+            "text_orientations": [
+              "stack",
+              "stack"
+            ],
+            "image_slot_count": 1,
+            "image_orientations": [
+              "stack"
+            ]
+          }
+        ]
+      },
+      "placeholder_dump": [
+        {
+          "index": 0,
+          "name": "DEFAULT",
+          "placeholders": []
+        },
+        {
+          "index": 1,
+          "name": "V04 Text Image Title",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "left": 640080,
+              "top": 502920,
+              "width": 10789920,
+              "height": 685800
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "left": 822960,
+              "top": 1417320,
+              "width": 9966960,
+              "height": 868680
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "name": "V04 Text Image Body",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "left": 640080,
+              "top": 411480,
+              "width": 10789920,
+              "height": 640080
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "left": 731520,
+              "top": 1417320,
+              "width": 5394960,
+              "height": 4297680
+            },
+            {
+              "idx": 102,
+              "type": "object",
+              "name": "Text 0",
+              "left": 6537960,
+              "top": 1417320,
+              "width": 4572000,
+              "height": 3246120
+            },
+            {
+              "idx": 103,
+              "type": "body",
+              "name": "Text 0",
+              "left": 6537960,
+              "top": 4846320,
+              "width": 4572000,
+              "height": 640080
+            }
+          ]
+        }
+      ],
+      "inspection_template_id": "template-daf4cf044239",
+      "contract_template_id": "template-daf4cf044239",
+      "image_placeholder_indices": [
+        102
+      ],
+      "generated_output_path": "tmp/v04-text-image-template-generated.pptx",
+      "generated_slide_titles": [
+        "Autoreport",
+        "Contents",
+        "What It Does",
+        "Adoption Snapshot",
+        "Why It Matters"
+      ],
+      "generated_slide_count": 5,
+      "generated_shape_dump": [
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Autoreport"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Template-aware PPTX autofill engine"
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Contents"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "What It Does\nAdoption Snapshot\nWhy It Matters"
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "What It Does"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Generate editable PowerPoint decks from structured inputs.\nDescribe the slide goal and supporting bullets instead of drawing placeholder geometry.\nThe compiler resolves this authoring block into the runtime report payload automatically."
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Adoption Snapshot"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Templates profiled: 12\nDecks generated: 24"
+          }
+        ],
+        [
+          {
+            "placeholder_index": 100,
+            "placeholder_type": "title",
+            "text": "Why It Matters"
+          },
+          {
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "text": "Pair narrative context with an uploaded image or a local file path.\nUse assets.images[*].ref for web uploads.\nUse assets.images[*].path when driving generation from the CLI."
+          },
+          {
+            "placeholder_index": 103,
+            "placeholder_type": "body",
+            "text": "Example uses image_1 as the uploaded image ref."
+          }
+        ]
+      ],
+      "text_written_to_image_placeholder": false
+    }
+  ],
+  "verdict": "viable"
+}

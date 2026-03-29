@@ -1,0 +1,29 @@
+title_slide:
+  title: Autoreport Incubator 2
+  subtitle:
+    - Editorial contract-first sandbox rehearsal
+slides:
+  - kind: text
+    title: Migration Goal
+    include_in_contents: true
+    body:
+      - Rebuild v0.4 experiments on top of the current editorial engine.
+      - Keep the runtime deterministic while documenting richer future flows.
+  - kind: metrics
+    title: Current Snapshot
+    include_in_contents: true
+    items:
+      - label: Active prototypes
+        value: 4
+      - label: Deferred runtime patches
+        value: 1
+  - kind: text_image
+    title: Why This Reset Helps
+    include_in_contents: true
+    body:
+      - The new incubator follows the current public payload and contract shapes.
+      - Image handling remains experimental but reproducible.
+    image:
+      ref: image_1
+      fit: contain
+    caption: Local sandbox image mapped to image_1.

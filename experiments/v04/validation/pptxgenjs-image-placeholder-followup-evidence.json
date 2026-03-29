@@ -1,0 +1,3627 @@
+{
+  "versions": {
+    "node": "v24.13.1",
+    "npm": "11.8.0",
+    "python": "3.14.3"
+  },
+  "verdict": "runtime_hardened",
+  "verdict_reasons": [
+    "all four comparison decks now inspect into a reusable `text_image` pattern under the rebased runtime",
+    "actual profiled image placeholder indices remain separate from body and caption indices, and the generated decks no longer write text into those image placeholders",
+    "the PptxGenJS fixtures still emit `OBJECT` placeholders instead of raw OOXML `pic`, but the hardened runtime now treats those placeholders as image-capable slots"
+  ],
+  "recommended_next_steps": [
+    "Use the mixed text-image fixtures as workflow automation alpha inputs and keep runtime changes scoped to regression-backed profiling fixes."
+  ],
+  "decks": [
+    {
+      "deck_id": "baseline",
+      "category": "baseline",
+      "intent": "PptxGenJS baseline image placeholder recipe",
+      "requested_image_placeholder_type": "image",
+      "template_path": "experiments\\v04\\prototypes\\pptxgenjs_template_spike\\generated\\v04-text-image-template.pptx",
+      "inspection_success": true,
+      "contract_success": true,
+      "generation_success": true,
+      "ooxml_dump": {
+        "masters": [
+          {
+            "part_name": "ppt/slideMasters/slideMaster1.xml",
+            "name": null,
+            "placeholders": []
+          }
+        ],
+        "layouts": [
+          {
+            "part_name": "ppt/slideLayouts/slideLayout1.xml",
+            "name": "DEFAULT",
+            "placeholders": []
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout2.xml",
+            "name": "V04 Text Image Title",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 502920,
+                "w": 10789920,
+                "h": 685800
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 822960,
+                "y": 1417320,
+                "w": 9966960,
+                "h": 868680
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout3.xml",
+            "name": "V04 Text Image Body",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 411480,
+                "w": 10789920,
+                "h": 640080
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 731520,
+                "y": 1417320,
+                "w": 5394960,
+                "h": 4297680
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 102,
+                "type": null,
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 1417320,
+                "w": 4572000,
+                "h": 3246120
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 103,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 4846320,
+                "w": 4572000,
+                "h": 640080
+              }
+            ]
+          }
+        ],
+        "slides": [
+          {
+            "part_name": "ppt/slides/slide1.xml",
+            "name": "Slide 1",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 502920,
+                "w": 10789920,
+                "h": 685800
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 822960,
+                "y": 1417320,
+                "w": 9966960,
+                "h": 868680
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slides/slide2.xml",
+            "name": "Slide 2",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 411480,
+                "w": 10789920,
+                "h": 640080
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 731520,
+                "y": 1417320,
+                "w": 5394960,
+                "h": 4297680
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 103,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 4846320,
+                "w": 4572000,
+                "h": 640080
+              },
+              {
+                "shape_tag": "pic",
+                "shape_name": "Image 0",
+                "idx": 102,
+                "type": null,
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": false,
+                "has_blip_fill": true,
+                "x": 6537960,
+                "y": 1417320,
+                "w": 914400,
+                "h": 914400
+              }
+            ]
+          }
+        ]
+      },
+      "python_layout_dump": [
+        {
+          "index": 0,
+          "name": "DEFAULT",
+          "placeholders": []
+        },
+        {
+          "index": 1,
+          "name": "V04 Text Image Title",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 640080,
+              "top": 502920,
+              "width": 10789920,
+              "height": 685800
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 822960,
+              "top": 1417320,
+              "width": 9966960,
+              "height": 868680
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "name": "V04 Text Image Body",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 640080,
+              "top": 411480,
+              "width": 10789920,
+              "height": 640080
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 731520,
+              "top": 1417320,
+              "width": 5394960,
+              "height": 4297680
+            },
+            {
+              "idx": 102,
+              "type": "object",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 6537960,
+              "top": 1417320,
+              "width": 4572000,
+              "height": 3246120
+            },
+            {
+              "idx": 103,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 6537960,
+              "top": 4846320,
+              "width": 4572000,
+              "height": 640080
+            }
+          ]
+        }
+      ],
+      "inspection_template_id": "template-daf4cf044239",
+      "contract_template_id": "template-daf4cf044239",
+      "contract_summary": {
+        "template_id": "template-daf4cf044239",
+        "text_image_pattern_available": true,
+        "body_layout_name": "V04 Text Image Body",
+        "body_text_slots": [
+          {
+            "slot_name": "text_image.body_1",
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "body_image_slots": [
+          {
+            "slot_name": "text_image.image_1",
+            "placeholder_index": 102,
+            "placeholder_type": "object",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "contents_text_slots": [
+          {
+            "slot_id": "contents.body_1",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ]
+      },
+      "body_layout_ooxml": {
+        "part_name": "ppt/slideLayouts/slideLayout3.xml",
+        "name": "V04 Text Image Body",
+        "placeholders": [
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 100,
+            "type": "title",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 640080,
+            "y": 411480,
+            "w": 10789920,
+            "h": 640080
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 101,
+            "type": "body",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 731520,
+            "y": 1417320,
+            "w": 5394960,
+            "h": 4297680
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 102,
+            "type": null,
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 6537960,
+            "y": 1417320,
+            "w": 4572000,
+            "h": 3246120
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 103,
+            "type": "body",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 6537960,
+            "y": 4846320,
+            "w": 4572000,
+            "h": 640080
+          }
+        ]
+      },
+      "body_layout_python": {
+        "index": 2,
+        "name": "V04 Text Image Body",
+        "placeholders": [
+          {
+            "idx": 100,
+            "type": "title",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 640080,
+            "top": 411480,
+            "width": 10789920,
+            "height": 640080
+          },
+          {
+            "idx": 101,
+            "type": "body",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 731520,
+            "top": 1417320,
+            "width": 5394960,
+            "height": 4297680
+          },
+          {
+            "idx": 102,
+            "type": "object",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 6537960,
+            "top": 1417320,
+            "width": 4572000,
+            "height": 3246120
+          },
+          {
+            "idx": 103,
+            "type": "body",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 6537960,
+            "top": 4846320,
+            "width": 4572000,
+            "height": 640080
+          }
+        ]
+      },
+      "generation_summary": {
+        "generated_slide_count": 5,
+        "generated_slide_titles": [
+          "Autoreport",
+          "Contents",
+          "What It Does",
+          "Adoption Snapshot",
+          "Why It Matters"
+        ],
+        "generated_shape_dump": [
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Autoreport"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Template-aware PPTX autofill engine"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Contents"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "What It Does\nAdoption Snapshot\nWhy It Matters"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "What It Does"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Generate editable PowerPoint decks from structured inputs.\nDescribe the slide goal and supporting bullets instead of drawing placeholder geometry.\nThe compiler resolves this authoring block into the runtime report payload automatically."
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Adoption Snapshot"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Templates profiled: 12\nDecks generated: 24"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Why It Matters"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Pair narrative context with an uploaded image or a local file path.\nUse assets.images[*].ref for web uploads.\nUse assets.images[*].path when driving generation from the CLI."
+            },
+            {
+              "placeholder_index": 103,
+              "placeholder_type": "body",
+              "text": "Example uses image_1 as the uploaded image ref."
+            }
+          ]
+        ],
+        "image_placeholder_indices": [
+          102
+        ],
+        "image_placeholder_text_hits": [],
+        "text_written_to_image_placeholder": false
+      }
+    },
+    {
+      "deck_id": "pic_token",
+      "category": "variant",
+      "intent": "PptxGenJS raw `pic` placeholder token attempt",
+      "requested_image_placeholder_type": "pic",
+      "template_path": "experiments\\v04\\prototypes\\pptxgenjs_template_spike\\generated\\v04-text-image-pic-token-template.pptx",
+      "inspection_success": true,
+      "contract_success": true,
+      "generation_success": true,
+      "ooxml_dump": {
+        "masters": [
+          {
+            "part_name": "ppt/slideMasters/slideMaster1.xml",
+            "name": null,
+            "placeholders": []
+          }
+        ],
+        "layouts": [
+          {
+            "part_name": "ppt/slideLayouts/slideLayout1.xml",
+            "name": "DEFAULT",
+            "placeholders": []
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout2.xml",
+            "name": "V04 Text Image Pic Token Title",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 502920,
+                "w": 10789920,
+                "h": 685800
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 822960,
+                "y": 1417320,
+                "w": 9966960,
+                "h": 868680
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout3.xml",
+            "name": "V04 Text Image Pic Token Body",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 411480,
+                "w": 10789920,
+                "h": 640080
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 731520,
+                "y": 1417320,
+                "w": 5394960,
+                "h": 4297680
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 102,
+                "type": null,
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 1417320,
+                "w": 4572000,
+                "h": 3246120
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 103,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 4846320,
+                "w": 4572000,
+                "h": 640080
+              }
+            ]
+          }
+        ],
+        "slides": [
+          {
+            "part_name": "ppt/slides/slide1.xml",
+            "name": "Slide 1",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 502920,
+                "w": 10789920,
+                "h": 685800
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 822960,
+                "y": 1417320,
+                "w": 9966960,
+                "h": 868680
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slides/slide2.xml",
+            "name": "Slide 2",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 411480,
+                "w": 10789920,
+                "h": 640080
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 731520,
+                "y": 1417320,
+                "w": 5394960,
+                "h": 4297680
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 103,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 4846320,
+                "w": 4572000,
+                "h": 640080
+              },
+              {
+                "shape_tag": "pic",
+                "shape_name": "Image 0",
+                "idx": 102,
+                "type": null,
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": false,
+                "has_blip_fill": true,
+                "x": 6537960,
+                "y": 1417320,
+                "w": 914400,
+                "h": 914400
+              }
+            ]
+          }
+        ]
+      },
+      "python_layout_dump": [
+        {
+          "index": 0,
+          "name": "DEFAULT",
+          "placeholders": []
+        },
+        {
+          "index": 1,
+          "name": "V04 Text Image Pic Token Title",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 640080,
+              "top": 502920,
+              "width": 10789920,
+              "height": 685800
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 822960,
+              "top": 1417320,
+              "width": 9966960,
+              "height": 868680
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "name": "V04 Text Image Pic Token Body",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 640080,
+              "top": 411480,
+              "width": 10789920,
+              "height": 640080
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 731520,
+              "top": 1417320,
+              "width": 5394960,
+              "height": 4297680
+            },
+            {
+              "idx": 102,
+              "type": "object",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 6537960,
+              "top": 1417320,
+              "width": 4572000,
+              "height": 3246120
+            },
+            {
+              "idx": 103,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 6537960,
+              "top": 4846320,
+              "width": 4572000,
+              "height": 640080
+            }
+          ]
+        }
+      ],
+      "inspection_template_id": "template-8264d5481f40",
+      "contract_template_id": "template-8264d5481f40",
+      "contract_summary": {
+        "template_id": "template-8264d5481f40",
+        "text_image_pattern_available": true,
+        "body_layout_name": "V04 Text Image Pic Token Body",
+        "body_text_slots": [
+          {
+            "slot_name": "text_image.body_1",
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "body_image_slots": [
+          {
+            "slot_name": "text_image.image_1",
+            "placeholder_index": 102,
+            "placeholder_type": "object",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "contents_text_slots": [
+          {
+            "slot_id": "contents.body_1",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ]
+      },
+      "body_layout_ooxml": {
+        "part_name": "ppt/slideLayouts/slideLayout3.xml",
+        "name": "V04 Text Image Pic Token Body",
+        "placeholders": [
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 100,
+            "type": "title",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 640080,
+            "y": 411480,
+            "w": 10789920,
+            "h": 640080
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 101,
+            "type": "body",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 731520,
+            "y": 1417320,
+            "w": 5394960,
+            "h": 4297680
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 102,
+            "type": null,
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 6537960,
+            "y": 1417320,
+            "w": 4572000,
+            "h": 3246120
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 103,
+            "type": "body",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 6537960,
+            "y": 4846320,
+            "w": 4572000,
+            "h": 640080
+          }
+        ]
+      },
+      "body_layout_python": {
+        "index": 2,
+        "name": "V04 Text Image Pic Token Body",
+        "placeholders": [
+          {
+            "idx": 100,
+            "type": "title",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 640080,
+            "top": 411480,
+            "width": 10789920,
+            "height": 640080
+          },
+          {
+            "idx": 101,
+            "type": "body",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 731520,
+            "top": 1417320,
+            "width": 5394960,
+            "height": 4297680
+          },
+          {
+            "idx": 102,
+            "type": "object",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 6537960,
+            "top": 1417320,
+            "width": 4572000,
+            "height": 3246120
+          },
+          {
+            "idx": 103,
+            "type": "body",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 6537960,
+            "top": 4846320,
+            "width": 4572000,
+            "height": 640080
+          }
+        ]
+      },
+      "generation_summary": {
+        "generated_slide_count": 5,
+        "generated_slide_titles": [
+          "Autoreport",
+          "Contents",
+          "What It Does",
+          "Adoption Snapshot",
+          "Why It Matters"
+        ],
+        "generated_shape_dump": [
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Autoreport"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Template-aware PPTX autofill engine"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Contents"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "What It Does\nAdoption Snapshot\nWhy It Matters"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "What It Does"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Generate editable PowerPoint decks from structured inputs.\nDescribe the slide goal and supporting bullets instead of drawing placeholder geometry.\nThe compiler resolves this authoring block into the runtime report payload automatically."
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Adoption Snapshot"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Templates profiled: 12\nDecks generated: 24"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Why It Matters"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Pair narrative context with an uploaded image or a local file path.\nUse assets.images[*].ref for web uploads.\nUse assets.images[*].path when driving generation from the CLI."
+            },
+            {
+              "placeholder_index": 103,
+              "placeholder_type": "body",
+              "text": "Example uses image_1 as the uploaded image ref."
+            }
+          ]
+        ],
+        "image_placeholder_indices": [
+          102
+        ],
+        "image_placeholder_text_hits": [],
+        "text_written_to_image_placeholder": false
+      }
+    },
+    {
+      "deck_id": "compact_image",
+      "category": "variant",
+      "intent": "PptxGenJS geometry workaround with lower image prominence",
+      "requested_image_placeholder_type": "image",
+      "template_path": "experiments\\v04\\prototypes\\pptxgenjs_template_spike\\generated\\v04-text-image-compact-image-template.pptx",
+      "inspection_success": true,
+      "contract_success": true,
+      "generation_success": true,
+      "ooxml_dump": {
+        "masters": [
+          {
+            "part_name": "ppt/slideMasters/slideMaster1.xml",
+            "name": null,
+            "placeholders": []
+          }
+        ],
+        "layouts": [
+          {
+            "part_name": "ppt/slideLayouts/slideLayout1.xml",
+            "name": "DEFAULT",
+            "placeholders": []
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout2.xml",
+            "name": "V04 Text Image Compact Title",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 502920,
+                "w": 10789920,
+                "h": 685800
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 822960,
+                "y": 1417320,
+                "w": 9966960,
+                "h": 868680
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout3.xml",
+            "name": "V04 Text Image Compact Body",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 411480,
+                "w": 10789920,
+                "h": 640080
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 731520,
+                "y": 1417320,
+                "w": 6035040,
+                "h": 4389120
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 102,
+                "type": null,
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 7040880,
+                "y": 1417320,
+                "w": 3383280,
+                "h": 2194560
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 103,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 7040880,
+                "y": 3840480,
+                "w": 3383280,
+                "h": 594360
+              }
+            ]
+          }
+        ],
+        "slides": [
+          {
+            "part_name": "ppt/slides/slide1.xml",
+            "name": "Slide 1",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 502920,
+                "w": 10789920,
+                "h": 685800
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 822960,
+                "y": 1417320,
+                "w": 9966960,
+                "h": 868680
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slides/slide2.xml",
+            "name": "Slide 2",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 100,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 640080,
+                "y": 411480,
+                "w": 10789920,
+                "h": 640080
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 101,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 731520,
+                "y": 1417320,
+                "w": 6035040,
+                "h": 4389120
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text 0",
+                "idx": 103,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 7040880,
+                "y": 3840480,
+                "w": 3383280,
+                "h": 594360
+              },
+              {
+                "shape_tag": "pic",
+                "shape_name": "Image 0",
+                "idx": 102,
+                "type": null,
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": false,
+                "has_blip_fill": true,
+                "x": 7040880,
+                "y": 1417320,
+                "w": 914400,
+                "h": 914400
+              }
+            ]
+          }
+        ]
+      },
+      "python_layout_dump": [
+        {
+          "index": 0,
+          "name": "DEFAULT",
+          "placeholders": []
+        },
+        {
+          "index": 1,
+          "name": "V04 Text Image Compact Title",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 640080,
+              "top": 502920,
+              "width": 10789920,
+              "height": 685800
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 822960,
+              "top": 1417320,
+              "width": 9966960,
+              "height": 868680
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "name": "V04 Text Image Compact Body",
+          "placeholders": [
+            {
+              "idx": 100,
+              "type": "title",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 640080,
+              "top": 411480,
+              "width": 10789920,
+              "height": 640080
+            },
+            {
+              "idx": 101,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 731520,
+              "top": 1417320,
+              "width": 6035040,
+              "height": 4389120
+            },
+            {
+              "idx": 102,
+              "type": "object",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 7040880,
+              "top": 1417320,
+              "width": 3383280,
+              "height": 2194560
+            },
+            {
+              "idx": 103,
+              "type": "body",
+              "name": "Text 0",
+              "has_text_frame": true,
+              "left": 7040880,
+              "top": 3840480,
+              "width": 3383280,
+              "height": 594360
+            }
+          ]
+        }
+      ],
+      "inspection_template_id": "template-12e77bf73edc",
+      "contract_template_id": "template-12e77bf73edc",
+      "contract_summary": {
+        "template_id": "template-12e77bf73edc",
+        "text_image_pattern_available": true,
+        "body_layout_name": "V04 Text Image Compact Body",
+        "body_text_slots": [
+          {
+            "slot_name": "text_image.body_1",
+            "placeholder_index": 101,
+            "placeholder_type": "body",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "body_image_slots": [
+          {
+            "slot_name": "text_image.image_1",
+            "placeholder_index": 102,
+            "placeholder_type": "object",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "contents_text_slots": [
+          {
+            "slot_id": "contents.body_1",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ]
+      },
+      "body_layout_ooxml": {
+        "part_name": "ppt/slideLayouts/slideLayout3.xml",
+        "name": "V04 Text Image Compact Body",
+        "placeholders": [
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 100,
+            "type": "title",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 640080,
+            "y": 411480,
+            "w": 10789920,
+            "h": 640080
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 101,
+            "type": "body",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 731520,
+            "y": 1417320,
+            "w": 6035040,
+            "h": 4389120
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 102,
+            "type": null,
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 7040880,
+            "y": 1417320,
+            "w": 3383280,
+            "h": 2194560
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text 0",
+            "idx": 103,
+            "type": "body",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 7040880,
+            "y": 3840480,
+            "w": 3383280,
+            "h": 594360
+          }
+        ]
+      },
+      "body_layout_python": {
+        "index": 2,
+        "name": "V04 Text Image Compact Body",
+        "placeholders": [
+          {
+            "idx": 100,
+            "type": "title",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 640080,
+            "top": 411480,
+            "width": 10789920,
+            "height": 640080
+          },
+          {
+            "idx": 101,
+            "type": "body",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 731520,
+            "top": 1417320,
+            "width": 6035040,
+            "height": 4389120
+          },
+          {
+            "idx": 102,
+            "type": "object",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 7040880,
+            "top": 1417320,
+            "width": 3383280,
+            "height": 2194560
+          },
+          {
+            "idx": 103,
+            "type": "body",
+            "name": "Text 0",
+            "has_text_frame": true,
+            "left": 7040880,
+            "top": 3840480,
+            "width": 3383280,
+            "height": 594360
+          }
+        ]
+      },
+      "generation_summary": {
+        "generated_slide_count": 5,
+        "generated_slide_titles": [
+          "Autoreport",
+          "Contents",
+          "What It Does",
+          "Adoption Snapshot",
+          "Why It Matters"
+        ],
+        "generated_shape_dump": [
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Autoreport"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Template-aware PPTX autofill engine"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Contents"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "What It Does\nAdoption Snapshot\nWhy It Matters"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "What It Does"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Generate editable PowerPoint decks from structured inputs.\nDescribe the slide goal and supporting bullets instead of drawing placeholder geometry.\nThe compiler resolves this authoring block into the runtime report payload automatically."
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Adoption Snapshot"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Templates profiled: 12\nDecks generated: 24"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 100,
+              "placeholder_type": "title",
+              "text": "Why It Matters"
+            },
+            {
+              "placeholder_index": 101,
+              "placeholder_type": "body",
+              "text": "Pair narrative context with an uploaded image or a local file path.\nUse assets.images[*].ref for web uploads.\nUse assets.images[*].path when driving generation from the CLI."
+            },
+            {
+              "placeholder_index": 103,
+              "placeholder_type": "body",
+              "text": "Example uses image_1 as the uploaded image ref."
+            }
+          ]
+        ],
+        "image_placeholder_indices": [
+          102
+        ],
+        "image_placeholder_text_hits": [],
+        "text_written_to_image_placeholder": false
+      }
+    },
+    {
+      "deck_id": "control",
+      "category": "control",
+      "intent": "python-pptx + OOXML control fixture with a real `pic` placeholder",
+      "requested_image_placeholder_type": "pic",
+      "template_path": "experiments\\v04\\prototypes\\pptxgenjs_template_spike\\generated\\v04-control-text-picture-template.pptx",
+      "inspection_success": true,
+      "contract_success": true,
+      "generation_success": true,
+      "ooxml_dump": {
+        "masters": [
+          {
+            "part_name": "ppt/slideMasters/slideMaster1.xml",
+            "name": null,
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title Placeholder 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 274638,
+                "w": 8229600,
+                "h": 1143000
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 2",
+                "idx": 1,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 1600200,
+                "w": 8229600,
+                "h": 4525963
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 3",
+                "idx": 2,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 6356350,
+                "w": 2133600,
+                "h": 365125
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 4",
+                "idx": 3,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 3124200,
+                "y": 6356350,
+                "w": 2895600,
+                "h": 365125
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 5",
+                "idx": 4,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6553200,
+                "y": 6356350,
+                "w": 2133600,
+                "h": 365125
+              }
+            ]
+          }
+        ],
+        "layouts": [
+          {
+            "part_name": "ppt/slideLayouts/slideLayout1.xml",
+            "name": "Title Slide",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "ctrTitle",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 685800,
+                "y": 2130425,
+                "w": 7772400,
+                "h": 1470025
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Subtitle 2",
+                "idx": 1,
+                "type": "subTitle",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 1371600,
+                "y": 3886200,
+                "w": 6400800,
+                "h": 1752600
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 3",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 4",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 5",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout10.xml",
+            "name": "Title and Vertical Text",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Vertical Text Placeholder 2",
+                "idx": 1,
+                "type": "dt",
+                "orientation": "vert",
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 3",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 4",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 5",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout11.xml",
+            "name": "Vertical Title and Text",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Vertical Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": "vert",
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6629400,
+                "y": 274638,
+                "w": 2057400,
+                "h": 5851525
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Vertical Text Placeholder 2",
+                "idx": 1,
+                "type": "dt",
+                "orientation": "vert",
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 274638,
+                "w": 6019800,
+                "h": 5851525
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 3",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 4",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 5",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout2.xml",
+            "name": "Title and Content",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Content Placeholder 2",
+                "idx": 1,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 3",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 4",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 5",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout3.xml",
+            "name": "Section Header",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 722313,
+                "y": 4406900,
+                "w": 7772400,
+                "h": 1362075
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 2",
+                "idx": 1,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 722313,
+                "y": 2906713,
+                "w": 7772400,
+                "h": 1500187
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 3",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 4",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 5",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout4.xml",
+            "name": "Two Content",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Content Placeholder 2",
+                "idx": 1,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 1600200,
+                "w": 4038600,
+                "h": 4525963
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Content Placeholder 3",
+                "idx": 2,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 4648200,
+                "y": 1600200,
+                "w": 4038600,
+                "h": 4525963
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 4",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 5",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 6",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout5.xml",
+            "name": "V04 Control Mixed Body",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 2",
+                "idx": 1,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 731520,
+                "y": 1417320,
+                "w": 5394960,
+                "h": 4297680
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Content Placeholder 3",
+                "idx": 2,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 2174875,
+                "w": 4040188,
+                "h": 3951288
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 4",
+                "idx": 3,
+                "type": "body",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 4846320,
+                "w": 4572000,
+                "h": 640080
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Content Placeholder 5",
+                "idx": 4,
+                "type": "pic",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 6537960,
+                "y": 1417320,
+                "w": 4572000,
+                "h": 3246120
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 6",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 7",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 8",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout6.xml",
+            "name": "Title Only",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 2",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 3",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 4",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout7.xml",
+            "name": "Blank",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 1",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 2",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 3",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout8.xml",
+            "name": "Content with Caption",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 273050,
+                "w": 3008313,
+                "h": 1162050
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Content Placeholder 2",
+                "idx": 1,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 3575050,
+                "y": 273050,
+                "w": 5111750,
+                "h": 5853113
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 3",
+                "idx": 2,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 457200,
+                "y": 1435100,
+                "w": 3008313,
+                "h": 4691063
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 4",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 5",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 6",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slideLayouts/slideLayout9.xml",
+            "name": "Picture with Caption",
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 1792288,
+                "y": 4800600,
+                "w": 5486400,
+                "h": 566738
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Picture Placeholder 2",
+                "idx": 1,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 1792288,
+                "y": 612775,
+                "w": 5486400,
+                "h": 4114800
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 3",
+                "idx": 2,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": 1792288,
+                "y": 5367338,
+                "w": 5486400,
+                "h": 804862
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Date Placeholder 4",
+                "idx": 10,
+                "type": "dt",
+                "orientation": null,
+                "size_hint": "half",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Footer Placeholder 5",
+                "idx": 11,
+                "type": "ftr",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Slide Number Placeholder 6",
+                "idx": 12,
+                "type": "sldNum",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          }
+        ],
+        "slides": [
+          {
+            "part_name": "ppt/slides/slide1.xml",
+            "name": null,
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "ctrTitle",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Subtitle 2",
+                "idx": 1,
+                "type": "subTitle",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          },
+          {
+            "part_name": "ppt/slides/slide2.xml",
+            "name": null,
+            "placeholders": [
+              {
+                "shape_tag": "sp",
+                "shape_name": "Title 1",
+                "idx": null,
+                "type": "title",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 2",
+                "idx": 1,
+                "type": "body",
+                "orientation": null,
+                "size_hint": null,
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "sp",
+                "shape_name": "Text Placeholder 3",
+                "idx": 3,
+                "type": "body",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": true,
+                "has_blip_fill": false,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              },
+              {
+                "shape_tag": "pic",
+                "shape_name": "Picture Placeholder 4",
+                "idx": 4,
+                "type": "pic",
+                "orientation": null,
+                "size_hint": "quarter",
+                "has_text_body": false,
+                "has_blip_fill": true,
+                "x": null,
+                "y": null,
+                "w": null,
+                "h": null
+              }
+            ]
+          }
+        ]
+      },
+      "python_layout_dump": [
+        {
+          "index": 0,
+          "name": "Title Slide",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "center_title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 685800,
+              "top": 2130425,
+              "width": 7772400,
+              "height": 1470025
+            },
+            {
+              "idx": 1,
+              "type": "subtitle",
+              "name": "Subtitle 2",
+              "has_text_frame": true,
+              "left": 1371600,
+              "top": 3886200,
+              "width": 6400800,
+              "height": 1752600
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 3",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 4",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 5",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "name": "Title and Content",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 274638,
+              "width": 8229600,
+              "height": 1143000
+            },
+            {
+              "idx": 1,
+              "type": "date",
+              "name": "Content Placeholder 2",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 3",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 4",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 5",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "name": "Section Header",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 722313,
+              "top": 4406900,
+              "width": 7772400,
+              "height": 1362075
+            },
+            {
+              "idx": 1,
+              "type": "date",
+              "name": "Text Placeholder 2",
+              "has_text_frame": true,
+              "left": 722313,
+              "top": 2906713,
+              "width": 7772400,
+              "height": 1500187
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 3",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 4",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 5",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "name": "Two Content",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 274638,
+              "width": 8229600,
+              "height": 1143000
+            },
+            {
+              "idx": 1,
+              "type": "date",
+              "name": "Content Placeholder 2",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 1600200,
+              "width": 4038600,
+              "height": 4525963
+            },
+            {
+              "idx": 2,
+              "type": "date",
+              "name": "Content Placeholder 3",
+              "has_text_frame": true,
+              "left": 4648200,
+              "top": 1600200,
+              "width": 4038600,
+              "height": 4525963
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 4",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 5",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 6",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "name": "V04 Control Mixed Body",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 274638,
+              "width": 8229600,
+              "height": 1143000
+            },
+            {
+              "idx": 1,
+              "type": "body",
+              "name": "Text Placeholder 2",
+              "has_text_frame": true,
+              "left": 731520,
+              "top": 1417320,
+              "width": 5394960,
+              "height": 4297680
+            },
+            {
+              "idx": 2,
+              "type": "date",
+              "name": "Content Placeholder 3",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 2174875,
+              "width": 4040188,
+              "height": 3951288
+            },
+            {
+              "idx": 3,
+              "type": "body",
+              "name": "Text Placeholder 4",
+              "has_text_frame": true,
+              "left": 6537960,
+              "top": 4846320,
+              "width": 4572000,
+              "height": 640080
+            },
+            {
+              "idx": 4,
+              "type": "picture",
+              "name": "Content Placeholder 5",
+              "has_text_frame": true,
+              "left": 6537960,
+              "top": 1417320,
+              "width": 4572000,
+              "height": 3246120
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 6",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 7",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 8",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "name": "Title Only",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 274638,
+              "width": 8229600,
+              "height": 1143000
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 2",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 3",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 4",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "name": "Blank",
+          "placeholders": [
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 1",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 2",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 3",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "name": "Content with Caption",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 273050,
+              "width": 3008313,
+              "height": 1162050
+            },
+            {
+              "idx": 1,
+              "type": "date",
+              "name": "Content Placeholder 2",
+              "has_text_frame": true,
+              "left": 3575050,
+              "top": 273050,
+              "width": 5111750,
+              "height": 5853113
+            },
+            {
+              "idx": 2,
+              "type": "date",
+              "name": "Text Placeholder 3",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 1435100,
+              "width": 3008313,
+              "height": 4691063
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 4",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 5",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 6",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "name": "Picture with Caption",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 1792288,
+              "top": 4800600,
+              "width": 5486400,
+              "height": 566738
+            },
+            {
+              "idx": 1,
+              "type": "date",
+              "name": "Picture Placeholder 2",
+              "has_text_frame": true,
+              "left": 1792288,
+              "top": 612775,
+              "width": 5486400,
+              "height": 4114800
+            },
+            {
+              "idx": 2,
+              "type": "date",
+              "name": "Text Placeholder 3",
+              "has_text_frame": true,
+              "left": 1792288,
+              "top": 5367338,
+              "width": 5486400,
+              "height": 804862
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 4",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 5",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 6",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "name": "Title and Vertical Text",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Title 1",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 274638,
+              "width": 8229600,
+              "height": 1143000
+            },
+            {
+              "idx": 1,
+              "type": "date",
+              "name": "Vertical Text Placeholder 2",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 3",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 4",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 5",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "name": "Vertical Title and Text",
+          "placeholders": [
+            {
+              "idx": 0,
+              "type": "title",
+              "name": "Vertical Title 1",
+              "has_text_frame": true,
+              "left": 6629400,
+              "top": 274638,
+              "width": 2057400,
+              "height": 5851525
+            },
+            {
+              "idx": 1,
+              "type": "date",
+              "name": "Vertical Text Placeholder 2",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 274638,
+              "width": 6019800,
+              "height": 5851525
+            },
+            {
+              "idx": 10,
+              "type": "date",
+              "name": "Date Placeholder 3",
+              "has_text_frame": true,
+              "left": 457200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            },
+            {
+              "idx": 11,
+              "type": "footer",
+              "name": "Footer Placeholder 4",
+              "has_text_frame": true,
+              "left": 3124200,
+              "top": 6356350,
+              "width": 2895600,
+              "height": 365125
+            },
+            {
+              "idx": 12,
+              "type": "slide_number",
+              "name": "Slide Number Placeholder 5",
+              "has_text_frame": true,
+              "left": 6553200,
+              "top": 6356350,
+              "width": 2133600,
+              "height": 365125
+            }
+          ]
+        }
+      ],
+      "inspection_template_id": "template-9c7545a37531",
+      "contract_template_id": "template-9c7545a37531",
+      "contract_summary": {
+        "template_id": "template-9c7545a37531",
+        "text_image_pattern_available": true,
+        "body_layout_name": "V04 Control Mixed Body",
+        "body_text_slots": [
+          {
+            "slot_name": "text_image.body_1",
+            "placeholder_index": 1,
+            "placeholder_type": "body",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "body_image_slots": [
+          {
+            "slot_name": "text_image.image_1",
+            "placeholder_index": 4,
+            "placeholder_type": "picture",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ],
+        "contents_text_slots": [
+          {
+            "slot_id": "contents.body_1",
+            "orientation": "stack",
+            "order": 1,
+            "required": true
+          }
+        ]
+      },
+      "body_layout_ooxml": {
+        "part_name": "ppt/slideLayouts/slideLayout5.xml",
+        "name": "V04 Control Mixed Body",
+        "placeholders": [
+          {
+            "shape_tag": "sp",
+            "shape_name": "Title 1",
+            "idx": null,
+            "type": "title",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": null,
+            "y": null,
+            "w": null,
+            "h": null
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text Placeholder 2",
+            "idx": 1,
+            "type": "body",
+            "orientation": null,
+            "size_hint": null,
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 731520,
+            "y": 1417320,
+            "w": 5394960,
+            "h": 4297680
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Content Placeholder 3",
+            "idx": 2,
+            "type": "dt",
+            "orientation": null,
+            "size_hint": "half",
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 457200,
+            "y": 2174875,
+            "w": 4040188,
+            "h": 3951288
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Text Placeholder 4",
+            "idx": 3,
+            "type": "body",
+            "orientation": null,
+            "size_hint": "quarter",
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 6537960,
+            "y": 4846320,
+            "w": 4572000,
+            "h": 640080
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Content Placeholder 5",
+            "idx": 4,
+            "type": "pic",
+            "orientation": null,
+            "size_hint": "quarter",
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": 6537960,
+            "y": 1417320,
+            "w": 4572000,
+            "h": 3246120
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Date Placeholder 6",
+            "idx": 10,
+            "type": "dt",
+            "orientation": null,
+            "size_hint": "half",
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": null,
+            "y": null,
+            "w": null,
+            "h": null
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Footer Placeholder 7",
+            "idx": 11,
+            "type": "ftr",
+            "orientation": null,
+            "size_hint": "quarter",
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": null,
+            "y": null,
+            "w": null,
+            "h": null
+          },
+          {
+            "shape_tag": "sp",
+            "shape_name": "Slide Number Placeholder 8",
+            "idx": 12,
+            "type": "sldNum",
+            "orientation": null,
+            "size_hint": "quarter",
+            "has_text_body": true,
+            "has_blip_fill": false,
+            "x": null,
+            "y": null,
+            "w": null,
+            "h": null
+          }
+        ]
+      },
+      "body_layout_python": {
+        "index": 4,
+        "name": "V04 Control Mixed Body",
+        "placeholders": [
+          {
+            "idx": 0,
+            "type": "title",
+            "name": "Title 1",
+            "has_text_frame": true,
+            "left": 457200,
+            "top": 274638,
+            "width": 8229600,
+            "height": 1143000
+          },
+          {
+            "idx": 1,
+            "type": "body",
+            "name": "Text Placeholder 2",
+            "has_text_frame": true,
+            "left": 731520,
+            "top": 1417320,
+            "width": 5394960,
+            "height": 4297680
+          },
+          {
+            "idx": 2,
+            "type": "date",
+            "name": "Content Placeholder 3",
+            "has_text_frame": true,
+            "left": 457200,
+            "top": 2174875,
+            "width": 4040188,
+            "height": 3951288
+          },
+          {
+            "idx": 3,
+            "type": "body",
+            "name": "Text Placeholder 4",
+            "has_text_frame": true,
+            "left": 6537960,
+            "top": 4846320,
+            "width": 4572000,
+            "height": 640080
+          },
+          {
+            "idx": 4,
+            "type": "picture",
+            "name": "Content Placeholder 5",
+            "has_text_frame": true,
+            "left": 6537960,
+            "top": 1417320,
+            "width": 4572000,
+            "height": 3246120
+          },
+          {
+            "idx": 10,
+            "type": "date",
+            "name": "Date Placeholder 6",
+            "has_text_frame": true,
+            "left": 457200,
+            "top": 6356350,
+            "width": 2133600,
+            "height": 365125
+          },
+          {
+            "idx": 11,
+            "type": "footer",
+            "name": "Footer Placeholder 7",
+            "has_text_frame": true,
+            "left": 3124200,
+            "top": 6356350,
+            "width": 2895600,
+            "height": 365125
+          },
+          {
+            "idx": 12,
+            "type": "slide_number",
+            "name": "Slide Number Placeholder 8",
+            "has_text_frame": true,
+            "left": 6553200,
+            "top": 6356350,
+            "width": 2133600,
+            "height": 365125
+          }
+        ]
+      },
+      "generation_summary": {
+        "generated_slide_count": 5,
+        "generated_slide_titles": [
+          "Autoreport",
+          "Contents",
+          "What It Does",
+          "Adoption Snapshot",
+          "Why It Matters"
+        ],
+        "generated_shape_dump": [
+          [
+            {
+              "placeholder_index": 0,
+              "placeholder_type": "center_title",
+              "text": "Autoreport"
+            },
+            {
+              "placeholder_index": 1,
+              "placeholder_type": "subtitle",
+              "text": "Template-aware PPTX autofill engine"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 0,
+              "placeholder_type": "title",
+              "text": "Contents"
+            },
+            {
+              "placeholder_index": 1,
+              "placeholder_type": "body",
+              "text": "What It Does\nAdoption Snapshot\nWhy It Matters"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 0,
+              "placeholder_type": "title",
+              "text": "What It Does"
+            },
+            {
+              "placeholder_index": 1,
+              "placeholder_type": "body",
+              "text": "Generate editable PowerPoint decks from structured inputs.\nDescribe the slide goal and supporting bullets instead of drawing placeholder geometry.\nThe compiler resolves this authoring block into the runtime report payload automatically."
+            }
+          ],
+          [
+            {
+              "placeholder_index": 0,
+              "placeholder_type": "title",
+              "text": "Adoption Snapshot"
+            },
+            {
+              "placeholder_index": 1,
+              "placeholder_type": "body",
+              "text": "Templates profiled: 12\nDecks generated: 24"
+            }
+          ],
+          [
+            {
+              "placeholder_index": 0,
+              "placeholder_type": "title",
+              "text": "Why It Matters"
+            },
+            {
+              "placeholder_index": 1,
+              "placeholder_type": "body",
+              "text": "Pair narrative context with an uploaded image or a local file path.\nUse assets.images[*].ref for web uploads.\nUse assets.images[*].path when driving generation from the CLI."
+            },
+            {
+              "placeholder_index": 3,
+              "placeholder_type": "body",
+              "text": "Example uses image_1 as the uploaded image ref."
+            }
+          ]
+        ],
+        "image_placeholder_indices": [
+          4
+        ],
+        "image_placeholder_text_hits": [],
+        "text_written_to_image_placeholder": false
+      }
+    }
+  ]
+}

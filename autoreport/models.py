@@ -8,6 +8,7 @@ from typing import Any
 
 
 TEMPLATE_CONTRACT_VERSION = "autoreport.template.v1"
+AUTHORING_PAYLOAD_VERSION = "autoreport.authoring.v1"
 REPORT_PAYLOAD_VERSION = "autoreport.payload.v1"
 
 
@@ -67,14 +68,27 @@ class TemplatePatternContract:
     kind: str
     layout_name: str
     slots: tuple[TemplateSlotContract, ...]
+    image_count: int | None = None
+    image_layout: str | None = None
+    caption_slots: int | None = None
+    body_slot_count: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "pattern_id": self.pattern_id,
             "kind": self.kind,
             "layout_name": self.layout_name,
             "slots": [slot.to_dict() for slot in self.slots],
         }
+        if self.image_count is not None:
+            payload["image_count"] = self.image_count
+        if self.image_layout is not None:
+            payload["image_layout"] = self.image_layout
+        if self.caption_slots is not None:
+            payload["caption_slots"] = self.caption_slots
+        if self.body_slot_count is not None:
+            payload["body_slot_count"] = self.body_slot_count
+        return payload
 
 
 @dataclass(slots=True)
@@ -126,9 +140,11 @@ class MetricItem:
     """One user-facing metric row for a metrics slide."""
 
     label: str
-    value: int
+    value: int | str
 
     def as_text(self) -> str:
+        if isinstance(self.value, str) and not self.value:
+            return self.label
         return f"{self.label}: {self.value}"
 
 
@@ -139,6 +155,14 @@ class ImageSpec:
     path: Path | None = None
     ref: str | None = None
     fit: str = "contain"
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {"fit": self.fit}
+        if self.path is not None:
+            payload["path"] = str(self.path)
+        if self.ref is not None:
+            payload["ref"] = self.ref
+        return payload
 
 
 @dataclass(slots=True)
@@ -152,7 +176,7 @@ class SlotOverride:
 
 @dataclass(slots=True)
 class PayloadSlide:
-    """One authoring-friendly slide definition inside a report payload."""
+    """One runtime slide definition inside a compiled report payload."""
 
     kind: str
     title: str
@@ -172,12 +196,148 @@ class TitleSlidePayload:
     title: str
     subtitle: list[str]
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "title": self.title,
+            "subtitle": list(self.subtitle),
+        }
+
 
 @dataclass(slots=True)
 class ContentsSettings:
     """Controls whether an auto-generated contents slide is inserted."""
 
     enabled: bool = True
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"enabled": self.enabled}
+
+
+@dataclass(slots=True)
+class DeckContext:
+    """Top-level authoring guidance for the whole deck."""
+
+    audience: str | None = None
+    tone: str | None = None
+    objective: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if self.audience is not None:
+            payload["audience"] = self.audience
+        if self.tone is not None:
+            payload["tone"] = self.tone
+        if self.objective is not None:
+            payload["objective"] = self.objective
+        return payload
+
+
+@dataclass(slots=True)
+class AuthoringSlideContext:
+    """Structured authoring content for one slide."""
+
+    summary: str | None = None
+    bullets: list[str] = field(default_factory=list)
+    metrics: list[MetricItem] = field(default_factory=list)
+    caption: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if self.summary is not None:
+            payload["summary"] = self.summary
+        if self.bullets:
+            payload["bullets"] = list(self.bullets)
+        if self.metrics:
+            payload["metrics"] = [
+                {"label": item.label, "value": item.value}
+                for item in self.metrics
+            ]
+        if self.caption is not None:
+            payload["caption"] = self.caption
+        return payload
+
+
+@dataclass(slots=True)
+class AuthoringSlideAssets:
+    """External assets referenced by one authored slide."""
+
+    images: list[ImageSpec] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"images": [image.to_dict() for image in self.images]}
+
+
+@dataclass(slots=True)
+class LayoutRequest:
+    """Requested authored slide shape before compilation to runtime slots."""
+
+    kind: str
+    pattern_id: str | None = None
+    image_count: int | None = None
+    image_orientation: str = "auto"
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "kind": self.kind,
+            "image_orientation": self.image_orientation,
+        }
+        if self.pattern_id is not None:
+            payload["pattern_id"] = self.pattern_id
+        if self.image_count is not None:
+            payload["image_count"] = self.image_count
+        return payload
+
+
+@dataclass(slots=True)
+class AuthoringSlide:
+    """One authored slide request before compilation."""
+
+    slide_no: int
+    goal: str
+    include_in_contents: bool = True
+    context: AuthoringSlideContext = field(default_factory=AuthoringSlideContext)
+    assets: AuthoringSlideAssets = field(default_factory=AuthoringSlideAssets)
+    layout_request: LayoutRequest | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "slide_no": self.slide_no,
+            "goal": self.goal,
+            "include_in_contents": self.include_in_contents,
+            "context": self.context.to_dict(),
+            "layout_request": (
+                {}
+                if self.layout_request is None
+                else self.layout_request.to_dict()
+            ),
+        }
+        if self.assets.images:
+            payload["assets"] = self.assets.to_dict()
+        return payload
+
+
+@dataclass(slots=True)
+class AuthoringPayload:
+    """User-facing authoring contract compiled into a runtime report payload."""
+
+    payload_version: str
+    template_id: str
+    deck_context: DeckContext
+    title_slide: TitleSlidePayload
+    contents: ContentsSettings
+    slides: list[AuthoringSlide]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "authoring_payload": {
+                "payload_version": self.payload_version,
+                "template_id": self.template_id,
+                "deck_context": self.deck_context.to_dict(),
+                "title_slide": self.title_slide.to_dict(),
+                "contents": self.contents.to_dict(),
+                "slides": [slide.to_dict() for slide in self.slides],
+            }
+        }
 
 
 @dataclass(slots=True)
@@ -195,13 +355,8 @@ class ReportPayload:
             "report_payload": {
                 "payload_version": self.payload_version,
                 "template_id": self.template_id,
-                "title_slide": {
-                    "title": self.title_slide.title,
-                    "subtitle": list(self.title_slide.subtitle),
-                },
-                "contents": {
-                    "enabled": self.contents.enabled,
-                },
+                "title_slide": self.title_slide.to_dict(),
+                "contents": self.contents.to_dict(),
                 "slides": [
                     _payload_slide_to_dict(slide) for slide in self.slides
                 ],
@@ -225,12 +380,7 @@ def _payload_slide_to_dict(slide: PayloadSlide) -> dict[str, Any]:
             for item in slide.items
         ]
     if slide.image is not None:
-        image_payload: dict[str, Any] = {"fit": slide.image.fit}
-        if slide.image.path is not None:
-            image_payload["path"] = str(slide.image.path)
-        if slide.image.ref is not None:
-            image_payload["ref"] = slide.image.ref
-        payload["image"] = image_payload
+        payload["image"] = slide.image.to_dict()
     if slide.caption is not None:
         payload["caption"] = slide.caption
     payload["slot_overrides"] = {
@@ -249,10 +399,5 @@ def _slot_override_to_dict(override: SlotOverride) -> dict[str, Any]:
             else list(override.text)
         )
     if override.image is not None:
-        image_payload: dict[str, Any] = {"fit": override.image.fit}
-        if override.image.path is not None:
-            image_payload["path"] = str(override.image.path)
-        if override.image.ref is not None:
-            image_payload["ref"] = override.image.ref
-        payload["image"] = image_payload
+        payload["image"] = override.image.to_dict()
     return payload

@@ -1,0 +1,1352 @@
+{
+  "source_library_dir": "template-library/2026-03-28/presentationgo",
+  "references": [
+    {
+      "file_name": "datawave-insights-16x9.potx",
+      "source_exists": true,
+      "source_library_snapshot": "template-library/2026-03-28/presentationgo",
+      "slide_size": {
+        "cx": 12192000,
+        "cy": 6858000
+      },
+      "layout_count": 8,
+      "layout_names": [
+        "Cover",
+        "Title and Content 1",
+        "Title and Content 2",
+        "Section 1",
+        "Section 2",
+        "Closing",
+        "Color and Typography",
+        "Designed by PresentationGo"
+      ],
+      "layouts": [
+        {
+          "part_name": "ppt/slideLayouts/slideLayout1.xml",
+          "name": "Cover",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "ctrTitle"
+            },
+            {
+              "idx": 1,
+              "type": "subTitle"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout2.xml",
+          "name": "Title and Content 1",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout3.xml",
+          "name": "Title and Content 2",
+          "placeholders": [
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            },
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout4.xml",
+          "name": "Section 1",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout5.xml",
+          "name": "Section 2",
+          "placeholders": [
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            },
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout6.xml",
+          "name": "Closing",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 13,
+              "type": "pic"
+            },
+            {
+              "idx": 14,
+              "type": "body"
+            },
+            {
+              "idx": 15,
+              "type": "body"
+            },
+            {
+              "idx": 16,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout7.xml",
+          "name": "Color and Typography",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 10,
+              "type": "body"
+            },
+            {
+              "idx": 11,
+              "type": "body"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout8.xml",
+          "name": "Designed by PresentationGo",
+          "placeholders": []
+        }
+      ],
+      "theme": {
+        "colors": [
+          {
+            "name": "dk1",
+            "value": "000000"
+          },
+          {
+            "name": "lt1",
+            "value": "FFFFFF"
+          },
+          {
+            "name": "dk2",
+            "value": "0E2841"
+          },
+          {
+            "name": "lt2",
+            "value": "E8E8E8"
+          },
+          {
+            "name": "accent1",
+            "value": "156082"
+          },
+          {
+            "name": "accent2",
+            "value": "E97132"
+          },
+          {
+            "name": "accent3",
+            "value": "196B24"
+          },
+          {
+            "name": "accent4",
+            "value": "0F9ED5"
+          },
+          {
+            "name": "accent5",
+            "value": "A02B93"
+          },
+          {
+            "name": "accent6",
+            "value": "4EA72E"
+          },
+          {
+            "name": "hlink",
+            "value": "467886"
+          },
+          {
+            "name": "folHlink",
+            "value": "96607D"
+          }
+        ],
+        "fonts": {
+          "major_latin": "Aptos Display",
+          "minor_latin": "Aptos"
+        }
+      },
+      "media_assets": 6,
+      "signals": {
+        "has_picture_with_caption": true,
+        "decorative_picture_layouts": 1
+      },
+      "tone": "calm data-reporting",
+      "why_it_matters": "Strong fit for Autoreport editorial tonality because the palette is restrained and the closing layout already mixes picture and body zones.",
+      "reuse_bias": "palette + title rhythm"
+    },
+    {
+      "file_name": "finance-business-16x9.potx",
+      "source_exists": true,
+      "source_library_snapshot": "template-library/2026-03-28/presentationgo",
+      "slide_size": {
+        "cx": 12192000,
+        "cy": 6858000
+      },
+      "layout_count": 9,
+      "layout_names": [
+        "Cover",
+        "Title and Content 1",
+        "Title and Content 2",
+        "Section 1",
+        "Section 2",
+        "Closing",
+        "Color and Typography",
+        "Title Slide",
+        "Designed by PresentationGo"
+      ],
+      "layouts": [
+        {
+          "part_name": "ppt/slideLayouts/slideLayout1.xml",
+          "name": "Cover",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "ctrTitle"
+            },
+            {
+              "idx": 1,
+              "type": "subTitle"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout2.xml",
+          "name": "Title and Content 1",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout3.xml",
+          "name": "Title and Content 2",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout4.xml",
+          "name": "Section 1",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout5.xml",
+          "name": "Section 2",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout6.xml",
+          "name": "Closing",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 13,
+              "type": "pic"
+            },
+            {
+              "idx": 14,
+              "type": "body"
+            },
+            {
+              "idx": 15,
+              "type": "body"
+            },
+            {
+              "idx": 16,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout7.xml",
+          "name": "Color and Typography",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 10,
+              "type": "body"
+            },
+            {
+              "idx": 11,
+              "type": "body"
+            },
+            {
+              "idx": 12,
+              "type": "body"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout8.xml",
+          "name": "Title Slide",
+          "placeholders": []
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout9.xml",
+          "name": "Designed by PresentationGo",
+          "placeholders": []
+        }
+      ],
+      "theme": {
+        "colors": [
+          {
+            "name": "dk1",
+            "value": "000000"
+          },
+          {
+            "name": "lt1",
+            "value": "FFFFFF"
+          },
+          {
+            "name": "dk2",
+            "value": "44546A"
+          },
+          {
+            "name": "lt2",
+            "value": "E7E6E6"
+          },
+          {
+            "name": "accent1",
+            "value": "4472C4"
+          },
+          {
+            "name": "accent2",
+            "value": "ED7D31"
+          },
+          {
+            "name": "accent3",
+            "value": "A5A5A5"
+          },
+          {
+            "name": "accent4",
+            "value": "FFC000"
+          },
+          {
+            "name": "accent5",
+            "value": "5B9BD5"
+          },
+          {
+            "name": "accent6",
+            "value": "70AD47"
+          },
+          {
+            "name": "hlink",
+            "value": "0563C1"
+          },
+          {
+            "name": "folHlink",
+            "value": "954F72"
+          }
+        ],
+        "fonts": {
+          "major_latin": "Calibri Light",
+          "minor_latin": "Calibri"
+        }
+      },
+      "media_assets": 6,
+      "signals": {
+        "has_picture_with_caption": true,
+        "decorative_picture_layouts": 1
+      },
+      "tone": "safe corporate baseline",
+      "why_it_matters": "Useful as a control because it stays close to stock Office structure.",
+      "reuse_bias": "baseline comparison only"
+    },
+    {
+      "file_name": "modern-business-16x9.potx",
+      "source_exists": true,
+      "source_library_snapshot": "template-library/2026-03-28/presentationgo",
+      "slide_size": {
+        "cx": 12192000,
+        "cy": 6858000
+      },
+      "layout_count": 14,
+      "layout_names": [
+        "Title Slide",
+        "Content with Caption",
+        "Picture with Caption",
+        "Title and Vertical Text",
+        "Vertical Title and Text",
+        "Designed by PresentationGo",
+        "1_Title Slide",
+        "Title and Content",
+        "1_Title and Content",
+        "Section Header",
+        "Two Content",
+        "Comparison",
+        "Title Only",
+        "Blank"
+      ],
+      "layouts": [
+        {
+          "part_name": "ppt/slideLayouts/slideLayout1.xml",
+          "name": "Title Slide",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "ctrTitle"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            },
+            {
+              "idx": 1,
+              "type": "subTitle"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout10.xml",
+          "name": "Content with Caption",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 2,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout11.xml",
+          "name": "Picture with Caption",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "pic"
+            },
+            {
+              "idx": 2,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout12.xml",
+          "name": "Title and Vertical Text",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout13.xml",
+          "name": "Vertical Title and Text",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout14.xml",
+          "name": "Designed by PresentationGo",
+          "placeholders": []
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout2.xml",
+          "name": "1_Title Slide",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "ctrTitle"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            },
+            {
+              "idx": 1,
+              "type": "subTitle"
+            },
+            {
+              "idx": 13,
+              "type": "pic"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout3.xml",
+          "name": "Title and Content",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 13,
+              "type": "pic"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout4.xml",
+          "name": "1_Title and Content",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout5.xml",
+          "name": "Section Header",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout6.xml",
+          "name": "Two Content",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 2,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout7.xml",
+          "name": "Comparison",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 2,
+              "type": "object?"
+            },
+            {
+              "idx": 3,
+              "type": "body"
+            },
+            {
+              "idx": 4,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout8.xml",
+          "name": "Title Only",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout9.xml",
+          "name": "Blank",
+          "placeholders": [
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        }
+      ],
+      "theme": {
+        "colors": [
+          {
+            "name": "dk1",
+            "value": "000000"
+          },
+          {
+            "name": "lt1",
+            "value": "FFFFFF"
+          },
+          {
+            "name": "dk2",
+            "value": "44546A"
+          },
+          {
+            "name": "lt2",
+            "value": "E7E6E6"
+          },
+          {
+            "name": "accent1",
+            "value": "4472C4"
+          },
+          {
+            "name": "accent2",
+            "value": "ED7D31"
+          },
+          {
+            "name": "accent3",
+            "value": "A5A5A5"
+          },
+          {
+            "name": "accent4",
+            "value": "FFC000"
+          },
+          {
+            "name": "accent5",
+            "value": "5B9BD5"
+          },
+          {
+            "name": "accent6",
+            "value": "70AD47"
+          },
+          {
+            "name": "hlink",
+            "value": "0563C1"
+          },
+          {
+            "name": "folHlink",
+            "value": "954F72"
+          }
+        ],
+        "fonts": {
+          "major_latin": "Calibri Light",
+          "minor_latin": "Calibri"
+        }
+      },
+      "media_assets": 1,
+      "signals": {
+        "has_picture_with_caption": true,
+        "decorative_picture_layouts": 3
+      },
+      "tone": "broad layout library",
+      "why_it_matters": "Best source for structural ideas because it carries both `Content with Caption` and `Picture with Caption` plus multiple title/content variants.",
+      "reuse_bias": "mixed-layout patterns"
+    },
+    {
+      "file_name": "modern-navy-horizon-16x9.potx",
+      "source_exists": true,
+      "source_library_snapshot": "template-library/2026-03-28/presentationgo",
+      "slide_size": {
+        "cx": 12192000,
+        "cy": 6858000
+      },
+      "layout_count": 8,
+      "layout_names": [
+        "Cover",
+        "Title and Content 1",
+        "Title and Content 2",
+        "Section 1",
+        "Section 2",
+        "Closing",
+        "Color and Typography",
+        "Designed by PresentationGo"
+      ],
+      "layouts": [
+        {
+          "part_name": "ppt/slideLayouts/slideLayout1.xml",
+          "name": "Cover",
+          "placeholders": [
+            {
+              "idx": 17,
+              "type": "pic"
+            },
+            {
+              "idx": null,
+              "type": "ctrTitle"
+            },
+            {
+              "idx": 1,
+              "type": "subTitle"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout2.xml",
+          "name": "Title and Content 1",
+          "placeholders": [
+            {
+              "idx": 17,
+              "type": "pic"
+            },
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout3.xml",
+          "name": "Title and Content 2",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "object?"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 17,
+              "type": "pic"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout4.xml",
+          "name": "Section 1",
+          "placeholders": [
+            {
+              "idx": 17,
+              "type": "pic"
+            },
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout5.xml",
+          "name": "Section 2",
+          "placeholders": [
+            {
+              "idx": 17,
+              "type": "pic"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout6.xml",
+          "name": "Closing",
+          "placeholders": [
+            {
+              "idx": 17,
+              "type": "pic"
+            },
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 1,
+              "type": "body"
+            },
+            {
+              "idx": 14,
+              "type": "body"
+            },
+            {
+              "idx": 15,
+              "type": "body"
+            },
+            {
+              "idx": 16,
+              "type": "body"
+            },
+            {
+              "idx": 10,
+              "type": "dt"
+            },
+            {
+              "idx": 11,
+              "type": "ftr"
+            },
+            {
+              "idx": 12,
+              "type": "sldNum"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout7.xml",
+          "name": "Color and Typography",
+          "placeholders": [
+            {
+              "idx": null,
+              "type": "title"
+            },
+            {
+              "idx": 10,
+              "type": "body"
+            },
+            {
+              "idx": 11,
+              "type": "body"
+            }
+          ]
+        },
+        {
+          "part_name": "ppt/slideLayouts/slideLayout8.xml",
+          "name": "Designed by PresentationGo",
+          "placeholders": []
+        }
+      ],
+      "theme": {
+        "colors": [
+          {
+            "name": "dk1",
+            "value": "000000"
+          },
+          {
+            "name": "lt1",
+            "value": "FFFFFF"
+          },
+          {
+            "name": "dk2",
+            "value": "001F33"
+          },
+          {
+            "name": "lt2",
+            "value": "F2F2F2"
+          },
+          {
+            "name": "accent1",
+            "value": "F15F47"
+          },
+          {
+            "name": "accent2",
+            "value": "FBA91E"
+          },
+          {
+            "name": "accent3",
+            "value": "FEDA2F"
+          },
+          {
+            "name": "accent4",
+            "value": "6EA56C"
+          },
+          {
+            "name": "accent5",
+            "value": "3AC6E1"
+          },
+          {
+            "name": "accent6",
+            "value": "244470"
+          },
+          {
+            "name": "hlink",
+            "value": "008B58"
+          },
+          {
+            "name": "folHlink",
+            "value": "008B58"
+          }
+        ],
+        "fonts": {
+          "major_latin": "Calibri Light",
+          "minor_latin": "Calibri"
+        }
+      },
+      "media_assets": 0,
+      "signals": {
+        "has_picture_with_caption": true,
+        "decorative_picture_layouts": 6
+      },
+      "tone": "high-contrast editorial",
+      "why_it_matters": "Good source for stronger color blocking, but many layouts carry a decorative picture placeholder that could confuse template profiling.",
+      "reuse_bias": "accent system + edge decoration"
+    }
+  ],
+  "recommended_translation": {
+    "structure_reference": "modern-business-16x9.potx",
+    "palette_reference": "datawave-insights-16x9.potx",
+    "accent_reference": "modern-navy-horizon-16x9.potx",
+    "baseline_control": "finance-business-16x9.potx"
+  },
+  "v04_template_translation_rules": {
+    "keep": [
+      "16:9 aspect ratio",
+      "editorial title hierarchy",
+      "calm navy + teal + coral palette",
+      "decorative energy pushed to edges instead of behind the main text block"
+    ],
+    "avoid": [
+      "layout-wide decorative picture placeholders on text-first slides",
+      "dense multi-placeholder bodies before the runtime profiler boundary is patched",
+      "theme defaults that collapse back to plain stock Office styling"
+    ]
+  }
+}

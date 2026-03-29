@@ -1,0 +1,9 @@
+trigger:
+  name: demo-run-001
+  source: sandbox-operator
+  cadence: on_demand
+built_in: autoreport_editorial
+plan_options:
+  include_text_shaping: false
+  include_human_review: true
+  include_publish_handoff: false

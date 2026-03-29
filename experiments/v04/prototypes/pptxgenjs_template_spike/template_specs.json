@@ -1,0 +1,849 @@
+[
+  {
+    "id": "minimal_text",
+    "filename": "v04-minimal-text-template.pptx",
+    "description": "Minimal text-only Autoreport editorial baseline with title, subtitle, and one body placeholder.",
+    "titleLayoutName": "V04 Minimal Title",
+    "bodyLayoutName": "V04 Minimal Body",
+    "titlePlaceholders": [
+      {
+        "name": "title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.55,
+        "w": 11.8,
+        "h": 0.75,
+        "text": "Title Placeholder"
+      },
+      {
+        "name": "subtitle",
+        "type": "body",
+        "x": 0.9,
+        "y": 1.55,
+        "w": 10.9,
+        "h": 0.95,
+        "text": "Subtitle Placeholder"
+      }
+    ],
+    "bodyPlaceholders": [
+      {
+        "name": "body_title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.5,
+        "w": 11.8,
+        "h": 0.7,
+        "text": "Section Title"
+      },
+      {
+        "name": "body_main",
+        "type": "body",
+        "x": 0.8,
+        "y": 1.55,
+        "w": 11.2,
+        "h": 4.85,
+        "text": "Primary body placeholder"
+      }
+    ],
+    "previewSlides": {
+      "title": {
+        "textAssignments": [
+          {
+            "placeholder": "title",
+            "text": "Preview Title"
+          },
+          {
+            "placeholder": "subtitle",
+            "text": "Preview Subtitle"
+          }
+        ]
+      },
+      "body": {
+        "textAssignments": [
+          {
+            "placeholder": "body_title",
+            "text": "Highlights"
+          },
+          {
+            "placeholder": "body_main",
+            "text": "Primary body placeholder preview"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "stacked_text",
+    "filename": "v04-stacked-text-template.pptx",
+    "description": "Two vertically stacked body placeholders to test stack orientation detection.",
+    "titleLayoutName": "V04 Stacked Title",
+    "bodyLayoutName": "V04 Stacked Body",
+    "titlePlaceholders": [
+      {
+        "name": "title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.55,
+        "w": 11.8,
+        "h": 0.75,
+        "text": "Title Placeholder"
+      },
+      {
+        "name": "subtitle",
+        "type": "body",
+        "x": 0.9,
+        "y": 1.55,
+        "w": 10.9,
+        "h": 0.95,
+        "text": "Subtitle Placeholder"
+      }
+    ],
+    "bodyPlaceholders": [
+      {
+        "name": "body_title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.45,
+        "w": 11.8,
+        "h": 0.7,
+        "text": "Section Title"
+      },
+      {
+        "name": "body_top",
+        "type": "body",
+        "x": 0.9,
+        "y": 1.65,
+        "w": 11.0,
+        "h": 2.0,
+        "text": "Top body placeholder"
+      },
+      {
+        "name": "body_bottom",
+        "type": "body",
+        "x": 0.9,
+        "y": 3.85,
+        "w": 11.0,
+        "h": 2.0,
+        "text": "Bottom body placeholder"
+      }
+    ],
+    "previewSlides": {
+      "title": {
+        "textAssignments": [
+          {
+            "placeholder": "title",
+            "text": "Preview Title"
+          },
+          {
+            "placeholder": "subtitle",
+            "text": "Preview Subtitle"
+          }
+        ]
+      },
+      "body": {
+        "textAssignments": [
+          {
+            "placeholder": "body_title",
+            "text": "Metrics"
+          },
+          {
+            "placeholder": "body_top",
+            "text": "Top stacked placeholder preview"
+          },
+          {
+            "placeholder": "body_bottom",
+            "text": "Bottom stacked placeholder preview"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "text_image",
+    "filename": "v04-text-image-template.pptx",
+    "description": "Body layout with one text placeholder, one picture placeholder, and one caption placeholder.",
+    "titleLayoutName": "V04 Text Image Title",
+    "bodyLayoutName": "V04 Text Image Body",
+    "titlePlaceholders": [
+      {
+        "name": "title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.55,
+        "w": 11.8,
+        "h": 0.75,
+        "text": "Title Placeholder"
+      },
+      {
+        "name": "subtitle",
+        "type": "body",
+        "x": 0.9,
+        "y": 1.55,
+        "w": 10.9,
+        "h": 0.95,
+        "text": "Subtitle Placeholder"
+      }
+    ],
+    "bodyPlaceholders": [
+      {
+        "name": "body_title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.45,
+        "w": 11.8,
+        "h": 0.7,
+        "text": "Section Title"
+      },
+      {
+        "name": "body_main",
+        "type": "body",
+        "x": 0.8,
+        "y": 1.55,
+        "w": 5.9,
+        "h": 4.7,
+        "text": "Primary body placeholder"
+      },
+      {
+        "name": "body_image",
+        "type": "image",
+        "x": 7.15,
+        "y": 1.55,
+        "w": 5.0,
+        "h": 3.55
+      },
+      {
+        "name": "body_caption",
+        "type": "body",
+        "x": 7.15,
+        "y": 5.3,
+        "w": 5.0,
+        "h": 0.7,
+        "text": "Caption placeholder"
+      }
+    ],
+    "previewSlides": {
+      "title": {
+        "textAssignments": [
+          {
+            "placeholder": "title",
+            "text": "Preview Title"
+          },
+          {
+            "placeholder": "subtitle",
+            "text": "Preview Subtitle"
+          }
+        ]
+      },
+      "body": {
+        "textAssignments": [
+          {
+            "placeholder": "body_title",
+            "text": "Product Highlights"
+          },
+          {
+            "placeholder": "body_main",
+            "text": "Primary text placeholder preview"
+          },
+          {
+            "placeholder": "body_caption",
+            "text": "Caption placeholder preview"
+          }
+        ],
+        "imageAssignments": [
+          {
+            "placeholder": "body_image",
+            "path": "assets/landscape.png"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "text_image_pic_token",
+    "filename": "v04-text-image-pic-token-template.pptx",
+    "description": "Follow-up variant that asks PptxGenJS for a raw pic placeholder token while keeping the baseline geometry.",
+    "titleLayoutName": "V04 Text Image Pic Token Title",
+    "bodyLayoutName": "V04 Text Image Pic Token Body",
+    "titlePlaceholders": [
+      {
+        "name": "title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.55,
+        "w": 11.8,
+        "h": 0.75,
+        "text": "Title Placeholder"
+      },
+      {
+        "name": "subtitle",
+        "type": "body",
+        "x": 0.9,
+        "y": 1.55,
+        "w": 10.9,
+        "h": 0.95,
+        "text": "Subtitle Placeholder"
+      }
+    ],
+    "bodyPlaceholders": [
+      {
+        "name": "body_title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.45,
+        "w": 11.8,
+        "h": 0.7,
+        "text": "Section Title"
+      },
+      {
+        "name": "body_main",
+        "type": "body",
+        "x": 0.8,
+        "y": 1.55,
+        "w": 5.9,
+        "h": 4.7,
+        "text": "Primary body placeholder"
+      },
+      {
+        "name": "body_image",
+        "type": "pic",
+        "placeholderKind": "image",
+        "x": 7.15,
+        "y": 1.55,
+        "w": 5.0,
+        "h": 3.55
+      },
+      {
+        "name": "body_caption",
+        "type": "body",
+        "x": 7.15,
+        "y": 5.3,
+        "w": 5.0,
+        "h": 0.7,
+        "text": "Caption placeholder"
+      }
+    ],
+    "previewSlides": {
+      "title": {
+        "textAssignments": [
+          {
+            "placeholder": "title",
+            "text": "Preview Title"
+          },
+          {
+            "placeholder": "subtitle",
+            "text": "Preview Subtitle"
+          }
+        ]
+      },
+      "body": {
+        "textAssignments": [
+          {
+            "placeholder": "body_title",
+            "text": "Product Highlights"
+          },
+          {
+            "placeholder": "body_main",
+            "text": "Primary text placeholder preview"
+          },
+          {
+            "placeholder": "body_caption",
+            "text": "Caption placeholder preview"
+          }
+        ],
+        "imageAssignments": [
+          {
+            "placeholder": "body_image",
+            "path": "assets/landscape.png"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "text_image_compact_image",
+    "filename": "v04-text-image-compact-image-template.pptx",
+    "description": "Follow-up variant that keeps the PptxGenJS image placeholder path but reduces image prominence to avoid dual text-slot selection.",
+    "titleLayoutName": "V04 Text Image Compact Title",
+    "bodyLayoutName": "V04 Text Image Compact Body",
+    "titlePlaceholders": [
+      {
+        "name": "title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.55,
+        "w": 11.8,
+        "h": 0.75,
+        "text": "Title Placeholder"
+      },
+      {
+        "name": "subtitle",
+        "type": "body",
+        "x": 0.9,
+        "y": 1.55,
+        "w": 10.9,
+        "h": 0.95,
+        "text": "Subtitle Placeholder"
+      }
+    ],
+    "bodyPlaceholders": [
+      {
+        "name": "body_title",
+        "type": "title",
+        "x": 0.7,
+        "y": 0.45,
+        "w": 11.8,
+        "h": 0.7,
+        "text": "Section Title"
+      },
+      {
+        "name": "body_main",
+        "type": "body",
+        "x": 0.8,
+        "y": 1.55,
+        "w": 6.6,
+        "h": 4.8,
+        "text": "Primary body placeholder"
+      },
+      {
+        "name": "body_image",
+        "type": "image",
+        "x": 7.7,
+        "y": 1.55,
+        "w": 3.7,
+        "h": 2.4
+      },
+      {
+        "name": "body_caption",
+        "type": "body",
+        "x": 7.7,
+        "y": 4.2,
+        "w": 3.7,
+        "h": 0.65,
+        "text": "Caption placeholder"
+      }
+    ],
+    "previewSlides": {
+      "title": {
+        "textAssignments": [
+          {
+            "placeholder": "title",
+            "text": "Preview Title"
+          },
+          {
+            "placeholder": "subtitle",
+            "text": "Preview Subtitle"
+          }
+        ]
+      },
+      "body": {
+        "textAssignments": [
+          {
+            "placeholder": "body_title",
+            "text": "Product Highlights"
+          },
+          {
+            "placeholder": "body_main",
+            "text": "Primary text placeholder preview"
+          },
+          {
+            "placeholder": "body_caption",
+            "text": "Caption placeholder preview"
+          }
+        ],
+        "imageAssignments": [
+          {
+            "placeholder": "body_image",
+            "path": "assets/landscape.png"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "datawave_editorial",
+    "filename": "v04-datawave-editorial-template.pptx",
+    "description": "Reference-inspired branch-local template that blends Datawave palette cues with a cleaner editorial weekly-report layout.",
+    "titleLayoutName": "V04 Datawave Editorial Title",
+    "bodyLayoutName": "V04 Datawave Editorial Body",
+    "titleDecorations": [
+      {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "w": 3.35,
+          "h": 7.5,
+          "line": {
+            "color": "0E2841",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "0E2841"
+          }
+        }
+      },
+      {
+        "rect": {
+          "x": 10.95,
+          "y": 0,
+          "w": 2.38,
+          "h": 7.5,
+          "line": {
+            "color": "F3F4F6",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "F3F4F6"
+          }
+        }
+      },
+      {
+        "rect": {
+          "x": 10.58,
+          "y": 0,
+          "w": 0.22,
+          "h": 7.5,
+          "line": {
+            "color": "E97132",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "E97132"
+          }
+        }
+      },
+      {
+        "line": {
+          "x": 4.2,
+          "y": 1.58,
+          "w": 2.6,
+          "h": 0,
+          "line": {
+            "color": "156082",
+            "pt": 2.5
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "AUTOREPORT V0.4  |  TEMPLATE-CONTRACT EDITORIAL SPIKE",
+          "options": {
+            "x": 4.2,
+            "y": 1.02,
+            "w": 5.8,
+            "h": 0.22,
+            "fontFace": "Aptos",
+            "fontSize": 10,
+            "bold": true,
+            "color": "156082",
+            "margin": 0
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "Editorial reporting frame",
+          "options": {
+            "x": 0.62,
+            "y": 6.75,
+            "w": 2.1,
+            "h": 0.25,
+            "fontFace": "Aptos",
+            "fontSize": 11,
+            "bold": true,
+            "color": "FFFFFF",
+            "margin": 0
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "Inspired by local PresentationGo references",
+          "options": {
+            "x": 0.62,
+            "y": 7.03,
+            "w": 2.2,
+            "h": 0.2,
+            "fontFace": "Aptos",
+            "fontSize": 8,
+            "color": "C8D2DB",
+            "margin": 0
+          }
+        }
+      }
+    ],
+    "titlePlaceholders": [
+      {
+        "name": "title",
+        "type": "title",
+        "x": 4.2,
+        "y": 1.88,
+        "w": 6.25,
+        "h": 1.2,
+        "text": "Title Placeholder",
+        "options": {
+          "fontFace": "Aptos Display",
+          "fontSize": 30,
+          "bold": true,
+          "color": "0E2841",
+          "margin": 0
+        }
+      },
+      {
+        "name": "subtitle",
+        "type": "body",
+        "x": 4.25,
+        "y": 3.38,
+        "w": 4.7,
+        "h": 0.95,
+        "text": "Subtitle Placeholder",
+        "options": {
+          "fontFace": "Aptos",
+          "fontSize": 16,
+          "color": "5C6773",
+          "margin": 0.02
+        }
+      }
+    ],
+    "bodyDecorations": [
+      {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "w": 13.333,
+          "h": 7.5,
+          "line": {
+            "color": "F7F8FA",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "F7F8FA"
+          }
+        }
+      },
+      {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "w": 13.333,
+          "h": 0.28,
+          "line": {
+            "color": "0E2841",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "0E2841"
+          }
+        }
+      },
+      {
+        "rect": {
+          "x": 0.62,
+          "y": 0.7,
+          "w": 0.16,
+          "h": 5.95,
+          "line": {
+            "color": "156082",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "156082"
+          }
+        }
+      },
+      {
+        "rect": {
+          "x": 0.9,
+          "y": 1.48,
+          "w": 8.05,
+          "h": 4.98,
+          "line": {
+            "color": "D9E0E7",
+            "pt": 1
+          },
+          "fill": {
+            "color": "FFFFFF"
+          }
+        }
+      },
+      {
+        "rect": {
+          "x": 9.45,
+          "y": 1.48,
+          "w": 3.02,
+          "h": 1.3,
+          "line": {
+            "color": "E3ECF2",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "EAF2F6"
+          }
+        }
+      },
+      {
+        "rect": {
+          "x": 9.45,
+          "y": 3.08,
+          "w": 3.02,
+          "h": 1.92,
+          "line": {
+            "color": "0E2841",
+            "transparency": 100
+          },
+          "fill": {
+            "color": "0E2841"
+          }
+        }
+      },
+      {
+        "line": {
+          "x": 1.02,
+          "y": 1.32,
+          "w": 1.2,
+          "h": 0,
+          "line": {
+            "color": "E97132",
+            "pt": 2.2
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "STEADY SIGNAL",
+          "options": {
+            "x": 9.75,
+            "y": 1.74,
+            "w": 1.8,
+            "h": 0.2,
+            "fontFace": "Aptos",
+            "fontSize": 10,
+            "bold": true,
+            "color": "156082",
+            "margin": 0
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "Text-first layout keeps the report readable while leaving room for future image slots.",
+          "options": {
+            "x": 9.75,
+            "y": 2.02,
+            "w": 2.2,
+            "h": 0.46,
+            "fontFace": "Aptos",
+            "fontSize": 11,
+            "color": "3E5366",
+            "margin": 0
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "Design stance",
+          "options": {
+            "x": 9.75,
+            "y": 3.32,
+            "w": 1.5,
+            "h": 0.2,
+            "fontFace": "Aptos",
+            "fontSize": 10,
+            "bold": true,
+            "color": "9AC1D1",
+            "margin": 0
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "Structured, editorial, and calm. Decorative energy stays at the edges so the content block can still dominate.",
+          "options": {
+            "x": 9.75,
+            "y": 3.6,
+            "w": 2.15,
+            "h": 0.72,
+            "fontFace": "Aptos",
+            "fontSize": 12,
+            "color": "FFFFFF",
+            "margin": 0
+          }
+        }
+      },
+      {
+        "text": {
+          "text": "V04 reference frame",
+          "options": {
+            "x": 9.75,
+            "y": 6.62,
+            "w": 1.9,
+            "h": 0.18,
+            "fontFace": "Aptos",
+            "fontSize": 9,
+            "bold": true,
+            "color": "7C8793",
+            "margin": 0
+          }
+        }
+      }
+    ],
+    "bodyPlaceholders": [
+      {
+        "name": "body_title",
+        "type": "title",
+        "x": 1.02,
+        "y": 0.64,
+        "w": 7.75,
+        "h": 0.52,
+        "text": "Section Title",
+        "options": {
+          "fontFace": "Aptos Display",
+          "fontSize": 26,
+          "bold": true,
+          "color": "0E2841",
+          "margin": 0
+        }
+      },
+      {
+        "name": "body_main",
+        "type": "body",
+        "x": 1.08,
+        "y": 1.78,
+        "w": 7.55,
+        "h": 4.48,
+        "text": "Primary body placeholder",
+        "options": {
+          "fontFace": "Aptos",
+          "fontSize": 20,
+          "color": "23313F",
+          "margin": 0.06
+        }
+      }
+    ],
+    "previewSlides": {
+      "title": {
+        "textAssignments": [
+          {
+            "placeholder": "title",
+            "text": "Preview Title"
+          },
+          {
+            "placeholder": "subtitle",
+            "text": "Preview Subtitle"
+          }
+        ]
+      },
+      "body": {
+        "textAssignments": [
+          {
+            "placeholder": "body_title",
+            "text": "Highlights"
+          },
+          {
+            "placeholder": "body_main",
+            "text": "Primary body placeholder preview"
+          }
+        ]
+      }
+    }
+  }
+]

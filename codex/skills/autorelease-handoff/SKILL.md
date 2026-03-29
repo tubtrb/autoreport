@@ -23,9 +23,10 @@ This skill is especially important when:
 - Read `../autoreport-dev/SKILL.md`.
 - Read `../write-doc-markdown/SKILL.md` when the source post text is still being edited.
 - Read `../public-repo-safety/SKILL.md` before final public signoff.
-- Read `C:/Users/ggssg/workplace/autorelease/docs/authoring-contract.md`.
-- Read `C:/Users/ggssg/workplace/autorelease/src/autorelease/content.py`.
-- Read `C:/Users/ggssg/workplace/autorelease/src/autorelease/validate.py`.
+- Read the sibling `autorelease` repository files:
+  - `../autorelease/docs/authoring-contract.md`
+  - `../autorelease/src/autorelease/content.py`
+  - `../autorelease/src/autorelease/validate.py`
 - Read `references/handoff-contract.md`.
 
 ## Workflow
@@ -53,8 +54,8 @@ This skill is especially important when:
 
 ## Current Defaults
 
-- Source repo: `C:/Users/ggssg/workplace/autoreport`
-- Target repo: `C:/Users/ggssg/workplace/autorelease`
+- Source repo: the current `autoreport` workspace
+- Target repo: the sibling `autorelease` workspace
 - Expected staged source files:
   - `docs/posts/autoreport-v<version>-development-log.md`
   - `docs/posts/autoreport-guide-v<version>.md`

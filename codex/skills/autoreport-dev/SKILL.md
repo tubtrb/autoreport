@@ -18,6 +18,7 @@ and routes deeper work to one primary focused skill.
 - Start with `references/current-repo.md`.
 - If the task touches the `v0.3` template-aware direction, also read:
   - `../../../docs/architecture/template-aware-autofill-engine.md`
+  - `../../../docs/architecture/web-surface-split.md` when web UX and debug-surface boundaries matter
   - `../../../docs/architecture/v0.3-template-workstreams.md`
 - Identify the primary surface before editing:
   - Parallel worktree monitoring/orchestration -> `../workstream-orchestrator/SKILL.md`
@@ -59,6 +60,11 @@ and routes deeper work to one primary focused skill.
 - Contract or payload changes should update the public example files and tests.
 - User-visible behavior changes should update the nearest tests in the same change.
 - Public wording changes should keep README and package metadata aligned with real behavior.
+- When a task supersedes an older contract, homepage flow, helper, example, or copy block, remove the stale predecessor path in the same task instead of leaving both versions behind.
+- Treat duplicate old/new paths as blockers unless compatibility is intentional, documented, and covered by tests.
+- Use git history and tags for rollback, not tracked dead code kept around "just in case."
+- Treat the repo-local skills and `AGENTS.md` as part of the same upkeep set: when behavior or workflow changes, refresh the relevant skill text in the same task instead of leaving bootstrap guidance behind the code.
+- If a change affects what a future agent should preload, verify, or consider authoritative, update that guidance before calling the task complete.
 - Any task that could make files public should run `public-repo-safety` before signoff.
 - If versioned posts under `docs/posts/` are part of the task and the branch is being wrapped up, run `autorelease-handoff` before calling the work finished.
 
@@ -83,15 +89,17 @@ The target template-driven runtime flow is:
 
 1. user selects a PowerPoint template
 2. `autoreport` inspects the template and exposes the required YAML or JSON contract
-3. a human or another AI fills that contract
-4. `autoreport` generates a `.pptx` that follows the selected template
+3. a human or another AI fills an `authoring_payload`
+4. `autoreport` compiles that into a runtime `report_payload`
+5. `autoreport` generates a `.pptx` that follows the selected template
 
 Current design expectations:
 
 - template selection and contract display are first-class product behavior, not just internal debugging helpers
 - slide titles should drive the generated `Contents` slide so the outline stays in sync with the real deck
 - text and image placement should be template-slot driven, including horizontal and vertical arrangements when the template exposes them
-- generalized template contracts, payload scaffolds, and built-in editorial flows are now the primary product path; legacy weekly-only wording should be treated as migration debt unless tests still lock it
+- generalized template contracts, `authoring_payload` scaffolds, compiled runtime payloads, and built-in editorial flows are now the primary product path; legacy weekly-only wording should be treated as migration debt unless tests still lock it
+- repo-local skill text should describe the current repo, not a historical snapshot; stale skill guidance should be treated as maintenance debt that blocks accurate future work
 - when the design frame changes, update both the architecture docs and the relevant repo-local skill in the same task when practical
 
 ## Output Contract

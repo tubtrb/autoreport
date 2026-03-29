@@ -33,7 +33,7 @@ internal-only screenshots, or other accidental disclosures.
 2. Scan for high-risk leak categories.
 - Secrets and credentials: API keys, access tokens, private keys, passwords, application passwords.
 - Personal identifiers: real names, usernames, email addresses, phone numbers, local account names.
-- Local machine traces: absolute paths such as `C:\Users\...` or `/Users/...`.
+- Local machine traces: absolute paths such as `<workspace>/...` or `/home/<user>/...`.
 - Unsafe screenshots: OS-level captures that show personal accounts, local folders, chat windows, internal tools, or unrelated app content.
 - Internal-only process details that should not land in public product-facing docs.
 
