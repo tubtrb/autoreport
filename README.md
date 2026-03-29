@@ -77,6 +77,9 @@ autoreport generate output/authoring_payload.yaml --template path/to/template.pp
 See `docs/release-readiness.md` for a short verification checklist that stays
 within the currently implemented and tested release scope.
 
+For Ubuntu EC2 hosting, see `docs/deployment/aws-ec2.md` and the reusable
+assets under `deploy/aws-ec2/`.
+
 ## Web demo
 
 Run the local demo:

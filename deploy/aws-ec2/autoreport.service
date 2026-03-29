@@ -1,0 +1,16 @@
+[Unit]
+Description=Autoreport FastAPI
+After=network.target
+
+[Service]
+User=__APP_USER__
+Group=__APP_GROUP__
+WorkingDirectory=__APP_DIR__
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=__APP_DIR__/.venv/bin/python -m uvicorn autoreport.web.app:app --host __APP_HOST__ --port __APP_PORT__ --workers __APP_WORKERS__
+Restart=always
+RestartSec=3
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
