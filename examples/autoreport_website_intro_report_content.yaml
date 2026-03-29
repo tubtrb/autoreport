@@ -2,38 +2,46 @@ report_content:
   title_slide:
     pattern_id: cover.editorial
     slots:
-      title: Autoreport Website Overview
+      title: Autoreport Website Quick Manual
       subtitle_1: |
-        Fast, contract-first PPT generation for AI-assisted workflows
+        Built-in app screenshots for the starter flow
   contents_slide:
     pattern_id: contents.editorial
     slots:
       title: Contents
       body_1: |
-        1. What Autoreport Does
-        2. How The Web Flow Works
-        3. Why Teams Use It
+        1. Published Guide And Updates Routes
+        2. Edit The Starter Deck YAML
+        3. Upload Images And Generate
   slides:
     - pattern_id: text.editorial
       slots:
-        title: What Autoreport Does
+        title: Published Guide And Updates Routes
         body_1: |
-          Autoreport converts structured YAML into an editable PowerPoint deck.
-          The system keeps deck generation deterministic by validating the draft
-          against a template contract before it generates the final PPTX.
-    - pattern_id: text.editorial
+          When the release docs are published, the main reader routes are Home
+          `/`, User Guide `/guide/`, and the Updates hub under
+          `/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`.
+          This starter deck keeps the faster in-app walkthrough inside the main
+          editor so users can learn the browser flow and generate immediately.
+    - pattern_id: text_image.editorial
       slots:
-        title: How The Web Flow Works
+        title: Edit The Starter Deck YAML
         body_1: |
-          The user copies one AI prompt package, asks another AI to draft
-          report_content, pastes the YAML into the web editor, and generates
-          the deck immediately.
-          When images are truly needed, real files can be uploaded later.
-    - pattern_id: metrics.editorial
+          The main editor already includes the AI prompt comments and this
+          starter manual YAML in one place.
+          Edit the titles and body text directly, keep the built-in screenshots
+          if they explain the workflow well, and use Reset Starter Example to
+          restore the packaged manual.
+        image_1: starter_app_workspace
+        caption_1: Starter editor, reset, and generate controls in one workspace
+    - pattern_id: text_image.editorial
       slots:
-        title: Why Teams Use It
+        title: Upload Images And Generate
         body_1: |
-          - Input shape: report_content or authoring_payload
-          - Slide count: inferred dynamically from slides
-          - Runtime: deterministic local PPTX generation
-          - Editing result: editable PowerPoint output
+          The built-in manual already ships with screenshots, so the default
+          deck can generate without any extra upload.
+          Use Image Uploads only when you replace a built-in visual or add a
+          new image ref such as image_1, then press Generate PPTX to download
+          the editable deck.
+        image_1: starter_app_uploads
+        caption_1: Upload new visuals only when the current YAML needs them

@@ -39,7 +39,7 @@ This skill is especially important when:
 - Default command:
   - `.\venv\Scripts\python.exe codex/skills/autorelease-handoff/scripts/handoff_posts_to_autorelease.py`
 - Common explicit form:
-  - `.\venv\Scripts\python.exe codex/skills/autorelease-handoff/scripts/handoff_posts_to_autorelease.py --version 0.2.1 --source-ref v0.2.1`
+  - `.\venv\Scripts\python.exe codex/skills/autorelease-handoff/scripts/handoff_posts_to_autorelease.py --version 0.3.0 --source-ref codex/v0.3-master`
 
 3. Let the script own the contract conversion.
 - It rewrites the versioned source posts into the `autorelease` front matter contract.
@@ -63,6 +63,7 @@ This skill is especially important when:
 - Expected source asset directories:
   - `docs/posts/devlog-image-v<version>/`
   - `docs/posts/guide-image-v<version>/`
+- Guide handoff currently updates the stable `guide` page in `autorelease` rather than creating a versioned guide slug there.
 
 ## Output Contract
 

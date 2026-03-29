@@ -86,9 +86,11 @@ uvicorn autoreport.web.app:app --host 0.0.0.0 --port 8000
 ```
 
 The web demo currently targets the built-in editorial template only.
-It opens with a built-in website starter example by default, lets you edit the
-YAML directly, supports uploaded image refs such as `image_1`, and returns a
-generated `.pptx` for immediate download.
+It opens with a built-in website manual example by default, keeps the AI prompt
+comments at the top of the starter YAML, and bundles captured screenshots for
+the current app flow so the default deck already has real visuals. It still
+supports uploaded image refs such as `image_1` when you replace or add images, and
+returns a generated `.pptx` for immediate download.
 Slide counts are inferred dynamically from the authored slides list rather than
 entered as a separate field.
 Arbitrary PowerPoint template upload is currently a CLI-only path.
@@ -96,9 +98,10 @@ Arbitrary PowerPoint template upload is currently a CLI-only path.
 The user-facing app is intentionally simple:
 
 1. start from the built-in starter example
-2. edit the YAML directly
-3. optionally upload real image files
-4. generate the deck
+2. keep or edit the AI prompt comments at the top of the YAML
+3. keep or replace the bundled screenshots inside the starter manual
+4. use the Image Uploads panel to review the built-in screenshots or replace them with new image refs
+5. generate the deck
 
 When you want a developer-facing surface with more panes for contract inspection,
 normalization, and compiled runtime debugging, run the separate debug app:
@@ -111,7 +114,7 @@ uvicorn autoreport.web.debug_app:app --host 0.0.0.0 --port 8010
 
 - `examples/autoreport_editorial_template_contract.yaml`: built-in editorial contract export
 - `examples/autoreport_editorial_report_content.yaml`: AI-facing draft example for another model to fill
-- `examples/autoreport_website_intro_report_content.yaml`: basic website-intro draft example you can paste into the web app and edit
+- `examples/autoreport_website_intro_report_content.yaml`: built-in website manual draft with bundled guide/app screenshots
 - `examples/autoreport_website_visual_report_content.yaml`: website demo draft with one real screenshot upload bound to `image_1`
 - `examples/autoreport_editorial_authoring_payload.yaml`: built-in editorial authoring example, including the `text_image` example that uses `image_1`
 - `examples/autoreport_editorial_report_payload.yaml`: compiled runtime payload reference for the built-in editorial template
@@ -128,5 +131,6 @@ generated files after download and does not retain payload contents by default.
 
 - Contract inspection, authoring-payload scaffolding, authoring-to-runtime compilation, and PPTX generation are available through the CLI.
 - The public web demo covers the built-in editorial template, pasted `report_content` or `authoring_payload` YAML, authoring normalization, compiled runtime preview, image refs, and immediate PPTX download.
+- The starter-manual web flow can generate immediately with bundled screenshots that are exposed through `/starter-assets/{filename}`.
 - Generation remains deterministic and local to Python plus `python-pptx`; there is no server-side LLM call in the generation path.
-- Version bumping, tagging, and release publication are intentionally handled outside this branch.
+- Release-note, guide, and devlog handoff is prepared locally through `docs/posts/` and then synced into the private `autorelease` repository.

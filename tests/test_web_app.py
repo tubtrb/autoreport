@@ -12,6 +12,7 @@ from pptx import Presentation
 
 from autoreport.web.app import (
     MEDIA_TYPE_PPTX,
+    PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML,
     WEBSITE_INTRO_EXAMPLE_YAML,
     WEBSITE_VISUAL_EXAMPLE_YAML,
     app,
@@ -184,33 +185,50 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Reset Starter Example", response.text)
         self.assertIn("Generate PPTX", response.text)
         self.assertIn("report_content", response.text)
-        self.assertIn("image_1", response.text)
         self.assertIn("Remove Upload", response.text)
-        self.assertIn("The website visual starter example is loaded.", response.text)
+        self.assertIn("The starter manual is loaded with the AI prompt and the built-in screenshots.", response.text)
+        self.assertIn("# Paste this brief into another AI", response.text)
+        self.assertIn("starter_app_workspace", response.text)
+        self.assertIn("starter_app_uploads", response.text)
+        self.assertIn("app-workspace.png", response.text)
+        self.assertIn("app-uploads.png", response.text)
+        self.assertIn("/starter-assets/app-workspace.png", response.text)
+        self.assertIn("Built-In", response.text)
+        self.assertNotIn("autoreport/web/assets/starter/app-workspace.png", response.text)
         self.assertNotIn("Advanced Debug: Compiled Report Payload", response.text)
         self.assertNotIn("Optional: View Template Contract", response.text)
         self.assertNotIn("Normalize Draft", response.text)
-        self.assertNotIn("Copy AI Draft Prompt", response.text)
         self.assertNotIn("Copy AI Package", response.text)
+        self.assertNotIn("Optional: AI Prompt Package", response.text)
         self.assertNotIn("Reset To AI Draft Prompt", response.text)
         self.assertNotIn("Load Website Intro Example", response.text)
         self.assertNotIn("Load Website Visual Example", response.text)
 
-    def test_demo_page_defaults_to_website_visual_starter(self) -> None:
+    def test_demo_page_defaults_to_prompted_website_intro_starter(self) -> None:
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Autoreport Website Demo", response.text)
-        self.assertIn("Screenshot-Based Walkthrough", response.text)
-        self.assertIn("image_1: image_1", response.text)
-        self.assertNotIn("# Paste this brief into another AI", response.text)
-        self.assertNotIn("report_content draft below", response.text)
+        self.assertIn("Autoreport Website Quick Manual", response.text)
+        self.assertIn("Published Guide And Updates Routes", response.text)
+        self.assertIn("Edit The Starter Deck YAML", response.text)
+        self.assertIn("Upload Images And Generate", response.text)
+        self.assertIn("# Paste this brief into another AI", response.text)
+        self.assertIn("report_content draft below", response.text)
+        self.assertIn("The main editor starts with AI prompt comments, the starter manual draft, and built-in screenshots.", response.text)
+        self.assertIn("Edit the starter draft directly in the main editor.", response.text)
+        self.assertIn("User Guide `/guide/`", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_starter_asset_route_returns_bundled_image(self) -> None:
+        response = self.client.get("/starter-assets/app-workspace.png")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "image/png")
 
     def test_compile_endpoint_returns_compiled_runtime_payload(self) -> None:
         response = self.client.post(
@@ -355,6 +373,33 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         presentation = Presentation(BytesIO(response.content))
         self.assertEqual(len(presentation.slides), 5)
+        image_shapes = [
+            shape
+            for slide in presentation.slides
+            for shape in slide.shapes
+            if hasattr(shape, "image")
+        ]
+        self.assertGreaterEqual(len(image_shapes), 2)
+
+    def test_generate_endpoint_accepts_prompted_built_in_website_intro_example(self) -> None:
+        response = self.client.post(
+            "/api/generate",
+            data={
+                "payload_yaml": PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML,
+                "image_manifest": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        presentation = Presentation(BytesIO(response.content))
+        self.assertEqual(len(presentation.slides), 5)
+        image_shapes = [
+            shape
+            for slide in presentation.slides
+            for shape in slide.shapes
+            if hasattr(shape, "image")
+        ]
+        self.assertGreaterEqual(len(image_shapes), 2)
 
     def test_generate_endpoint_accepts_built_in_website_visual_example_with_upload(self) -> None:
         response = self.client.post(

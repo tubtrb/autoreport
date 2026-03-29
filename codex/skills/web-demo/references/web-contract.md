@@ -34,12 +34,14 @@ Routes:
 User-app UI contract:
 
 - Start from one built-in editable starter example by default.
+- Keep the AI prompt comments at the top of that starter YAML so the page always starts from one self-contained editable block.
+- The default starter may include bundled screenshots when those assets ship with the app and do not require any upload before first generation.
 - Keep one large working input area as the primary surface.
 - Treat total slide count as dynamic; infer it from the draft, not from a separate input field.
-- Keep the user app minimal: reset the starter example, edit YAML, upload real images, and generate.
+- Keep the user app minimal: reset the starter example, edit YAML, upload real images when refs are used, and generate.
 - Avoid helper panes such as template-contract or compiled-runtime inspection in the default user app when they do not directly improve the main flow.
 - Avoid manual slide-by-slide builder controls in the user app.
-- If the starter example includes a visual slide, make the upload flow obvious and let the user add or remove uploads before generating.
+- If the starter includes bundled visuals, make it explicit that uploads are only needed when the user replaces those visuals or adds new image refs.
 
 ## Debug App Contract
 

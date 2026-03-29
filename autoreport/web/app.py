@@ -34,6 +34,23 @@ MEDIA_TYPE_PPTX = (
 ALLOWED_UPLOAD_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 _BUILT_IN_CONTRACT = get_built_in_contract()
+_STARTER_ASSET_DIR = (Path(__file__).resolve().parent / "assets" / "starter")
+_STARTER_APP_WORKSPACE_PATH = (_STARTER_ASSET_DIR / "app-workspace.png").as_posix()
+_STARTER_APP_UPLOADS_PATH = (_STARTER_ASSET_DIR / "app-uploads.png").as_posix()
+_STARTER_APP_WORKSPACE_REF = "starter_app_workspace"
+_STARTER_APP_UPLOADS_REF = "starter_app_uploads"
+_STARTER_BUNDLED_UPLOADS = (
+    {
+        "ref": _STARTER_APP_WORKSPACE_REF,
+        "filename": "app-workspace.png",
+        "path": Path(_STARTER_APP_WORKSPACE_PATH),
+    },
+    {
+        "ref": _STARTER_APP_UPLOADS_REF,
+        "filename": "app-uploads.png",
+        "path": Path(_STARTER_APP_UPLOADS_PATH),
+    },
+)
 AI_DRAFT_PROMPT_YAML = """
 # Paste this brief into another AI and ask it to fill the report_content draft below.
 # Goal: draft slide-ready content for Autoreport. The app will normalize report_content
@@ -78,47 +95,59 @@ report_content:
         body_1: |
           Write the main narrative for this slide.
 """.strip()
-WEBSITE_INTRO_EXAMPLE_YAML = """
+WEBSITE_INTRO_EXAMPLE_YAML = f"""
 report_content:
   title_slide:
     pattern_id: cover.editorial
     slots:
-      title: Autoreport Website Overview
+      title: Autoreport Website Quick Manual
       subtitle_1: |
-        Fast, contract-first PPT generation for AI-assisted workflows
+        Built-in app screenshots for the starter flow
   contents_slide:
     pattern_id: contents.editorial
     slots:
       title: Contents
       body_1: |
-        1. What Autoreport Does
-        2. How The Web Flow Works
-        3. Why Teams Use It
+        1. Published Guide And Updates Routes
+        2. Edit The Starter Deck YAML
+        3. Upload Images And Generate
   slides:
     - pattern_id: text.editorial
       slots:
-        title: What Autoreport Does
+        title: Published Guide And Updates Routes
         body_1: |
-          Autoreport converts structured YAML into an editable PowerPoint deck.
-          The system keeps deck generation deterministic by validating the draft
-          against a template contract before it generates the final PPTX.
-    - pattern_id: text.editorial
+          When the release docs are published, the main reader routes are Home
+          `/`, User Guide `/guide/`, and the Updates hub under
+          `/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`.
+          This starter deck keeps the faster in-app walkthrough inside the main
+          editor so users can learn the browser flow and generate immediately.
+    - pattern_id: text_image.editorial
       slots:
-        title: How The Web Flow Works
+        title: Edit The Starter Deck YAML
         body_1: |
-          The user copies one AI prompt package, asks another AI to draft
-          report_content, pastes the YAML into the web editor, and generates
-          the deck immediately.
-          When images are truly needed, real files can be uploaded later.
-    - pattern_id: metrics.editorial
+          The main editor already includes the AI prompt comments and this
+          starter manual YAML in one place.
+          Edit the titles and body text directly, keep the built-in screenshots
+          if they explain the workflow well, and use Reset Starter Example to
+          restore the packaged manual.
+        image_1: {_STARTER_APP_WORKSPACE_REF}
+        caption_1: Starter editor, reset, and generate controls in one workspace
+    - pattern_id: text_image.editorial
       slots:
-        title: Why Teams Use It
+        title: Upload Images And Generate
         body_1: |
-          - Input shape: report_content or authoring_payload
-          - Slide count: inferred dynamically from slides
-          - Runtime: deterministic local PPTX generation
-          - Editing result: editable PowerPoint output
+          The built-in manual already ships with screenshots, so the default
+          deck can generate without any extra upload.
+          Use Image Uploads only when you replace a built-in visual or add a
+          new image ref such as image_1, then press Generate PPTX to download
+          the editable deck.
+        image_1: {_STARTER_APP_UPLOADS_REF}
+        caption_1: Upload new visuals only when the current YAML needs them
 """.strip()
+AI_DRAFT_PROMPT_HEADER = AI_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
+PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML = (
+    f"{AI_DRAFT_PROMPT_HEADER}\n{WEBSITE_INTRO_EXAMPLE_YAML}"
+).strip()
 WEBSITE_VISUAL_EXAMPLE_YAML = """
 report_content:
   title_slide:
@@ -141,8 +170,9 @@ report_content:
         title: What The User Sees
         body_1: |
           The website is built for one simple workflow.
-          A user asks another AI for report_content, pastes the YAML, optionally
-          uploads a real image, and generates an editable PPTX immediately.
+          The starter YAML already includes the AI prompt at the top, so the
+          user edits one block, uploads a real image only when a slide needs
+          it, and generates an editable PPTX immediately.
     - pattern_id: text_image.editorial
       slots:
         title: Screenshot-Based Walkthrough
@@ -171,7 +201,18 @@ app = FastAPI(
 
 
 def _render_demo_html() -> str:
-    visual_example_json = json.dumps(WEBSITE_VISUAL_EXAMPLE_YAML)
+    prompted_intro_example_json = json.dumps(PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML)
+    starter_bundled_uploads_json = json.dumps(
+        [
+            {
+                "ref": item["ref"],
+                "filename": item["filename"],
+                "url": f"/starter-assets/{item['filename']}",
+                "builtIn": True,
+            }
+            for item in _STARTER_BUNDLED_UPLOADS
+        ]
+    )
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -241,7 +282,10 @@ def _render_demo_html() -> str:
       .upload-list, .status-errors, .status-hints, .howto-list { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
       .upload-list { list-style: none; padding: 0; display: grid; gap: 10px; }
       .upload-item { border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 12px; }
+      .upload-preview { width: 100%; max-height: 180px; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #f5f7fb; margin-bottom: 10px; }
+      .upload-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
       .upload-ref { display: inline-flex; min-width: 74px; justify-content: center; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font: 0.82rem/1.2 "Cascadia Mono", Consolas, monospace; font-weight: 700; margin-right: 8px; }
+      .upload-kind { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #334155; font-size: 0.8rem; font-weight: 700; }
       .howto-list { color: var(--muted); }
       .status-errors { color: #b91c1c; }
       .status-hints { color: var(--accent); }
@@ -259,18 +303,18 @@ def _render_demo_html() -> str:
     <main>
       <h1>Edit the starter deck and generate an Autoreport PPTX.</h1>
       <p class="hero-copy">
-        Start from the built-in website example, upload a real screenshot if you want the
-        visual slide, edit the YAML directly, and generate the deck.
+        Start from the built-in website manual below. The AI prompt and the captured screenshots
+        are already inside the starter YAML, so there is one path: edit the starter, replace
+        images when needed, and generate the PPTX.
       </p>
       <section class="card">
         <div class="workspace">
           <div class="panel">
             <h2>Starter Deck YAML</h2>
             <p class="panel-copy">
-              Start from the built-in website visual example below.
-              Edit the text directly, keep <code>image_1</code> if you plan to upload a real
-              screenshot, or turn that slide into <code>text.editorial</code> if you do not
-              want a visual.
+              Start from the built-in website manual below with the AI prompt comments and the
+              captured screenshots already attached. Edit the draft directly. Upload files only
+              when you replace a built-in visual or add refs such as <code>image_1</code>.
             </p>
             <textarea id="payload-yaml" aria-label="Working draft"></textarea>
             <div class="primary-actions">
@@ -280,9 +324,9 @@ def _render_demo_html() -> str:
             <div class="upload-box">
               <h2>Image Uploads</h2>
               <p class="panel-copy">
-                Upload real screenshots or visuals here.
-                The starter example already expects <code>image_1</code> for its visual slide,
-                and you can add or remove uploads before generating.
+                The starter deck already includes bundled screenshots, and they are shown below.
+                Upload real visuals here only when your draft replaces a built-in image or adds
+                <code>image_1</code>, <code>image_2</code>, or another upload ref.
               </p>
               <input id="image-files" type="file" multiple accept=".png,.jpg,.jpeg">
               <ul id="upload-list" class="upload-list"></ul>
@@ -292,24 +336,26 @@ def _render_demo_html() -> str:
             <div class="rail-box">
               <h2>How To Use</h2>
               <p class="panel-copy">
-                This page is intentionally simple. Edit one starter example, optionally upload
-                a real screenshot, and generate the deck.
+                This page is intentionally simple. The starter YAML already includes the AI prompt,
+                the website manual draft, and the bundled screenshots. Edit that one block, replace
+                visuals only when needed, and generate the deck.
               </p>
               <ul class="howto-list">
-                <li>Edit the built-in website example in the main editor.</li>
-                <li>If you keep the visual slide, upload one real screenshot for <code>image_1</code>.</li>
+                <li>The main editor starts with AI prompt comments, the starter manual draft, and built-in screenshots.</li>
+                <li>Edit the starter draft directly in the main editor.</li>
+                <li>Use Image Uploads only when you replace a built-in screenshot or add refs such as <code>image_1</code>.</li>
                 <li>You can add or remove uploads before generating.</li>
                 <li>Press <code>Generate PPTX</code>.</li>
               </ul>
               <div id="status-message" class="panel-copy">
-                The website visual starter example is loaded. Upload one screenshot for
-                <code>image_1</code>, or turn that slide into text-only content before generating.
+                The starter manual is loaded with the AI prompt and the built-in screenshots.
+                Edit the draft, replace visuals if needed, and generate the PPTX.
               </div>
               <ul id="status-errors" class="status-errors"></ul>
               <ul id="status-hints" class="status-hints"></ul>
               <p class="footnote">
-                Current scope: built-in editorial template, starter-example editing, uploaded
-                image refs, and instant PPTX download.
+                Current scope: built-in editorial template, starter manual editing, bundled
+                screenshots, uploaded image refs, and instant PPTX download.
               </p>
             </div>
           </aside>
@@ -317,7 +363,8 @@ def _render_demo_html() -> str:
       </section>
     </main>
     <script>
-      const WEBSITE_VISUAL_EXAMPLE = __VISUAL_EXAMPLE_JSON__;
+      const PROMPTED_WEBSITE_INTRO_EXAMPLE = __PROMPTED_INTRO_EXAMPLE_JSON__;
+      const STARTER_BUNDLED_UPLOADS = __STARTER_BUNDLED_UPLOADS_JSON__;
       const payloadNode = document.getElementById("payload-yaml");
       const uploadList = document.getElementById("upload-list");
       const fileInput = document.getElementById("image-files");
@@ -356,8 +403,29 @@ def _render_demo_html() -> str:
         for (const item of uploadedRefs) {
           const li = document.createElement("li");
           li.className = "upload-item";
-          const label = document.createElement("div");
-          label.innerHTML = `<span class="upload-ref">${item.ref}</span>${item.file.name}`;
+          if (item.previewUrl) {
+            const preview = document.createElement("img");
+            preview.className = "upload-preview";
+            preview.src = item.previewUrl;
+            preview.alt = item.filename || item.file.name;
+            li.appendChild(preview);
+          }
+
+          const meta = document.createElement("div");
+          meta.className = "upload-meta";
+
+          const refBadge = document.createElement("span");
+          refBadge.className = "upload-ref";
+          refBadge.textContent = item.ref;
+
+          const kindBadge = document.createElement("span");
+          kindBadge.className = "upload-kind";
+          kindBadge.textContent = item.builtIn ? "Built-In" : "Uploaded";
+
+          const name = document.createElement("span");
+          name.textContent = item.filename || item.file.name;
+
+          meta.append(refBadge, kindBadge, name);
           const actions = document.createElement("div");
           actions.className = "mini-actions";
 
@@ -375,23 +443,32 @@ def _render_demo_html() -> str:
           const removeRefButton = document.createElement("button");
           removeRefButton.type = "button";
           removeRefButton.className = "ghost";
-          removeRefButton.textContent = "Remove Upload";
+          removeRefButton.textContent = item.builtIn ? "Hide Built-In" : "Remove Upload";
           removeRefButton.addEventListener("click", () => {
+            if (item.previewUrl && !item.builtIn) {
+              URL.revokeObjectURL(item.previewUrl);
+            }
             uploadedRefs = uploadedRefs.filter((entry) => entry.ref !== item.ref);
             renderUploads();
             setStatus(
-              `${item.ref} was removed from this browser session.`,
+              item.builtIn
+                ? `${item.ref} was hidden from the starter upload list.`
+                : `${item.ref} was removed from this browser session.`,
               [],
               uploadedRefs.length
                 ? [`Remaining refs: ${uploadedRefs.map((entry) => entry.ref).join(", ")}`]
-                : ["No uploaded refs remain. Add a new file to create image_1 again."]
+                : ["No upload refs remain. Reset Starter Example to restore the built-in screenshots."]
             );
           });
 
           actions.append(insertRefButton, removeRefButton);
-          li.append(label, actions);
+          li.append(meta, actions);
           uploadList.appendChild(li);
         }
+      }
+
+      function getStarterUploads() {
+        return STARTER_BUNDLED_UPLOADS.map((item) => ({ ...item }));
       }
 
       function nextUploadRef() {
@@ -405,27 +482,36 @@ def _render_demo_html() -> str:
       async function postPayload(url) {
         const formData = new FormData();
         formData.append("payload_yaml", payloadNode.value.trim());
-        const manifest = uploadedRefs.map((item) => ({
+        const manifest = uploadedRefs.filter((item) => !item.builtIn).map((item) => ({
           ref: item.ref,
           field_name: item.ref,
           filename: item.file.name,
         }));
         formData.append("image_manifest", JSON.stringify(manifest));
-        for (const item of uploadedRefs) {
+        for (const item of uploadedRefs.filter((entry) => !entry.builtIn)) {
           formData.append(item.ref, item.file, item.file.name);
         }
         return fetch(url, { method: "POST", body: formData });
       }
 
-      payloadNode.value = WEBSITE_VISUAL_EXAMPLE;
+      payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
+      uploadedRefs = getStarterUploads();
       renderUploads();
 
       document.getElementById("reset-starter").addEventListener("click", () => {
-        payloadNode.value = WEBSITE_VISUAL_EXAMPLE;
+        payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
+        const userUploads = uploadedRefs.filter((item) => !item.builtIn);
+        uploadedRefs = getStarterUploads().concat(userUploads);
+        renderUploads();
         setStatus(
           "Starter example restored.",
           [],
-          ["Upload one screenshot for image_1, or rewrite the visual slide as text before generating."]
+          [
+            "The AI prompt comments are back at the top of the starter YAML.",
+            "The built-in screenshots are back in the starter manual.",
+            "The Image Uploads panel now shows the built-in starter screenshots.",
+            "Upload image files only when you replace a built-in visual or add refs such as image_1."
+          ]
         );
       });
 
@@ -433,6 +519,9 @@ def _render_demo_html() -> str:
         const newUploads = Array.from(fileInput.files || []).map((file) => ({
           ref: nextUploadRef(),
           file,
+          filename: file.name,
+          previewUrl: URL.createObjectURL(file),
+          builtIn: false,
         }));
         uploadedRefs = uploadedRefs.concat(newUploads);
         fileInput.value = "";
@@ -482,7 +571,13 @@ def _render_demo_html() -> str:
       });
     </script>
   </body>
-</html>""".replace("__VISUAL_EXAMPLE_JSON__", visual_example_json)
+</html>""".replace(
+        "__PROMPTED_INTRO_EXAMPLE_JSON__",
+        prompted_intro_example_json,
+    ).replace(
+        "__STARTER_BUNDLED_UPLOADS_JSON__",
+        starter_bundled_uploads_json,
+    )
 
 
 INDEX_HTML = _render_demo_html()
@@ -553,6 +648,15 @@ def _collect_missing_uploaded_image_errors(
     return errors
 
 
+def _merge_available_image_refs(uploaded_image_refs: dict[str, Path]) -> dict[str, Path]:
+    available_refs = {
+        item["ref"]: item["path"]
+        for item in _STARTER_BUNDLED_UPLOADS
+    }
+    available_refs.update(uploaded_image_refs)
+    return available_refs
+
+
 @app.get("/", response_class=HTMLResponse)
 def demo_page() -> HTMLResponse:
     return HTMLResponse(INDEX_HTML)
@@ -561,6 +665,14 @@ def demo_page() -> HTMLResponse:
 @app.get("/healthz")
 def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/starter-assets/{filename}", response_model=None)
+def starter_asset(filename: str) -> FileResponse | Response:
+    for item in _STARTER_BUNDLED_UPLOADS:
+        if item["filename"] == filename:
+            return FileResponse(item["path"])
+    return Response(status_code=404)
 
 
 @app.get("/favicon.ico")
@@ -576,6 +688,7 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
 
     try:
         raw_data, image_refs, temp_dir_path = await _parse_request_payload(request)
+        available_image_refs = _merge_available_image_refs(image_refs)
         payload_kind = detect_payload_kind(raw_data)
         normalized_authoring_yaml: str | None = None
         hints: list[str] = []
@@ -584,7 +697,7 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
             normalized_authoring, hints = materialize_authoring_payload(
                 raw_data,
                 _BUILT_IN_CONTRACT,
-                available_image_refs=image_refs.keys(),
+                available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
             normalized_authoring_yaml = serialize_document(
@@ -594,14 +707,14 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
             compiled_payload = materialize_report_payload(
                 normalized_authoring.to_dict(),
                 _BUILT_IN_CONTRACT,
-                available_image_refs=image_refs.keys(),
+                available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
         else:
             compiled_payload = materialize_report_payload(
                 raw_data,
                 _BUILT_IN_CONTRACT,
-                available_image_refs=image_refs.keys(),
+                available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
     except yaml.YAMLError as exc:
@@ -656,9 +769,10 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
             request,
             keep_temp_dir=True,
         )
+        available_image_refs = _merge_available_image_refs(image_refs)
         missing_image_errors = _collect_missing_uploaded_image_errors(
             raw_data,
-            available_image_refs=set(image_refs.keys()),
+            available_image_refs=set(available_image_refs.keys()),
         )
         if missing_image_errors:
             _log_result(request_id=request_id, result="error", started_at=started_at, error_type="validation_error")
@@ -673,7 +787,7 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
         generated_path = generate_report_from_mapping(
             raw_data,
             output_path=output_path,
-            image_refs=image_refs,
+            image_refs=available_image_refs,
         )
     except yaml.YAMLError as exc:
         _log_result(request_id=request_id, result="error", started_at=started_at, error_type="yaml_parse_error")

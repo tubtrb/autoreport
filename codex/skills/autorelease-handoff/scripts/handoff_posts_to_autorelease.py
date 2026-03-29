@@ -145,7 +145,7 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
     slugged_version = slug_version(version)
 
     devlog_slug = f"autoreport-v{slugged_version}-devlog"
-    guide_slug = f"autoreport-guide-v{slugged_version}"
+    guide_slug = "guide"
     release_slug = f"autoreport-v{slugged_version}-release-notes"
 
     posts_root = repo_root / "docs" / "posts"
@@ -170,11 +170,11 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
             source_path=posts_root / f"autoreport-guide-v{version}.md",
             target_path=autorelease_root / "content" / "guides" / f"{guide_slug}.md",
             slug=guide_slug,
-            title=f"Autoreport User Guide v{version}",
+            title="User Guide",
             summary=(
-                "Learn the current weekly-report workflow across the public CLI and browser demo."
+                "Current guide to the contract-first Autoreport workflow across the CLI, starter-manual web app, and updates pages."
             ),
-            tags=("user-guide", "autoreport", "web-demo"),
+            tags=("user-guide", "autoreport", "contract-first", f"v{version}"),
             transform_body=transform_guide_body,
             source_asset_dir=posts_root / f"guide-image-v{version}",
             cover_image=f"../assets/{guide_slug}/image.png",
@@ -225,6 +225,12 @@ def transform_devlog_body(body: str, spec: PostSpec, _: argparse.Namespace) -> s
 
 
 def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) -> str:
+    source_prefix = spec.source_asset_dir.name if spec.source_asset_dir else ""
+    if source_prefix:
+        body = body.replace(
+            f"]({source_prefix}/",
+            f"](../assets/{spec.slug}/",
+        )
     body = body.replace(
         "This guide reflects the current implementation of Autoreport on the active branch.",
         f"This guide reflects the Autoreport implementation at `{args.source_ref}`.",

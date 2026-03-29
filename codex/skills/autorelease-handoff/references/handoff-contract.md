@@ -8,7 +8,7 @@ The final publishable contract lives in the private `autorelease` repository.
 - `docs/posts/autoreport-v<version>-development-log.md`
   -> `../autorelease/content/devlogs/autoreport-v<version-with-hyphens>-devlog.md`
 - `docs/posts/autoreport-guide-v<version>.md`
-  -> `../autorelease/content/guides/autoreport-guide-v<version-with-hyphens>.md`
+  -> `../autorelease/content/guides/guide.md`
 - `docs/posts/autoreport-v<version>-release-notes.md`
   -> `../autorelease/content/release-notes/autoreport-v<version-with-hyphens>-release-notes.md`
 
@@ -17,7 +17,10 @@ The final publishable contract lives in the private `autorelease` repository.
 - `docs/posts/devlog-image-v<version>/`
   -> `../autorelease/content/assets/autoreport-v<version-with-hyphens>-devlog/`
 - `docs/posts/guide-image-v<version>/`
-  -> `../autorelease/content/assets/autoreport-guide-v<version-with-hyphens>/`
+  -> `../autorelease/content/assets/guide/`
+
+The guide path is intentionally stable because `autorelease` publishes the main
+user guide at `/guide/` and updates that page in place across releases.
 
 ## Why the script exists
 

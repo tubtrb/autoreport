@@ -9,7 +9,7 @@ the codebase and is backed by the current narrow checks.
 - CLI contract inspection with `inspect-template`
 - CLI payload scaffolding with `scaffold-payload`
 - CLI PPTX generation with `generate`
-- Web demo homepage rendering, healthcheck, and PPTX download
+- Web demo homepage rendering, bundled starter-manual assets, healthcheck, and PPTX download
 - Web demo image upload refs such as `image_1`
 
 ## Narrow Verification Commands
@@ -68,15 +68,16 @@ file.
 ## Current Release Scope
 
 - The CLI can inspect the built-in editorial template or a user-supplied `.pptx` template.
-- The public web demo exposes only the built-in editorial contract and payload flow.
+- The public web demo exposes only the built-in editorial contract and starter-manual payload flow.
+- The bundled guide/app screenshots are available through `/starter-assets/{filename}` so the default starter deck can generate without a fresh upload.
 - The web demo accepts uploaded `.png`, `.jpg`, and `.jpeg` files and binds them through `image_*` refs.
 - The download path cleans up temporary output after the response is sent.
 
 ## Remaining Gaps Before Final Release Wrap-Up
 
 - Public web upload of arbitrary external PowerPoint templates is not part of the current demo surface.
-- This branch does not perform the final version bump, tag creation, or release publication.
-- Additional release notes or publishing handoff should wait until the active runtime branches land.
+- Final WordPress publish still happens from the private `autorelease` repository after handoff validation.
+- Some deeper internal architecture notes still keep legacy weekly-era wording outside the release-facing docs touched here.
 
 ## Source Of Truth
 

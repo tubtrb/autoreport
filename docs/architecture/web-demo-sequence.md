@@ -17,20 +17,16 @@ sequenceDiagram
 
     User->>Browser: Open user app
     Browser->>App: GET /
-    App-->>Browser: AI-draft-first HTML
+    App-->>Browser: starter-manual HTML + prompted YAML
+    opt Bundled screenshot previews
+        Browser->>App: GET /starter-assets/{filename}
+        App-->>Browser: built-in screenshot file
+    end
 
-    User->>Browser: Copy AI package to another AI
-    User->>Browser: Paste returned report_content draft
-
-    opt Optional compile preview
-        Browser->>API: POST /api/compile { payload_yaml, image_manifest, uploads }
-        API->>Loader: parse_yaml_text(payload_yaml)
-        Loader-->>API: raw mapping
-        API->>Normalize: normalize report_content -> authoring_payload
-        Normalize-->>API: authoring payload + hints
-        API->>Compile: compile to report_payload
-        Compile-->>API: compiled runtime payload
-        API-->>Browser: JSON payload_kind + normalized_authoring_yaml + compiled_yaml
+    User->>Browser: Keep or edit the starter manual YAML
+    opt Replace bundled visuals or add new ones
+        User->>Browser: Upload image files
+        Browser-->>User: refs stay available in the Image Uploads panel
     end
 
     User->>Browser: Click Generate PPTX
@@ -54,14 +50,16 @@ sequenceDiagram
     end
 ```
 
-The debug app reuses the same `/api/compile` and `/api/generate` logic.
-Its difference is the HTML surface, not the execution path.
+The debug app still reuses the same `/api/compile` and `/api/generate` logic.
+Its difference is the HTML surface, not the execution path, and it is the place
+where compile/runtime inspection remains explicit.
 
 ## Inspection points
 
-- `GET /` in `autoreport/web/app.py` is the simplified user-facing flow.
+- `GET /` in `autoreport/web/app.py` is the simplified starter-manual user flow.
+- `GET /starter-assets/{filename}` exposes only the bundled built-in screenshots used by that starter.
 - `GET /` in `autoreport/web/debug_app.py` is the developer-facing inspection flow.
-- `POST /api/compile` accepts multipart form data, not raw JSON.
+- `POST /api/compile` accepts multipart form data, not raw JSON, and is primarily surfaced by the debug app.
 - `POST /api/generate` also accepts multipart form data and returns a download.
 - Temporary files are cleaned up after requests complete.
 
