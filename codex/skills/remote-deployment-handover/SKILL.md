@@ -27,6 +27,9 @@ entrypoint being exposed.
 - Read `../../../autoreport/web/app.py`.
 - Read `../../../autoreport/web/debug_app.py` when the host may be serving the
   wrong surface.
+- If the task also changes this skill, `AGENTS.md`, or tracked deployment
+  handover guidance as part of the shared operating surface, also read
+  `../repo-ops-policy-sync/SKILL.md`.
 - Read `../public-repo-safety/SKILL.md` before any public push, publish, or
   documentation handoff that promotes tracked deployment notes outside the
   private workspace.
@@ -76,6 +79,8 @@ entrypoint being exposed.
 - If the task updates repo-tracked deployment guidance, keep
   `docs/deployment/remote-codex-handover.md`, this skill, and the routing notes
   in sync.
+- When the task changes the shared operating guidance itself, do not stop at
+  the document edit; hand the finish loop over to `repo-ops-policy-sync`.
 
 ## Current Repo Defaults
 

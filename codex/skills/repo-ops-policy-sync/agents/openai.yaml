@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo Ops Policy Sync"
+  short_description: "Finish shared policy changes operationally"
+  default_prompt: "Use $repo-ops-policy-sync to update Autoreport's shared operating surface, validate the policy change, push origin/main, and sync codex/next."

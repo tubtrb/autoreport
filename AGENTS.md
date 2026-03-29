@@ -46,6 +46,7 @@
 - Template shaping, generation orchestration, writer behavior, template compatibility -> `pptx-output`
 - Active `codex/v0.3-*` task worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
 - FastAPI user app, debug app, shared web API routes, HTML surfaces, API error shape, web tests -> `web-demo`
+- Shared repo-operation surfaces such as `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, and shared architecture/process guidance -> `repo-ops-policy-sync`
 - Remote EC2/public app handover, deployment drift checks, systemd/nginx or container refresh, and public-vs-debug entrypoint confirmation -> `remote-deployment-handover`
 - Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`
@@ -67,6 +68,8 @@
 - When shipped behavior, public contracts, cleanup rules, verification flow, or orchestration expectations change, update the relevant repo-local skills and bootstrap guidance in the same task so future turns inherit the latest repo reality.
 - Stale agent or skill guidance is a blocker for signoff for the same reason stale code is a blocker: it causes later tasks to resurrect dead paths and wrong assumptions.
 - Use git history and tags for recovery, not stale bootstrap guidance left in tracked files after the product has already moved on.
+- Treat repo-operation tasks on `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, and shared architecture/process guidance as operational changes rather than draft-only docs work.
+- Unless the user explicitly asks to stop earlier or use a different branch flow, finish those repo-operation tasks by validating the changed guidance, running `public-repo-safety`, committing on `main`, pushing `origin/main`, and refreshing `codex/next` from that pushed `main`.
 - Keep the user-facing web app and the developer-facing debug app as separate tracked surfaces.
 - The user app should stay optimized for the single "copy AI package -> paste draft -> generate" flow.
 - If a task needs extra panes, inspection widgets, manual helpers, or internal compile/normalize visibility, add or refine them in the debug app before cluttering the user app.

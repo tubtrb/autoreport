@@ -10,6 +10,9 @@ description: Keep README, package metadata, examples, and repo-tracked public wo
 Use this skill for `README.md`, `pyproject.toml`, release notes,
 example payload wording, packaging text, and other public-facing project descriptions
 that live in the repository. Use `write-doc-markdown` for WordPress-style post generation.
+If the task is really about `AGENTS.md`, `codex/skills/`, tracked deployment
+handover notes, or other shared repo-operation guidance, switch to
+`repo-ops-policy-sync` instead of treating it as ordinary release wording.
 
 ## Mandatory Preload
 

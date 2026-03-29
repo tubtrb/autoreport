@@ -26,6 +26,7 @@ and routes deeper work to one primary focused skill.
   - Loader/schema/example/tests -> `../report-schema/SKILL.md`
   - Template/generator/writer -> `../pptx-output/SKILL.md`
   - FastAPI/demo HTML/API -> `../web-demo/SKILL.md`
+  - Shared repo-operation guidance, repo-local skills, tracked handover docs, or other operating-surface policy sync -> `../repo-ops-policy-sync/SKILL.md`
   - Remote deployment handover, EC2 drift checks, public-server mismatch, or entrypoint verification -> `../remote-deployment-handover/SKILL.md`
   - Public repo safety, leak scans, and screenshot hygiene -> `../public-repo-safety/SKILL.md`
   - Release readiness checks, browser smoke tests, and evidence capture -> `../release-verification/SKILL.md`
@@ -62,6 +63,7 @@ and routes deeper work to one primary focused skill.
 - Contract or payload changes should update the public example files and tests.
 - User-visible behavior changes should update the nearest tests in the same change.
 - Public wording changes should keep README and package metadata aligned with real behavior.
+- Repo-operation corner case: if the task edits `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, or other shared guidance that future Codex turns rely on, do not stop at local file edits; finish the operational loop with narrow validation, `public-repo-safety`, a commit on `main`, a push to origin, and a `codex/next` refresh unless the user explicitly opts out.
 - When a task supersedes an older contract, homepage flow, helper, example, or copy block, remove the stale predecessor path in the same task instead of leaving both versions behind.
 - Treat duplicate old/new paths as blockers unless compatibility is intentional, documented, and covered by tests.
 - Use git history and tags for rollback, not tracked dead code kept around "just in case."
