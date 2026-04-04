@@ -28,6 +28,7 @@ SPEC.loader.exec_module(HANDOFF_MODULE)
 PostSpec = HANDOFF_MODULE.PostSpec
 PublicServiceInfo = HANDOFF_MODULE.PublicServiceInfo
 build_specs = HANDOFF_MODULE.build_specs
+sync_homepage_live_service = HANDOFF_MODULE.sync_homepage_live_service
 transform_homepage_body = HANDOFF_MODULE.transform_homepage_body
 transform_guide_body = HANDOFF_MODULE.transform_guide_body
 transform_release_notes_body = HANDOFF_MODULE.transform_release_notes_body
@@ -180,6 +181,49 @@ class HandoffRewriteTestCase(unittest.TestCase):
             self.assertIsNone(guide_spec.source_asset_dir)
             self.assertIsNone(guide_spec.cover_image)
             self.assertIsNone(devlog_spec.source_asset_dir)
+
+    def test_sync_homepage_live_service_updates_page_body(self) -> None:
+        with tempfile.TemporaryDirectory() as autorelease_dir:
+            homepage_path = Path(autorelease_dir) / "content" / "pages" / "main.md"
+            homepage_path.parent.mkdir(parents=True)
+            homepage_path.write_text(
+                "\n".join(
+                    [
+                        "---",
+                        "title: Home",
+                        "slug: main",
+                        "section: page",
+                        "summary: Home page",
+                        "date: 2026-03-29",
+                        "status: draft",
+                        "---",
+                        "",
+                        "# Autoreport",
+                        "",
+                        "Intro paragraph.",
+                        "",
+                        "## Product overview",
+                        "",
+                        "- Overview bullet",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            args = argparse.Namespace(
+                autorelease_root=Path(autorelease_dir),
+                public_service_info=self.make_args().public_service_info,
+            )
+
+            written_path = sync_homepage_live_service(args)
+            rewritten = written_path.read_text(encoding="utf-8")
+
+            self.assertEqual(written_path, homepage_path)
+            self.assertIn("title: Home", rewritten)
+            self.assertIn("## Live service", rewritten)
+            self.assertIn("Hosted demo app: `http://3.36.96.47/`", rewritten)
+            self.assertIn("## Product overview", rewritten)
 
 
 if __name__ == "__main__":

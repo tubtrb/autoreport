@@ -482,6 +482,13 @@ def replace_markdown_body(text: str, body: str) -> str:
     return match.group(1).rstrip() + "\n\n" + body.strip() + "\n"
 
 
+def parse_front_matter(text: str) -> tuple[str, str]:
+    match = FRONT_MATTER_BODY_PATTERN.match(text)
+    if match is None:
+        raise HandoffError("Target Markdown file is missing valid front matter.")
+    return match.group(1), match.group(2)
+
+
 def sync_homepage_live_service(args: argparse.Namespace) -> Path:
     homepage_path = args.autorelease_root / "content" / "pages" / "main.md"
     if not homepage_path.exists():

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autoreport"
-version = "0.3.0"
+version = "0.3.1"
 description = "Template-contract-first PPTX deck generator with CLI and public web demo entry points."
 readme = "README.md"
 requires-python = ">=3.10"
