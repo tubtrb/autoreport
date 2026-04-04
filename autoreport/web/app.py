@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import shutil
@@ -18,12 +19,15 @@ from starlette.background import BackgroundTask
 from autoreport.engine.generator import generate_report_from_mapping
 from autoreport.loader import parse_yaml_text
 from autoreport.template_flow import (
-    materialize_authoring_payload,
+    PUBLIC_BUILT_IN_TEMPLATE_NAME,
     detect_payload_kind,
     get_built_in_contract,
+    get_built_in_profile,
+    materialize_authoring_payload,
     materialize_report_payload,
     serialize_document,
 )
+from autoreport.templates.weekly_report import build_report_fill_plan
 from autoreport.validator import ValidationError
 
 
@@ -32,12 +36,23 @@ MEDIA_TYPE_PPTX = (
     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 )
 ALLOWED_UPLOAD_SUFFIXES = {".png", ".jpg", ".jpeg"}
+MANUAL_PUBLIC_TEMPLATE_NAME = "autoreport_manual"
+PUBLIC_WEB_TEMPLATE_NAMES = (
+    PUBLIC_BUILT_IN_TEMPLATE_NAME,
+    MANUAL_PUBLIC_TEMPLATE_NAME,
+)
+DEFAULT_SLIDE_WIDTH_EMU = 9144000
+DEFAULT_SLIDE_HEIGHT_EMU = 6858000
+PREVIEW_PLACEHOLDER_PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII="
+)
 PUBLIC_WEB_IMAGE_DISABLED_ERRORS = [
     "The public web demo currently supports text and metrics slides only.",
     "Remove text_image patterns and image_* slots, or use the debug app or CLI for image-backed decks.",
 ]
 
-_BUILT_IN_CONTRACT = get_built_in_contract()
+_EDITORIAL_CONTRACT = get_built_in_contract(PUBLIC_BUILT_IN_TEMPLATE_NAME)
+_MANUAL_CONTRACT = get_built_in_contract(MANUAL_PUBLIC_TEMPLATE_NAME)
 AI_DRAFT_PROMPT_YAML = """
 # Paste this brief into another AI and ask it to fill the report_content draft below.
 # Goal: draft slide-ready content for Autoreport. The app will normalize report_content
@@ -79,6 +94,47 @@ report_content:
         title: First section title
         body_1: |
           Write the main narrative for this slide.
+""".strip()
+MANUAL_DRAFT_PROMPT_YAML = """
+# Paste this brief into another AI and ask it to fill the report_content draft below.
+# Goal: draft a screenshot-first procedure manual for Autoreport using the manual template.
+# How Autoreport uses this draft:
+# - Each item in report_content.slides becomes one deck slide.
+# - Choose pattern_id values from the manual template contract.
+# - Keep image slot values as upload refs in the listed order (for example image_1, image_2).
+# - Fill short manual fields such as step_no, step_title, command_or_action, and summary directly.
+# - Put long procedure text into detail_body.
+# - Add caption_1..caption_3 only when the image needs a short caption.
+report_content:
+  title_slide:
+    pattern_id: cover.manual
+    slots:
+      doc_title: Replace with the guide title
+      doc_subtitle: |
+        Replace with a concise guide subtitle
+      doc_version: v0.4
+      author_or_owner: Autoreport Team
+  contents_slide:
+    pattern_id: contents.manual
+    slots:
+      contents_title: Contents
+      contents_group_label: Procedure Overview
+  slides:
+    - pattern_id: text.manual.section_break
+      slots:
+        section_no: "1."
+        section_title: First section title
+        section_subtitle: Short section setup note
+    - pattern_id: text_image.manual.procedure.one
+      slots:
+        step_no: "1.1"
+        step_title: First procedure title
+        command_or_action: "Command or action for this step"
+        summary: Short outcome summary for the step
+        detail_body: |
+          Explain the detailed procedure here.
+        image_1: image_1
+        caption_1: First screenshot caption
 """.strip()
 WEBSITE_INTRO_EXAMPLE_YAML = f"""
 report_content:
@@ -123,9 +179,74 @@ report_content:
           Image-backed decks: move them to the debug app or CLI
           Output: generate an editable PowerPoint deck
 """.strip()
+MANUAL_PROCEDURE_EXAMPLE_YAML = f"""
+report_content:
+  title_slide:
+    pattern_id: cover.manual
+    slots:
+      doc_title: Autoreport PowerPoint User Guide
+      doc_subtitle: |
+        Screenshot-first guide for the public web manual mode
+      doc_version: v0.4
+      author_or_owner: Autoreport Team
+  contents_slide:
+    pattern_id: contents.manual
+    slots:
+      contents_title: Contents
+      contents_group_label: Procedure Overview
+  slides:
+    - pattern_id: text.manual.section_break
+      slots:
+        section_no: "1."
+        section_title: Choose A Starter Template
+        section_subtitle: Start with the built-in editorial or manual starter before editing content.
+    - pattern_id: text_image.manual.procedure.one
+      slots:
+        step_no: "1.1"
+        step_title: Review The Starter Example
+        command_or_action: "Action: open the starter example and confirm the selected template."
+        summary: Use one screenshot to show the starting editor state.
+        detail_body: |
+          Review the starter YAML, note the built-in template mode, and confirm
+          the page is ready before moving to the next step.
+        image_1: image_1
+        caption_1: Starter example loaded in the editor
+    - pattern_id: text_image.manual.procedure.two
+      slots:
+        step_no: "1.2"
+        step_title: Customize The Draft
+        command_or_action: "Action: edit the YAML title, sections, and example copy."
+        summary: Use the ordered screenshots to compare the starter draft before and after the edits.
+        detail_body: |
+          Update the guide title and slide text, then compare the edited YAML
+          against the original starter so the customer can see what changed.
+        image_1: image_2
+        image_2: image_3
+        caption_1: Starter YAML before editing
+        caption_2: Starter YAML after editing
+    - pattern_id: text_image.manual.procedure.three
+      slots:
+        step_no: "1.3"
+        step_title: Generate The PowerPoint
+        command_or_action: "Action: refresh the slide order and generate the PowerPoint deck."
+        summary: Use three screenshots to document preview, generation, and download.
+        detail_body: |
+          Refresh the manual slide order, confirm the PowerPoint preview, and
+          generate the deck so the download step is visible end to end.
+        image_1: image_4
+        image_2: image_5
+        image_3: image_6
+        caption_1: Slide preview ready
+        caption_2: Generation in progress
+        caption_3: PowerPoint download complete
+""".strip()
 AI_DRAFT_PROMPT_HEADER = AI_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
 PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML = (
     f"{AI_DRAFT_PROMPT_HEADER}\n{WEBSITE_INTRO_EXAMPLE_YAML}"
+).strip()
+MANUAL_DRAFT_PROMPT_HEADER = MANUAL_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
+PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML = (
+    f"{MANUAL_DRAFT_PROMPT_HEADER}\n{MANUAL_PROCEDURE_EXAMPLE_YAML}"
 ).strip()
 app = FastAPI(
     title="Autoreport Demo",
@@ -137,6 +258,9 @@ app = FastAPI(
 
 def _render_demo_html() -> str:
     prompted_intro_example_json = json.dumps(PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML)
+    prompted_manual_example_json = json.dumps(PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML)
+    editorial_template_name_json = json.dumps(PUBLIC_BUILT_IN_TEMPLATE_NAME)
+    manual_template_name_json = json.dumps(MANUAL_PUBLIC_TEMPLATE_NAME)
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -166,11 +290,12 @@ def _render_demo_html() -> str:
         color: var(--text);
         font-family: "Segoe UI", Arial, sans-serif;
       }
-      main { max-width: 1420px; margin: 0 auto; padding: 36px 24px 56px; }
+      main { max-width: 1560px; margin: 0 auto; padding: 36px 24px 56px; }
       h1 { margin: 0 0 12px; text-align: center; color: var(--accent); font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -0.04em; }
       .hero-copy { max-width: 880px; margin: 0 auto 28px; text-align: center; color: var(--muted); line-height: 1.7; }
       .card { background: var(--surface); border: 1px solid rgba(15,23,42,0.06); border-radius: 24px; box-shadow: var(--shadow); padding: 28px; }
-      .workspace { display: grid; grid-template-columns: minmax(760px, 1.6fr) 340px; gap: 20px; align-items: start; }
+      .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+      .workspace.manual-layout { grid-template-columns: minmax(700px, 1.45fr) minmax(560px, 1.02fr); }
       .panel, .rail-box { min-width: 0; }
       .rail { display: grid; gap: 16px; align-self: start; position: sticky; top: 20px; }
       .panel h2, .rail-box h2 { margin: 0 0 8px; font-size: 1rem; }
@@ -200,14 +325,191 @@ def _render_demo_html() -> str:
       .ghost { background: var(--accent-soft); color: var(--accent); }
       .primary { width: 100%; padding: 14px 18px; border-radius: 16px; background: var(--accent); color: #fff; }
       .rail-box { border: 1px solid var(--border); border-radius: 18px; background: var(--panel); padding: 18px; }
-      .status-errors, .status-hints, .howto-list { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
-      .howto-list { color: var(--muted); }
+      .status-errors, .status-hints { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
       .status-errors { color: #b91c1c; }
       .status-hints { color: var(--accent); }
+      .starter-switch { display: grid; gap: 10px; margin-bottom: 14px; }
+      .starter-switch select, .slide-upload-slot input[type=file] {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px 10px;
+        background: #fff;
+        color: var(--text);
+        font: inherit;
+      }
+      .manual-stage[hidden], .slide-preview-box[hidden] { display: none; }
+      .manual-stage {
+        display: grid;
+        gap: 14px;
+        margin-bottom: 18px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(11,106,88,0.06), rgba(255,255,255,0.98));
+        padding: 18px;
+      }
+      .manual-stage-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .slide-preview-box {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(255,255,255,0.96);
+        padding: 18px;
+      }
+      .slide-preview-list {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0 0;
+        display: grid;
+        gap: 14px;
+      }
+      .preview-status {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .slide-preview-row {
+        display: grid;
+        gap: 12px;
+      }
+      .slide-preview-row.has-upload {
+        grid-template-columns: minmax(220px, 0.54fr) minmax(0, 1fr);
+        align-items: start;
+      }
+      .slide-upload-card,
+      .slide-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px;
+        background: #fff;
+      }
+      .slide-upload-card {
+        background: linear-gradient(180deg, rgba(11,106,88,0.04), #ffffff);
+      }
+      .slide-card-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .slide-card-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .slide-card-meta {
+        color: var(--muted);
+        font-size: 0.75rem;
+        white-space: nowrap;
+      }
+      .slide-upload-panel {
+        display: grid;
+        gap: 8px;
+      }
+      .slide-upload-slot {
+        display: grid;
+        gap: 6px;
+        padding: 8px;
+        border: 1px dashed rgba(91,104,122,0.35);
+        border-radius: 14px;
+        background: #fff;
+        outline: none;
+      }
+      .slide-upload-slot.is-active,
+      .slide-upload-slot:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(11,106,88,0.12);
+      }
+      .slide-upload-slot-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .slide-upload-slot-title {
+        font-weight: 700;
+        color: var(--text);
+      }
+      .slide-upload-slot-state {
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      .slide-upload-slot-copy {
+        display: none;
+      }
+      .slide-upload-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+      }
+      .slide-upload-actions input[type=file] {
+        min-width: 0;
+        font-size: 0.82rem;
+      }
+      .slide-upload-clear {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 7px 10px;
+        background: #fff;
+        color: var(--text);
+        font-size: 0.82rem;
+        line-height: 1.2;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .slide-upload-file-name {
+        color: var(--accent);
+        font-size: 0.78rem;
+        word-break: break-word;
+      }
+      .slide-canvas {
+        position: relative;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border: 1px solid rgba(15,23,42,0.08);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff, #f7fafc);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+      }
+      .slide-canvas.manual {
+        background:
+          linear-gradient(135deg, rgba(22,78,99,0.08), transparent 34%),
+          linear-gradient(180deg, #f8fafc, #eef4f7);
+      }
+      .slide-canvas.editorial {
+        background:
+          radial-gradient(circle at top right, rgba(11,106,88,0.08), transparent 20%),
+          linear-gradient(180deg, #ffffff, #f6fbf9);
+      }
+      .slide-svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .status-copy {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
       code { font-family: "Cascadia Mono", Consolas, monospace; }
       @media (max-width: 1240px) {
-        .workspace { grid-template-columns: 1fr; }
+        .workspace.manual-layout { grid-template-columns: 1fr; }
         .rail { position: static; }
+      }
+      @media (max-width: 1080px) {
+        .manual-stage-header { flex-direction: column; }
+        .slide-preview-row.has-upload { grid-template-columns: 1fr; }
       }
       @media (max-width: 980px) {
         .primary-actions { grid-template-columns: 1fr; }
@@ -218,52 +520,66 @@ def _render_demo_html() -> str:
     <main>
       <h1>Edit the starter deck and generate an Autoreport PPTX.</h1>
       <p class="hero-copy">
-        Start from the built-in website manual below. The public demo is now
-        text-first, so the flow stays simple: edit the starter YAML, keep the
-        draft to text and metrics slides, and generate the PPTX.
+        Start from the built-in website intro starter below. The public demo
+        still defaults to the text-first editorial flow, and it can switch to
+        the screenshot-first manual starter when grouped screenshot uploads are
+        required.
       </p>
       <section class="card">
-        <div class="workspace">
+        <div id="workspace" class="workspace">
           <div class="panel">
             <h2>Starter Deck YAML</h2>
             <p class="panel-copy">
-              Start from the built-in website manual below with the AI prompt
-              comments at the top. Edit the draft directly, keep the public-web
-              flow to <code>text.editorial</code> and
-              <code>metrics.editorial</code>, and generate the deck.
+              Start from the built-in starter below with the AI prompt comments
+              at the top. Keep public-web drafts to editorial text and metrics
+              slides unless you switch to the manual starter for screenshot-led
+              procedures, then refresh the paired upload panels and slide
+              preview before generating.
             </p>
+            <div class="starter-switch">
+              <label for="starter-kind"><strong>Starter Mode</strong></label>
+              <select id="starter-kind" aria-label="Starter mode">
+                <option value="editorial">Website Intro Starter</option>
+                <option value="manual">Manual Procedure Starter</option>
+              </select>
+            </div>
+            <div id="manual-stage" class="manual-stage" hidden>
+              <div class="manual-stage-header">
+                <div>
+                  <h2>Manual Screenshot Workflow</h2>
+                  <p class="panel-copy">
+                    Refresh the manual draft, then upload screenshots beside the
+                    exact slide preview that needs them before generating.
+                  </p>
+                </div>
+                <button id="refresh-order" class="ghost" type="button">Refresh Slide Assets</button>
+              </div>
+            </div>
             <textarea id="payload-yaml" aria-label="Working draft"></textarea>
             <div class="primary-actions">
               <button id="reset-starter" class="ghost" type="button">Reset Starter Example</button>
               <button id="generate-button" class="primary" type="button">Generate PPTX</button>
             </div>
           </div>
-          <aside class="rail">
-            <div class="rail-box">
-              <h2>How To Use</h2>
-              <p class="panel-copy">
-                This page is intentionally simple. The starter YAML already
-                includes the AI prompt and the website manual draft. Edit that
-                one block, keep the public flow text-first, and generate the
-                deck.
-              </p>
-              <ul class="howto-list">
-                <li>The main editor starts with AI prompt comments and the starter manual draft.</li>
-                <li>Edit the starter draft directly in the main editor.</li>
-                <li>Keep public-web drafts to <code>text.editorial</code> and <code>metrics.editorial</code>.</li>
-                <li>If a deck needs image-backed slides, move that draft to the debug app or CLI.</li>
-                <li>Press <code>Generate PPTX</code>.</li>
-              </ul>
-              <div id="status-message" class="panel-copy">
-                The starter manual is loaded with the AI prompt and the text-first
-                website walkthrough. Edit the draft and generate the PPTX.
+          <aside id="manual-rail" class="rail" hidden>
+            <div id="slide-preview-box" class="rail-box slide-preview-box" hidden>
+              <div class="preview-status">
+                <h2>Status</h2>
+                <div id="status-message" class="panel-copy">
+                  The default website intro starter is loaded with the AI prompt
+                  and the text-first editorial walkthrough. Edit the draft and
+                  generate the PPTX.
+                </div>
+                <ul id="status-errors" class="status-errors"></ul>
+                <ul id="status-hints" class="status-hints"></ul>
               </div>
-              <ul id="status-errors" class="status-errors"></ul>
-              <ul id="status-hints" class="status-hints"></ul>
-              <p class="footnote">
-                Current scope: built-in editorial template, starter manual editing,
-                text and metrics slides, and instant PPTX download.
+              <h2>PowerPoint Slide Preview</h2>
+              <p class="panel-copy">
+                Slides that need screenshots show a matching upload panel on the
+                left so the controls stay aligned with the composed preview on
+                the right.
               </p>
+              <ul id="slide-preview-list" class="slide-preview-list"></ul>
             </div>
           </aside>
         </div>
@@ -271,10 +587,42 @@ def _render_demo_html() -> str:
     </main>
     <script>
       const PROMPTED_WEBSITE_INTRO_EXAMPLE = __PROMPTED_INTRO_EXAMPLE_JSON__;
+      const PROMPTED_MANUAL_PROCEDURE_EXAMPLE = __PROMPTED_MANUAL_EXAMPLE_JSON__;
+      const EDITORIAL_TEMPLATE_NAME = __EDITORIAL_TEMPLATE_NAME_JSON__;
+      const MANUAL_TEMPLATE_NAME = __MANUAL_TEMPLATE_NAME_JSON__;
+      const workspace = document.getElementById("workspace");
       const payloadNode = document.getElementById("payload-yaml");
+      const starterKindNode = document.getElementById("starter-kind");
       const statusMessage = document.getElementById("status-message");
       const statusErrors = document.getElementById("status-errors");
       const statusHints = document.getElementById("status-hints");
+      const manualStage = document.getElementById("manual-stage");
+      const manualRail = document.getElementById("manual-rail");
+      const slidePreviewBox = document.getElementById("slide-preview-box");
+      const slidePreviewList = document.getElementById("slide-preview-list");
+      const refreshOrderButton = document.getElementById("refresh-order");
+
+      const STARTERS = {
+        editorial: {
+          templateName: EDITORIAL_TEMPLATE_NAME,
+          payload: PROMPTED_WEBSITE_INTRO_EXAMPLE,
+        },
+        manual: {
+          templateName: MANUAL_TEMPLATE_NAME,
+          payload: PROMPTED_MANUAL_PROCEDURE_EXAMPLE,
+        },
+      };
+
+      let currentMode = "editorial";
+      let requiredImages = [];
+      let selectedFilesByRef = new Map();
+      let slidePreviews = [];
+      let uploadedImageUrls = new Map();
+      let activePasteRef = null;
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const XHTML_NS = "http://www.w3.org/1999/xhtml";
+      const SLIDE_WIDTH_PT = 720;
+      const SLIDE_HEIGHT_PT = 540;
 
       function setStatus(message, errors = [], hints = []) {
         statusMessage.textContent = message;
@@ -292,17 +640,558 @@ def _render_demo_html() -> str:
         }
       }
 
+      function isManualMode() {
+        return currentMode === "manual";
+      }
+
+      function currentTemplateName() {
+        return STARTERS[currentMode].templateName;
+      }
+
+      function syncManualLayout() {
+        const manual = isManualMode();
+        manualStage.hidden = !manual;
+        manualRail.hidden = !manual;
+        slidePreviewBox.hidden = !manual;
+        refreshOrderButton.hidden = !manual;
+        workspace.classList.toggle("manual-layout", manual);
+      }
+
+      function clearUploadedImageUrls() {
+        for (const url of uploadedImageUrls.values()) {
+          URL.revokeObjectURL(url);
+        }
+        uploadedImageUrls = new Map();
+      }
+
+      function pruneSelectedFiles() {
+        const validRefs = new Set(requiredImages.map((item) => item.ref));
+        const next = new Map();
+        for (const [ref, file] of selectedFilesByRef.entries()) {
+          if (validRefs.has(ref)) {
+            next.set(ref, file);
+          }
+        }
+        selectedFilesByRef = next;
+        if (activePasteRef && !validRefs.has(activePasteRef)) {
+          activePasteRef = null;
+        }
+      }
+
+      function syncUploadedImageUrls() {
+        clearUploadedImageUrls();
+        for (const item of requiredImages) {
+          const file = selectedFilesByRef.get(item.ref);
+          if (file) {
+            uploadedImageUrls.set(item.ref, URL.createObjectURL(file));
+          }
+        }
+      }
+
+      function selectedFileCount() {
+        return selectedFilesByRef.size;
+      }
+
+      function setSelectedFile(ref, file) {
+        if (!ref) {
+          return;
+        }
+        if (file) {
+          selectedFilesByRef.set(ref, file);
+        } else {
+          selectedFilesByRef.delete(ref);
+        }
+        syncUploadedImageUrls();
+      }
+
+      function resetUploads() {
+        requiredImages = [];
+        slidePreviews = [];
+        selectedFilesByRef = new Map();
+        activePasteRef = null;
+        clearUploadedImageUrls();
+        renderSlidePreviews();
+      }
+
+      function renderSlidePreviews() {
+        slidePreviewList.innerHTML = "";
+        syncManualLayout();
+        if (!isManualMode()) {
+          return;
+        }
+        if (!slidePreviews.length) {
+          const li = document.createElement("li");
+          li.className = "slide-card";
+          li.textContent = "Slide previews appear here after you refresh the manual draft.";
+          slidePreviewList.appendChild(li);
+          return;
+        }
+
+        for (const preview of slidePreviews) {
+          const imageBlocks = (preview.image_blocks || []).filter((block) => block.ref);
+          const row = document.createElement("li");
+          row.className = imageBlocks.length
+            ? "slide-preview-row has-upload"
+            : "slide-preview-row";
+          if (imageBlocks.length) {
+            row.appendChild(buildAlignedUploadCard(preview, imageBlocks));
+          }
+          row.appendChild(buildPreviewCard(preview));
+          slidePreviewList.appendChild(row);
+        }
+      }
+
+      function buildPreviewCard(preview) {
+        const card = document.createElement("article");
+        card.className = "slide-card";
+        card.appendChild(buildSlideCardHead(preview));
+
+        const canvas = document.createElement("div");
+        canvas.className = `slide-canvas ${preview.template_name === MANUAL_TEMPLATE_NAME ? "manual" : "editorial"}`;
+        canvas.appendChild(buildSlidePreviewSvg(preview));
+
+        card.appendChild(canvas);
+        return card;
+      }
+
+      function buildAlignedUploadCard(preview, imageBlocks) {
+        const card = document.createElement("section");
+        card.className = "slide-upload-card";
+        card.appendChild(buildSlideCardHead(preview, { showMeta: false }));
+        card.appendChild(buildSlideUploadPanel(preview, imageBlocks));
+        return card;
+      }
+
+      function buildSlideCardHead(preview, options = {}) {
+        const showMeta = options.showMeta !== false;
+        const header = document.createElement("div");
+        header.className = "slide-card-head";
+
+        const title = document.createElement("div");
+        title.className = "slide-card-title";
+        title.textContent = buildSlideSummary(preview);
+        if (!showMeta) {
+          title.title = buildSlideSummary(preview);
+        }
+
+        header.appendChild(title);
+        if (showMeta) {
+          const meta = document.createElement("div");
+          meta.className = "slide-card-meta";
+          meta.textContent = preview.continuation
+            ? `${preview.pattern_id} | continuation`
+            : preview.pattern_id;
+          header.appendChild(meta);
+        }
+        return header;
+      }
+
+      function buildSlideSummary(preview) {
+        return `${preview.slide_no}. ${preview.slide_title}`;
+      }
+
+      function buildSlideUploadPanel(preview, imageBlocks) {
+        const panel = document.createElement("div");
+        panel.className = "slide-upload-panel";
+
+        for (const block of imageBlocks) {
+          panel.appendChild(buildSlideUploadSlot(preview, block));
+        }
+
+        return panel;
+      }
+
+      function buildSlideUploadSlot(preview, block) {
+        const slotCard = document.createElement("div");
+        slotCard.className = "slide-upload-slot";
+        if (activePasteRef === block.ref) {
+          slotCard.classList.add("is-active");
+        }
+        slotCard.tabIndex = 0;
+
+        slotCard.addEventListener("click", () => {
+          activePasteRef = block.ref || null;
+          slotCard.focus();
+        });
+        slotCard.addEventListener("focus", () => {
+          activePasteRef = block.ref || null;
+        });
+        slotCard.addEventListener("blur", () => {
+          if (activePasteRef === block.ref) {
+            activePasteRef = null;
+          }
+        });
+        slotCard.addEventListener("paste", (event) => {
+          const pastedFile = extractClipboardImageFile(event.clipboardData, block.ref);
+          if (!pastedFile) {
+            return;
+          }
+          event.preventDefault();
+          setSelectedFile(block.ref, pastedFile);
+          renderSlidePreviews();
+          setStatus(
+            `Updated ${preview.slide_title}.`,
+            [],
+            [`${block.ref} was replaced from the clipboard.`]
+          );
+        });
+
+        const head = document.createElement("div");
+        head.className = "slide-upload-slot-head";
+
+        const title = document.createElement("div");
+        title.className = "slide-upload-slot-title";
+        title.textContent = block.label || block.ref || "Image Slot";
+
+        const state = document.createElement("div");
+        state.className = "slide-upload-slot-state";
+        state.textContent = selectedFilesByRef.has(block.ref) ? "Ready" : "Waiting";
+
+        head.appendChild(title);
+        head.appendChild(state);
+        slotCard.appendChild(head);
+
+        const slotCopy = document.createElement("p");
+        slotCopy.className = "slide-upload-slot-copy";
+        slotCopy.textContent = `Ref ${block.ref}. Click this panel and paste a screenshot, or choose a file below.`;
+        slotCard.appendChild(slotCopy);
+
+        const actions = document.createElement("div");
+        actions.className = "slide-upload-actions";
+
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".png,.jpg,.jpeg";
+        input.addEventListener("click", (event) => {
+          event.stopPropagation();
+          activePasteRef = block.ref || null;
+        });
+        input.addEventListener("change", () => {
+          const file = (input.files || [])[0];
+          if (!file) {
+            return;
+          }
+          setSelectedFile(block.ref, file);
+          renderSlidePreviews();
+          setStatus(
+            `Updated ${preview.slide_title}.`,
+            [],
+            [`${block.ref} now uses ${file.name}.`]
+          );
+        });
+        actions.appendChild(input);
+
+        const clearButton = document.createElement("button");
+        clearButton.type = "button";
+        clearButton.className = "slide-upload-clear";
+        clearButton.textContent = "Clear";
+        clearButton.disabled = !selectedFilesByRef.has(block.ref);
+        clearButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          setSelectedFile(block.ref, null);
+          renderSlidePreviews();
+          setStatus(
+            `Cleared ${block.ref}.`,
+            [],
+            ["Choose another screenshot or paste from the clipboard when you are ready."]
+          );
+        });
+        actions.appendChild(clearButton);
+
+        slotCard.appendChild(actions);
+
+        const fileName = document.createElement("div");
+        fileName.className = "slide-upload-file-name";
+        const selected = selectedFilesByRef.get(block.ref);
+        fileName.textContent = selected
+          ? selected.name
+          : "No screenshot selected yet.";
+        slotCard.appendChild(fileName);
+
+        return slotCard;
+      }
+
+      function extractClipboardImageFile(clipboardData, ref) {
+        if (!clipboardData || !clipboardData.items) {
+          return null;
+        }
+        for (const item of clipboardData.items) {
+          if (!item.type || !item.type.startsWith("image/")) {
+            continue;
+          }
+          const blob = item.getAsFile();
+          if (!blob) {
+            continue;
+          }
+          const extension = item.type === "image/jpeg" ? "jpg" : "png";
+          return new File([blob], `${ref || "slide"}-paste.${extension}`, {
+            type: item.type,
+          });
+        }
+        return null;
+      }
+
+      function buildSlidePreviewSvg(preview) {
+        const svg = document.createElementNS(SVG_NS, "svg");
+        svg.setAttribute("viewBox", `0 0 ${SLIDE_WIDTH_PT} ${SLIDE_HEIGHT_PT}`);
+        svg.setAttribute("class", "slide-svg");
+        svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+        const background = document.createElementNS(SVG_NS, "rect");
+        background.setAttribute("x", "0");
+        background.setAttribute("y", "0");
+        background.setAttribute("width", String(SLIDE_WIDTH_PT));
+        background.setAttribute("height", String(SLIDE_HEIGHT_PT));
+        background.setAttribute("rx", "16");
+        background.setAttribute("fill", "#ffffff");
+        svg.appendChild(background);
+
+        for (const decoration of preview.decorations || []) {
+          svg.appendChild(buildSlideDecorationNode(decoration));
+        }
+        for (const block of preview.image_blocks || []) {
+          svg.appendChild(buildSlideImageNode(block));
+        }
+        for (const block of preview.text_blocks || []) {
+          svg.appendChild(buildSlideTextNode(block));
+        }
+
+        return svg;
+      }
+
+      function buildSlideDecorationNode(block) {
+        const node = document.createElementNS(SVG_NS, "rect");
+        node.setAttribute("x", String(toPreviewX(block.x_pct)));
+        node.setAttribute("y", String(toPreviewY(block.y_pct)));
+        node.setAttribute("width", String(toPreviewWidth(block.w_pct)));
+        node.setAttribute("height", String(toPreviewHeight(block.h_pct)));
+        node.setAttribute("rx", block.shape_type === "rounded_rectangle" ? "14" : "0");
+        node.setAttribute("fill", block.fill_color || "#ffffff");
+        if (block.line_color) {
+          node.setAttribute("stroke", block.line_color);
+          node.setAttribute("stroke-width", "1");
+        }
+        return node;
+      }
+
+      function buildSlideTextNode(block) {
+        const node = document.createElementNS(SVG_NS, "foreignObject");
+        node.setAttribute("x", String(toPreviewX(block.x_pct)));
+        node.setAttribute("y", String(toPreviewY(block.y_pct)));
+        node.setAttribute("width", String(toPreviewWidth(block.w_pct)));
+        node.setAttribute("height", String(toPreviewHeight(block.h_pct)));
+
+        const shell = document.createElement("div");
+        shell.setAttribute("xmlns", XHTML_NS);
+        shell.style.width = "100%";
+        shell.style.height = "100%";
+        shell.style.boxSizing = "border-box";
+        shell.style.overflow = "hidden";
+        shell.style.padding = block.role === "title" ? "2pt 4pt" : "1pt 3pt";
+        shell.style.whiteSpace = "pre-wrap";
+        shell.style.wordBreak = "break-word";
+        shell.style.color = previewTextColor(block.role);
+        shell.style.fontSize = `${previewTextSize(block)}pt`;
+        shell.style.fontWeight = previewTextWeight(block.role);
+        shell.style.lineHeight = block.role === "meta" ? "1.1" : "1.24";
+        shell.style.letterSpacing = block.role === "title" ? "-0.02em" : (block.role === "meta" ? "0.04em" : "0");
+        shell.style.textTransform = block.role === "meta" ? "uppercase" : "none";
+        shell.style.fontFamily = block.font_name
+          ? `"${block.font_name}", "Segoe UI", Arial, sans-serif`
+          : `"Segoe UI", Arial, sans-serif`;
+        shell.textContent = block.text;
+
+        node.appendChild(shell);
+        return node;
+      }
+
+      function buildSlideImageNode(block) {
+        const node = document.createElementNS(SVG_NS, "foreignObject");
+        node.setAttribute("x", String(toPreviewX(block.x_pct)));
+        node.setAttribute("y", String(toPreviewY(block.y_pct)));
+        node.setAttribute("width", String(toPreviewWidth(block.w_pct)));
+        node.setAttribute("height", String(toPreviewHeight(block.h_pct)));
+
+        const shell = document.createElement("div");
+        shell.setAttribute("xmlns", XHTML_NS);
+        shell.style.width = "100%";
+        shell.style.height = "100%";
+        shell.style.boxSizing = "border-box";
+        shell.style.borderRadius = "12pt";
+        shell.style.overflow = "hidden";
+        const uploadedUrl = block.ref ? uploadedImageUrls.get(block.ref) : null;
+        const hasUploadedImage = Boolean(uploadedUrl);
+        shell.style.border = hasUploadedImage
+          ? "1px solid rgba(148, 163, 184, 0.35)"
+          : "1px dashed rgba(91, 104, 122, 0.45)";
+        shell.style.background = hasUploadedImage
+          ? "#ffffff"
+          : "linear-gradient(180deg, rgba(226,232,240,0.8), rgba(248,250,252,0.98))";
+        shell.style.display = "flex";
+        shell.style.alignItems = "center";
+        shell.style.justifyContent = "center";
+
+        if (uploadedUrl) {
+          const image = document.createElement("img");
+          image.setAttribute("xmlns", XHTML_NS);
+          image.src = uploadedUrl;
+          image.alt = block.ref || block.label || "Uploaded preview";
+          image.style.width = "100%";
+          image.style.height = "100%";
+          image.style.objectFit = block.fit === "contain" ? "contain" : "cover";
+          image.style.display = "block";
+          image.style.background = "#ffffff";
+          shell.appendChild(image);
+        } else {
+          const placeholder = document.createElement("div");
+          placeholder.setAttribute("xmlns", XHTML_NS);
+          placeholder.style.padding = "10pt";
+          placeholder.style.textAlign = "center";
+          placeholder.style.color = "#64748b";
+          placeholder.style.fontSize = "10pt";
+          placeholder.style.lineHeight = "1.3";
+          placeholder.style.whiteSpace = "pre-wrap";
+          placeholder.textContent = block.ref
+            ? `${block.ref}\nUpload to preview this slot.`
+            : `${block.label}\nUpload to preview this slot.`;
+          shell.appendChild(placeholder);
+        }
+
+        node.appendChild(shell);
+        return node;
+      }
+
+      function previewTextSize(block) {
+        if (block.font_size_pt) {
+          return block.font_size_pt;
+        }
+        if (block.role === "title") {
+          return 24;
+        }
+        if (block.role === "meta") {
+          return 10;
+        }
+        if (block.role === "caption") {
+          return 10;
+        }
+        return 14;
+      }
+
+      function previewTextWeight(role) {
+        if (role === "title") {
+          return "800";
+        }
+        if (role === "meta") {
+          return "700";
+        }
+        return "500";
+      }
+
+      function previewTextColor(role) {
+        if (role === "meta") {
+          return "#0f766e";
+        }
+        if (role === "caption") {
+          return "#64748b";
+        }
+        return "#0f172a";
+      }
+
+      function toPreviewX(percent) {
+        return (Number(percent || 0) / 100) * SLIDE_WIDTH_PT;
+      }
+
+      function toPreviewY(percent) {
+        return (Number(percent || 0) / 100) * SLIDE_HEIGHT_PT;
+      }
+
+      function toPreviewWidth(percent) {
+        return (Number(percent || 0) / 100) * SLIDE_WIDTH_PT;
+      }
+
+      function toPreviewHeight(percent) {
+        return (Number(percent || 0) / 100) * SLIDE_HEIGHT_PT;
+      }
+
       async function postPayload(url) {
         const formData = new FormData();
         formData.append("payload_yaml", payloadNode.value.trim());
-        formData.append("image_manifest", "[]");
+        formData.append("built_in", currentTemplateName());
+        const imageManifest = isManualMode()
+          ? requiredImages.filter((item) => selectedFilesByRef.has(item.ref)).map((item) => ({
+              ref: item.ref,
+              field_name: item.ref,
+              filename: selectedFilesByRef.get(item.ref)?.name || item.ref,
+            }))
+          : [];
+        formData.append("image_manifest", JSON.stringify(imageManifest));
+        if (isManualMode()) {
+          requiredImages.forEach((item) => {
+            const file = selectedFilesByRef.get(item.ref);
+            if (file) {
+              formData.append(item.ref, file, file.name);
+            }
+          });
+        }
         return fetch(url, { method: "POST", body: formData });
       }
 
-      payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
+      async function refreshImageOrder() {
+        if (!isManualMode()) {
+          return;
+        }
+        if (!payloadNode.value.trim()) {
+          setStatus("Manual compile failed. Please provide payload YAML.", [], ["Reset the manual starter example to begin again."]);
+          return;
+        }
+        setStatus("Inspecting the manual draft and refreshing the slide assets...");
+        const response = await postPayload("/api/compile");
+        const payload = await response.json();
+        if (!response.ok) {
+          requiredImages = [];
+          slidePreviews = [];
+          clearUploadedImageUrls();
+          renderSlidePreviews();
+          setStatus(payload.message || "Compile failed.", payload.errors || [], payload.hints || []);
+          return;
+        }
+        requiredImages = (payload.required_images || []).map((item, index) => ({
+          ...item,
+          order: index + 1,
+        }));
+        slidePreviews = payload.slide_previews || [];
+        pruneSelectedFiles();
+        syncUploadedImageUrls();
+        renderSlidePreviews();
+        setStatus(
+          "Manual slide assets refreshed.",
+          [],
+          requiredImages.length
+            ? [
+                `Add ${requiredImages.length} screenshot file(s) in the aligned upload panels.`,
+                "Only slides with image slots show upload controls, and each panel stays beside its matching preview.",
+              ]
+            : ["No image-backed slides are required for the current manual draft."]
+        );
+      }
 
-      document.getElementById("reset-starter").addEventListener("click", () => {
-        payloadNode.value = PROMPTED_WEBSITE_INTRO_EXAMPLE;
+      function applyStarter(mode) {
+        currentMode = mode;
+        payloadNode.value = STARTERS[mode].payload;
+        resetUploads();
+        if (isManualMode()) {
+          setStatus(
+            "Manual starter loaded.",
+            [],
+            [
+              "Refresh the manual draft to build aligned upload panels beside the matching slide previews.",
+              "Only image-bearing slides get upload controls, so text-only slides stay preview-only.",
+              "Choose or paste screenshots in the paired panel and watch the composed preview update immediately.",
+            ]
+          );
+          void refreshImageOrder();
+          return;
+        }
         setStatus(
           "Starter example restored.",
           [],
@@ -310,14 +1199,33 @@ def _render_demo_html() -> str:
             "The AI prompt comments are back at the top of the starter YAML.",
             "The built-in website walkthrough is back in the starter YAML.",
             "The public web flow stays on text and metrics slides.",
-            "Use the debug app or CLI when a deck needs images."
+            "Switch to the manual starter when a deck needs ordered screenshots.",
           ]
         );
+      }
+
+      applyStarter("editorial");
+
+      document.getElementById("reset-starter").addEventListener("click", () => {
+        applyStarter(currentMode);
       });
+      starterKindNode.addEventListener("change", () => applyStarter(starterKindNode.value));
+      refreshOrderButton.addEventListener("click", () => { void refreshImageOrder(); });
 
       document.getElementById("generate-button").addEventListener("click", async () => {
         if (!payloadNode.value.trim()) {
           setStatus("Generation failed. Please provide payload YAML.", [], ["Reset the starter example to begin again."]);
+          return;
+        }
+        if (isManualMode() && !requiredImages.length) {
+          await refreshImageOrder();
+        }
+        if (isManualMode() && selectedFileCount() !== requiredImages.length) {
+          setStatus(
+            "Generation failed. Manual mode requires one upload for each listed screenshot slot.",
+            [],
+            [`Expected ${requiredImages.length} file(s) and received ${selectedFileCount()}.`]
+          );
           return;
         }
         const button = document.getElementById("generate-button");
@@ -352,6 +1260,15 @@ def _render_demo_html() -> str:
 </html>""".replace(
         "__PROMPTED_INTRO_EXAMPLE_JSON__",
         prompted_intro_example_json,
+    ).replace(
+        "__PROMPTED_MANUAL_EXAMPLE_JSON__",
+        prompted_manual_example_json,
+    ).replace(
+        "__EDITORIAL_TEMPLATE_NAME_JSON__",
+        editorial_template_name_json,
+    ).replace(
+        "__MANUAL_TEMPLATE_NAME_JSON__",
+        manual_template_name_json,
     )
 
 
@@ -419,9 +1336,26 @@ def _report_payload_uses_images(compiled_payload) -> bool:
     )
 
 
+def _resolve_built_in_contract(template_name: str):
+    if template_name == MANUAL_PUBLIC_TEMPLATE_NAME:
+        return _MANUAL_CONTRACT
+    return _EDITORIAL_CONTRACT
+
+
+def _normalize_public_template_name(raw_value: object) -> str:
+    if isinstance(raw_value, str) and raw_value in PUBLIC_WEB_TEMPLATE_NAMES:
+        return raw_value
+    return PUBLIC_BUILT_IN_TEMPLATE_NAME
+
+
+def _is_manual_public_template(template_name: str) -> bool:
+    return template_name == MANUAL_PUBLIC_TEMPLATE_NAME
+
+
 def _collect_missing_uploaded_image_errors(
     raw_data: dict[str, object],
     *,
+    contract,
     available_image_refs: set[str],
 ) -> list[str]:
     payload_kind = detect_payload_kind(raw_data)
@@ -430,7 +1364,7 @@ def _collect_missing_uploaded_image_errors(
 
     authoring_payload, _ = materialize_authoring_payload(
         raw_data,
-        _BUILT_IN_CONTRACT,
+        contract,
         available_image_refs=available_image_refs,
         enforce_image_refs=False,
     )
@@ -449,14 +1383,237 @@ def _collect_missing_uploaded_image_errors(
 
 def _collect_public_demo_image_errors(
     *,
+    template_name: str,
     authoring_payload=None,
     compiled_payload=None,
 ) -> list[str]:
+    if _is_manual_public_template(template_name):
+        return []
     if authoring_payload is not None and _authoring_payload_uses_images(authoring_payload):
         return list(PUBLIC_WEB_IMAGE_DISABLED_ERRORS)
     if compiled_payload is not None and _report_payload_uses_images(compiled_payload):
         return list(PUBLIC_WEB_IMAGE_DISABLED_ERRORS)
     return []
+
+
+def _collect_required_images(authoring_payload) -> list[dict[str, object]]:
+    required_images: list[dict[str, object]] = []
+    for slide in authoring_payload.slides:
+        for index, image in enumerate(slide.assets.images, start=1):
+            if image.ref is None:
+                continue
+            required_images.append(
+                {
+                    "slide_no": slide.slide_no,
+                    "slide_title": _derive_required_image_slide_title(slide),
+                    "alias": f"image_{index}",
+                    "ref": image.ref,
+                }
+            )
+    return required_images
+
+
+def _derive_required_image_slide_title(slide) -> str:
+    slot_values = getattr(slide, "slot_values", {})
+    if (
+        isinstance(slot_values, dict)
+        and "section_no" in slot_values
+        and "section_title" in slot_values
+    ):
+        return f"{slot_values['section_no'].strip()} {slot_values['section_title'].strip()}".strip()
+    if (
+        isinstance(slot_values, dict)
+        and "step_no" in slot_values
+        and "step_title" in slot_values
+    ):
+        return f"{slot_values['step_no'].strip()} {slot_values['step_title'].strip()}".strip()
+    return slide.goal
+
+
+def _build_slide_previews(
+    compiled_payload,
+    *,
+    template_name: str,
+    image_refs: dict[str, Path],
+    temp_dir_path: Path | None,
+) -> list[dict[str, object]]:
+    template_profile = get_built_in_profile(template_name)
+    preview_image_refs = _resolve_preview_image_refs(
+        compiled_payload,
+        image_refs=image_refs,
+        temp_dir_path=temp_dir_path,
+    )
+    fill_plan, _ = build_report_fill_plan(
+        compiled_payload,
+        template_profile,
+        image_refs=preview_image_refs,
+    )
+    uploaded_refs = set(image_refs)
+    ref_by_path = {
+        _preview_path_key(path): ref for ref, path in preview_image_refs.items()
+    }
+
+    slide_previews: list[dict[str, object]] = []
+    for index, planned_slide in enumerate(fill_plan.slides, start=1):
+        slide_previews.append(
+            {
+                "slide_no": index,
+                "slide_title": planned_slide.slide_title,
+                "kind": planned_slide.kind,
+                "pattern_id": planned_slide.pattern_id,
+                "template_name": template_name,
+                "continuation": planned_slide.continuation,
+                "decorations": [
+                    _serialize_preview_decoration(decoration)
+                    for decoration in planned_slide.decorations
+                ],
+                "text_blocks": [
+                    _serialize_preview_text_fill(
+                        text_fill,
+                        pattern_kind=planned_slide.kind,
+                    )
+                    for text_fill in planned_slide.text_fills
+                    if _resolve_preview_text(text_fill)
+                ],
+                "image_blocks": [
+                    _serialize_preview_image_fill(
+                        image_fill,
+                        ref=ref_by_path.get(_preview_path_key(image_fill.image_path)),
+                        uploaded_refs=uploaded_refs,
+                    )
+                    for image_fill in planned_slide.image_fills
+                ],
+            }
+        )
+    return slide_previews
+
+
+def _resolve_preview_image_refs(
+    compiled_payload,
+    *,
+    image_refs: dict[str, Path],
+    temp_dir_path: Path | None,
+) -> dict[str, Path]:
+    preview_image_refs = dict(image_refs)
+    missing_refs = sorted(
+        _collect_preview_image_refs(compiled_payload) - set(preview_image_refs)
+    )
+    if not missing_refs:
+        return preview_image_refs
+    if temp_dir_path is None:
+        raise ValueError("Preview image temp dir is required for unresolved refs.")
+    for ref in missing_refs:
+        preview_image_refs[ref] = _write_preview_placeholder_image(
+            temp_dir_path,
+            ref,
+        )
+    return preview_image_refs
+
+
+def _collect_preview_image_refs(compiled_payload) -> set[str]:
+    refs: set[str] = set()
+    for slide in compiled_payload.slides:
+        if slide.image is not None and slide.image.ref:
+            refs.add(slide.image.ref)
+        for override in slide.slot_overrides.values():
+            if override.image is not None and override.image.ref:
+                refs.add(override.image.ref)
+    return refs
+
+
+def _write_preview_placeholder_image(temp_dir_path: Path, ref: str) -> Path:
+    placeholder_path = temp_dir_path / f"preview-placeholder-{ref}.png"
+    if not placeholder_path.exists():
+        placeholder_path.write_bytes(PREVIEW_PLACEHOLDER_PNG_BYTES)
+    return placeholder_path
+
+
+def _preview_path_key(path: Path) -> str:
+    return str(path.resolve())
+
+
+def _serialize_preview_decoration(decoration) -> dict[str, object]:
+    return {
+        "shape_type": decoration.shape_type,
+        "fill_color": f"rgb({decoration.fill_rgb[0]}, {decoration.fill_rgb[1]}, {decoration.fill_rgb[2]})",
+        "line_color": (
+            None
+            if decoration.line_rgb is None
+            else f"rgb({decoration.line_rgb[0]}, {decoration.line_rgb[1]}, {decoration.line_rgb[2]})"
+        ),
+        "x_pct": _slot_pct(decoration.x, DEFAULT_SLIDE_WIDTH_EMU),
+        "y_pct": _slot_pct(decoration.y, DEFAULT_SLIDE_HEIGHT_EMU),
+        "w_pct": _slot_pct(decoration.width, DEFAULT_SLIDE_WIDTH_EMU),
+        "h_pct": _slot_pct(decoration.height, DEFAULT_SLIDE_HEIGHT_EMU),
+    }
+
+
+def _serialize_preview_text_fill(text_fill, *, pattern_kind: str) -> dict[str, object]:
+    text_value = _resolve_preview_text(text_fill)
+    return {
+        "slot_name": text_fill.slot.slot_name,
+        "role": _preview_text_role(text_fill.slot, pattern_kind),
+        "text": text_value,
+        "font_size_pt": text_fill.font_size,
+        "font_name": text_fill.slot.explicit_font_name,
+        "x_pct": _slot_pct(text_fill.slot.x, DEFAULT_SLIDE_WIDTH_EMU),
+        "y_pct": _slot_pct(text_fill.slot.y, DEFAULT_SLIDE_HEIGHT_EMU),
+        "w_pct": _slot_pct(text_fill.slot.width, DEFAULT_SLIDE_WIDTH_EMU),
+        "h_pct": _slot_pct(text_fill.slot.height, DEFAULT_SLIDE_HEIGHT_EMU),
+    }
+
+
+def _resolve_preview_text(text_fill) -> str:
+    if text_fill.text is not None:
+        return text_fill.text
+    return "\n".join(text_fill.items)
+
+
+def _serialize_preview_image_fill(
+    image_fill,
+    *,
+    ref: str | None,
+    uploaded_refs: set[str],
+) -> dict[str, object]:
+    resolved_ref = ref or image_fill.image_path.name
+    return {
+        "slot_name": image_fill.slot.slot_name,
+        "label": image_fill.slot.alias or image_fill.slot.slot_name,
+        "ref": resolved_ref,
+        "fit": image_fill.fit,
+        "uploaded": resolved_ref in uploaded_refs,
+        "x_pct": _slot_pct(image_fill.slot.x, DEFAULT_SLIDE_WIDTH_EMU),
+        "y_pct": _slot_pct(image_fill.slot.y, DEFAULT_SLIDE_HEIGHT_EMU),
+        "w_pct": _slot_pct(image_fill.slot.width, DEFAULT_SLIDE_WIDTH_EMU),
+        "h_pct": _slot_pct(image_fill.slot.height, DEFAULT_SLIDE_HEIGHT_EMU),
+    }
+
+
+def _preview_text_role(slot, pattern_kind: str) -> str:
+    if slot.slot_type == "title":
+        return "title"
+    if slot.slot_type == "caption":
+        return "caption"
+    if _is_preview_body_slot(slot, pattern_kind):
+        return "body"
+    if (slot.alias or "") in {
+        "section_no",
+        "step_no",
+        "doc_version",
+        "author_or_owner",
+        "contents_group_label",
+        "command_or_action",
+    }:
+        return "meta"
+    return "text"
+
+
+def _is_preview_body_slot(slot, pattern_kind: str) -> bool:
+    return slot.slot_name.startswith(f"{pattern_kind}.body_")
+
+
+def _slot_pct(value: int, total: int) -> float:
+    return round((value / total) * 100, 3)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -481,7 +1638,11 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
     temp_dir_path: Path | None = None
 
     try:
-        raw_data, image_refs, temp_dir_path = await _parse_request_payload(request)
+        raw_data, image_refs, temp_dir_path, built_in = await _parse_request_payload(
+            request,
+            keep_temp_dir=True,
+        )
+        contract = _resolve_built_in_contract(built_in)
         available_image_refs = image_refs
         payload_kind = detect_payload_kind(raw_data)
         normalized_authoring_yaml: str | None = None
@@ -491,7 +1652,7 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
         if payload_kind in {"authoring", "content"}:
             normalized_authoring, hints = materialize_authoring_payload(
                 raw_data,
-                _BUILT_IN_CONTRACT,
+                contract,
                 available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
@@ -501,12 +1662,13 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
             ).strip()
             compiled_payload = materialize_report_payload(
                 normalized_authoring.to_dict(),
-                _BUILT_IN_CONTRACT,
+                contract,
                 available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
             if _is_public_user_app(request):
                 public_image_errors = _collect_public_demo_image_errors(
+                    template_name=built_in,
                     authoring_payload=normalized_authoring,
                 )
                 if public_image_errors:
@@ -527,12 +1689,13 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
         else:
             compiled_payload = materialize_report_payload(
                 raw_data,
-                _BUILT_IN_CONTRACT,
+                contract,
                 available_image_refs=available_image_refs.keys(),
                 enforce_image_refs=False,
             )
             if _is_public_user_app(request):
                 public_image_errors = _collect_public_demo_image_errors(
+                    template_name=built_in,
                     compiled_payload=compiled_payload,
                 )
                 if public_image_errors:
@@ -580,15 +1743,27 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
         )
 
     _log_result(request_id=request_id, result="success", started_at=started_at)
-    return JSONResponse(
-        {
-            "payload_kind": payload_kind,
-            "normalized_authoring_yaml": normalized_authoring_yaml,
-            "compiled_yaml": serialize_document(compiled_payload.to_dict(), fmt="yaml").strip(),
-            "slide_count": len(compiled_payload.slides),
-            "hints": hints,
-        }
-    )
+    response_payload = {
+        "payload_kind": payload_kind,
+        "normalized_authoring_yaml": normalized_authoring_yaml,
+        "compiled_yaml": serialize_document(compiled_payload.to_dict(), fmt="yaml").strip(),
+        "slide_count": len(compiled_payload.slides),
+        "required_images": (
+            []
+            if normalized_authoring is None
+            else _collect_required_images(normalized_authoring)
+        ),
+        "slide_previews": _build_slide_previews(
+            compiled_payload,
+            template_name=built_in,
+            image_refs=available_image_refs,
+            temp_dir_path=temp_dir_path,
+        ),
+        "hints": hints,
+    }
+    if temp_dir_path is not None:
+        _cleanup_temp_dir(temp_dir_path)
+    return JSONResponse(response_payload)
 
 
 @app.post("/api/generate", response_model=None)
@@ -598,31 +1773,34 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
     temp_dir_path: Path | None = None
 
     try:
-        raw_data, image_refs, temp_dir_path = await _parse_request_payload(
+        raw_data, image_refs, temp_dir_path, built_in = await _parse_request_payload(
             request,
             keep_temp_dir=True,
         )
+        contract = _resolve_built_in_contract(built_in)
         available_image_refs = image_refs
         payload_kind = detect_payload_kind(raw_data)
         if _is_public_user_app(request):
             if payload_kind in {"authoring", "content"}:
                 normalized_authoring, _ = materialize_authoring_payload(
                     raw_data,
-                    _BUILT_IN_CONTRACT,
+                    contract,
                     available_image_refs=available_image_refs.keys(),
                     enforce_image_refs=False,
                 )
                 public_image_errors = _collect_public_demo_image_errors(
+                    template_name=built_in,
                     authoring_payload=normalized_authoring,
                 )
             else:
                 compiled_payload = materialize_report_payload(
                     raw_data,
-                    _BUILT_IN_CONTRACT,
+                    contract,
                     available_image_refs=available_image_refs.keys(),
                     enforce_image_refs=False,
                 )
                 public_image_errors = _collect_public_demo_image_errors(
+                    template_name=built_in,
                     compiled_payload=compiled_payload,
                 )
             if public_image_errors:
@@ -641,6 +1819,7 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
                 )
         missing_image_errors = _collect_missing_uploaded_image_errors(
             raw_data,
+            contract=contract,
             available_image_refs=set(available_image_refs.keys()),
         )
         if missing_image_errors:
@@ -656,6 +1835,7 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
         generated_path = generate_report_from_mapping(
             raw_data,
             output_path=output_path,
+            template_name=built_in,
             image_refs=available_image_refs,
         )
     except yaml.YAMLError as exc:
@@ -700,39 +1880,54 @@ async def _parse_request_payload(
     request: Request,
     *,
     keep_temp_dir: bool = False,
-) -> tuple[dict[str, object], dict[str, Path], Path | None]:
+) -> tuple[dict[str, object], dict[str, Path], Path | None, str]:
     form = await request.form()
+    uploads = _collect_form_uploads(form)
     payload_yaml = form.get("payload_yaml")
     image_manifest_raw = form.get("image_manifest", "[]")
-    if not isinstance(payload_yaml, str):
-        raise ValidationError(["Field 'payload_yaml' is required."])
-    if not isinstance(image_manifest_raw, str):
-        image_manifest_raw = "[]"
-
+    built_in = _normalize_public_template_name(form.get("built_in"))
+    temp_dir_path: Path | None = None
     try:
-        image_manifest = json.loads(image_manifest_raw)
-    except json.JSONDecodeError as exc:
-        raise ValidationError(
-            ["Field 'image_manifest' must be a valid JSON list."]
-        ) from exc
-    if not isinstance(image_manifest, list):
-        raise ValidationError(["Field 'image_manifest' must be a JSON list."])
-    if _is_public_user_app(request) and image_manifest:
-        raise ValidationError(list(PUBLIC_WEB_IMAGE_DISABLED_ERRORS))
+        if not isinstance(payload_yaml, str):
+            raise ValidationError(["Field 'payload_yaml' is required."])
+        if not isinstance(image_manifest_raw, str):
+            image_manifest_raw = "[]"
 
-    temp_dir_path = Path(tempfile.mkdtemp(prefix="autoreport-web-"))
-    image_refs = await _collect_uploaded_images(
-        form=form,
-        image_manifest=image_manifest,
-        temp_dir_path=temp_dir_path,
-    )
-    raw_data = parse_yaml_text(payload_yaml)
+        try:
+            image_manifest = json.loads(image_manifest_raw)
+        except json.JSONDecodeError as exc:
+            raise ValidationError(
+                ["Field 'image_manifest' must be a valid JSON list."]
+            ) from exc
+        if not isinstance(image_manifest, list):
+            raise ValidationError(["Field 'image_manifest' must be a JSON list."])
+        if (
+            _is_public_user_app(request)
+            and image_manifest
+            and not _is_manual_public_template(built_in)
+        ):
+            raise ValidationError(list(PUBLIC_WEB_IMAGE_DISABLED_ERRORS))
 
-    if keep_temp_dir:
-        return raw_data, image_refs, temp_dir_path
+        temp_dir_path = Path(tempfile.mkdtemp(prefix="autoreport-web-"))
+        image_refs = await _collect_uploaded_images(
+            form=form,
+            image_manifest=image_manifest,
+            temp_dir_path=temp_dir_path,
+        )
+        raw_data = parse_yaml_text(payload_yaml)
 
-    _cleanup_temp_dir(temp_dir_path)
-    return raw_data, image_refs, None
+        if keep_temp_dir:
+            return raw_data, image_refs, temp_dir_path, built_in
+
+        _cleanup_temp_dir(temp_dir_path)
+        temp_dir_path = None
+        return raw_data, image_refs, None, built_in
+    except Exception:
+        if temp_dir_path is not None:
+            _cleanup_temp_dir(temp_dir_path)
+        raise
+    finally:
+        await _close_form_uploads(uploads)
 
 
 async def _collect_uploaded_images(
@@ -743,6 +1938,7 @@ async def _collect_uploaded_images(
 ) -> dict[str, Path]:
     refs: dict[str, Path] = {}
     used_refs: set[str] = set()
+    temp_dir_root = temp_dir_path.resolve()
     for index, item in enumerate(image_manifest):
         if not isinstance(item, dict):
             raise ValidationError(
@@ -758,11 +1954,13 @@ async def _collect_uploaded_images(
             raise ValidationError(
                 [f"Field 'image_manifest[{index}].field_name' must be a non-empty string."]
             )
-        if ref in used_refs:
+        normalized_ref = _normalize_upload_ref(ref, index=index)
+        normalized_field_name = field_name.strip()
+        if normalized_ref in used_refs:
             raise ValidationError(
                 [f"Field 'image_manifest[{index}].ref' must be unique."]
             )
-        upload = form.get(field_name)
+        upload = form.get(normalized_field_name)
         if not (hasattr(upload, "filename") and hasattr(upload, "read")):
             raise ValidationError(
                 [f"Field 'image_manifest[{index}].ref' does not match an uploaded file."]
@@ -772,9 +1970,60 @@ async def _collect_uploaded_images(
             raise ValidationError(
                 [f"Field 'image_manifest[{index}].ref' has an unsupported file type."]
             )
-        target_path = temp_dir_path / f"{ref}{suffix}"
+        target_path = (temp_dir_path / f"{normalized_ref}{suffix}").resolve()
+        try:
+            target_path.relative_to(temp_dir_root)
+        except ValueError as exc:
+            raise ValidationError(
+                [
+                    f"Field 'image_manifest[{index}].ref' must not contain path separators."
+                ]
+            ) from exc
         content = await upload.read()
         target_path.write_bytes(content)
-        refs[ref] = target_path
-        used_refs.add(ref)
+        refs[normalized_ref] = target_path
+        used_refs.add(normalized_ref)
     return refs
+
+
+def _collect_form_uploads(form) -> list[object]:
+    uploads: list[object] = []
+    seen_ids: set[int] = set()
+    for _, value in form.multi_items():
+        if not _is_upload_value(value):
+            continue
+        value_id = id(value)
+        if value_id in seen_ids:
+            continue
+        uploads.append(value)
+        seen_ids.add(value_id)
+    return uploads
+
+
+async def _close_form_uploads(uploads: list[object]) -> None:
+    for upload in uploads:
+        close = getattr(upload, "close", None)
+        if not callable(close):
+            continue
+        result = close()
+        if hasattr(result, "__await__"):
+            await result
+
+
+def _is_upload_value(value: object) -> bool:
+    return (
+        hasattr(value, "filename")
+        and hasattr(value, "read")
+        and hasattr(value, "close")
+    )
+
+
+def _normalize_upload_ref(ref: str, *, index: int) -> str:
+    normalized_ref = ref.strip()
+    if normalized_ref in {".", ".."} or Path(normalized_ref).name != normalized_ref:
+        raise ValidationError(
+            [
+                f"Field 'image_manifest[{index}].ref' must not contain path separators."
+            ]
+        )
+    return normalized_ref

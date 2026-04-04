@@ -544,12 +544,21 @@ def _validate_title_slide(
         errors,
         min_items=1,
     )
+    slot_values = _validate_slot_value_map(
+        raw,
+        field_name="title_slide.slot_values",
+        errors=errors,
+    )
 
     for key in raw:
-        if key not in {"title", "subtitle"}:
+        if key not in {"title", "subtitle", "slot_values"}:
             errors.append(f"Field 'title_slide.{key}' is not allowed.")
 
-    return TitleSlidePayload(title=title, subtitle=subtitle)
+    return TitleSlidePayload(
+        title=title,
+        subtitle=subtitle,
+        slot_values=slot_values,
+    )
 
 
 def _validate_contents(
@@ -567,12 +576,17 @@ def _validate_contents(
     if not isinstance(enabled, bool):
         errors.append("Field 'contents.enabled' must be a boolean.")
         enabled = True
+    slot_values = _validate_slot_value_map(
+        raw,
+        field_name="contents.slot_values",
+        errors=errors,
+    )
 
     for key in raw:
-        if key != "enabled":
+        if key not in {"enabled", "slot_values"}:
             errors.append(f"Field 'contents.{key}' is not allowed.")
 
-    return ContentsSettings(enabled=enabled)
+    return ContentsSettings(enabled=enabled, slot_values=slot_values)
 
 
 def _validate_authoring_slides(
@@ -624,6 +638,11 @@ def _validate_authoring_slides(
             include_in_contents = True
 
         context = _validate_authoring_context(item, prefix=prefix, errors=errors)
+        slot_values = _validate_slot_value_map(
+            item,
+            field_name=f"{prefix}.slot_values",
+            errors=errors,
+        )
         assets = _validate_authoring_assets(
             item,
             prefix=prefix,
@@ -634,14 +653,7 @@ def _validate_authoring_slides(
         layout_request = _validate_layout_request(item, prefix=prefix, errors=errors)
 
         if layout_request is not None:
-            _validate_authoring_slide_shape(
-                prefix=prefix,
-                context=context,
-                assets=assets,
-                layout_request=layout_request,
-                errors=errors,
-            )
-            _resolve_pattern_for_authoring_slide(
+            pattern = _resolve_pattern_for_authoring_slide(
                 layout_request=layout_request,
                 image_count=(
                     layout_request.image_count
@@ -652,6 +664,15 @@ def _validate_authoring_slides(
                 contract=contract,
                 errors=errors,
             )
+            _validate_authoring_slide_shape(
+                prefix=prefix,
+                context=context,
+                slot_values=slot_values,
+                assets=assets,
+                layout_request=layout_request,
+                pattern=pattern,
+                errors=errors,
+            )
 
         for key in item:
             if key not in {
@@ -659,6 +680,7 @@ def _validate_authoring_slides(
                 "goal",
                 "include_in_contents",
                 "context",
+                "slot_values",
                 "assets",
                 "layout_request",
             }:
@@ -672,6 +694,7 @@ def _validate_authoring_slides(
                 context=context,
                 assets=assets,
                 layout_request=layout_request,
+                slot_values=slot_values,
             )
         )
 
@@ -817,15 +840,22 @@ def _validate_authoring_slide_shape(
     *,
     prefix: str,
     context: AuthoringSlideContext,
+    slot_values: dict[str, str],
     assets: AuthoringSlideAssets,
     layout_request: LayoutRequest,
+    pattern: TemplatePatternContract | None,
     errors: list[str],
 ) -> None:
-    has_text = bool(context.summary or context.bullets)
+    has_text = bool(
+        context.summary
+        or context.bullets
+        or _slot_values_include_body_text(slot_values, pattern)
+    )
     actual_image_count = len(assets.images)
+    body_slot_count = _pattern_body_slot_count(pattern)
 
     if layout_request.kind == "text":
-        if not has_text:
+        if body_slot_count > 0 and not has_text:
             errors.append(
                 f"Field '{prefix}.context' must provide 'summary' or 'bullets' for kind 'text'."
             )
@@ -882,7 +912,7 @@ def _validate_authoring_slide_shape(
             )
         return
 
-    if not has_text:
+    if body_slot_count > 0 and not has_text:
         errors.append(
             f"Field '{prefix}.context' must provide 'summary' or 'bullets' for kind 'text_image'."
         )
@@ -971,14 +1001,22 @@ def _validate_payload_slides(
         items: list[MetricItem] = []
         image: ImageSpec | None = None
         caption: str | None = None
+        body_slot_count = _pattern_body_slot_count(pattern)
 
         if kind == "text":
-            body = _validate_string_list_field(
-                item,
-                f"{prefix}.body",
-                errors,
-                min_items=1,
-            )
+            if body_slot_count > 0:
+                body = _validate_string_list_field(
+                    item,
+                    f"{prefix}.body",
+                    errors,
+                    min_items=1,
+                )
+            else:
+                body = _validate_optional_string_list_field(
+                    item,
+                    f"{prefix}.body",
+                    errors,
+                )
             _validate_disallowed_slide_field(
                 item,
                 prefix=prefix,
@@ -1024,12 +1062,19 @@ def _validate_payload_slides(
                 errors=errors,
             )
         elif kind == "text_image":
-            body = _validate_string_list_field(
-                item,
-                f"{prefix}.body",
-                errors,
-                min_items=1,
-            )
+            if body_slot_count > 0:
+                body = _validate_string_list_field(
+                    item,
+                    f"{prefix}.body",
+                    errors,
+                    min_items=1,
+                )
+            else:
+                body = _validate_optional_string_list_field(
+                    item,
+                    f"{prefix}.body",
+                    errors,
+                )
             if "image" in item:
                 image = _validate_image_spec(
                     item.get("image"),
@@ -1243,6 +1288,34 @@ def _pattern_image_count(pattern: TemplatePatternContract) -> int:
     if pattern.image_count is not None:
         return pattern.image_count
     return sum(1 for slot in pattern.slots if slot.slot_type == "image")
+
+
+def _pattern_body_slot_count(pattern: TemplatePatternContract | None) -> int:
+    if pattern is None:
+        return 1
+    if pattern.body_slot_count is not None:
+        return pattern.body_slot_count
+    return sum(
+        1
+        for slot in pattern.slots
+        if slot.slot_type == "text" and slot.slot_id.startswith(f"{pattern.kind}.body_")
+    )
+
+
+def _slot_values_include_body_text(
+    slot_values: dict[str, str],
+    pattern: TemplatePatternContract | None,
+) -> bool:
+    if not slot_values or pattern is None:
+        return False
+    for slot in pattern.slots:
+        if slot.slot_type != "text":
+            continue
+        if not slot.slot_id.startswith(f"{pattern.kind}.body_"):
+            continue
+        if slot.alias in slot_values:
+            return True
+    return False
 
 
 def _pattern_image_layout(pattern: TemplatePatternContract) -> str:
@@ -1642,6 +1715,38 @@ def _validate_optional_string_list_field(
             continue
         normalized_items.append(normalized)
     return normalized_items
+
+
+def _validate_slot_value_map(
+    data: dict[str, Any],
+    *,
+    field_name: str,
+    errors: list[str],
+) -> dict[str, str]:
+    container, last_key = _resolve_field_container(data, field_name)
+    if container is None or last_key not in container:
+        return {}
+
+    raw = container[last_key]
+    if not isinstance(raw, dict):
+        errors.append(f"Field '{field_name}' must be an object.")
+        return {}
+
+    slot_values: dict[str, str] = {}
+    for alias, value in raw.items():
+        alias_prefix = f"{field_name}.{alias}"
+        if not isinstance(alias, str) or not alias.strip():
+            errors.append(f"Field '{field_name}' must use non-empty string keys.")
+            continue
+        if not isinstance(value, str):
+            errors.append(f"Field '{alias_prefix}' must be a non-empty string.")
+            continue
+        normalized = value.strip()
+        if not normalized:
+            errors.append(f"Field '{alias_prefix}' must be a non-empty string.")
+            continue
+        slot_values[alias.strip()] = normalized
+    return slot_values
 
 
 def _validate_string_or_list(

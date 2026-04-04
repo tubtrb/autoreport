@@ -44,8 +44,10 @@ Allowed UI:
 
 - one large input area
 - one or two primary actions
-- text-first helper copy about supported public slide kinds
-- a clear handoff to the debug app or CLI when images are needed
+- starter selection between the default editorial flow and the built-in manual flow
+- text-first helper copy for the default editorial starter
+- ordered image upload guidance and customer-facing slide preview for the manual starter
+- a clear handoff to the debug app or CLI when deeper inspection or custom template/image control is needed
 
 Avoid in the user app:
 
@@ -89,8 +91,12 @@ That means:
 - one generation path
 - no duplicated schema logic
 
-The split is mostly a UI split. The public app also adds one product guardrail:
-it rejects image-backed drafts so the default hosted surface stays text-first.
+The split is mostly a UI split. The public app also adds template-specific
+guardrails:
+
+- the default editorial starter stays text-first and rejects image-backed drafts
+- the built-in manual starter allows ordered image-backed drafts on the manual template
+- deeper inspection panes still stay in the debug app
 
 ## Input contract posture
 

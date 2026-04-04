@@ -1,0 +1,256 @@
+template_contract:
+  contract_version: autoreport.template.v1
+  template_id: autoreport-manual-v1
+  template_label: Autoreport Manual
+  template_source: built_in
+  title_slide:
+    pattern_id: cover.manual
+    layout_name: Blank
+    slots:
+      - slot_id: cover.title
+        alias: doc_title
+        slot_type: title
+        required: true
+      - slot_id: cover.doc_subtitle
+        alias: doc_subtitle
+        slot_type: text
+        required: false
+        orientation: stack
+        order: 1
+      - slot_id: cover.doc_version
+        alias: doc_version
+        slot_type: text
+        required: false
+        orientation: horizontal
+        order: 2
+      - slot_id: cover.author_or_owner
+        alias: author_or_owner
+        slot_type: text
+        required: false
+        orientation: horizontal
+        order: 3
+  contents_slide:
+    pattern_id: contents.manual
+    layout_name: Blank
+    slots:
+      - slot_id: contents.title
+        alias: contents_title
+        slot_type: title
+        required: true
+      - slot_id: contents.group_label
+        alias: contents_group_label
+        slot_type: text
+        required: false
+        orientation: stack
+        order: 1
+      - slot_id: contents.body_1
+        alias: contents_entries
+        slot_type: text
+        required: true
+        orientation: stack
+        order: 2
+  slide_patterns:
+    - pattern_id: text.manual.section_break
+      kind: text
+      layout_name: Blank
+      slots:
+        - slot_id: text.title
+          alias: section_title
+          slot_type: title
+          required: true
+        - slot_id: text.section_no
+          alias: section_no
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text.section_subtitle
+          alias: section_subtitle
+          slot_type: text
+          required: false
+          orientation: stack
+          order: 2
+      image_count: 0
+      image_layout: stack
+      caption_slots: 0
+      body_slot_count: 0
+    - pattern_id: text_image.manual.procedure.one
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: step_title
+          slot_type: title
+          required: true
+        - slot_id: text_image.step_no
+          alias: step_no
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.command_or_action
+          alias: command_or_action
+          slot_type: text
+          required: false
+          orientation: stack
+          order: 2
+        - slot_id: text_image.summary
+          alias: summary
+          slot_type: text
+          required: false
+          orientation: stack
+          order: 3
+        - slot_id: text_image.body_1
+          alias: detail_body
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 4
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 1
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 1
+      image_count: 1
+      image_layout: horizontal
+      caption_slots: 1
+      body_slot_count: 1
+    - pattern_id: text_image.manual.procedure.two
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: step_title
+          slot_type: title
+          required: true
+        - slot_id: text_image.step_no
+          alias: step_no
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.command_or_action
+          alias: command_or_action
+          slot_type: text
+          required: false
+          orientation: stack
+          order: 2
+        - slot_id: text_image.summary
+          alias: summary
+          slot_type: text
+          required: false
+          orientation: stack
+          order: 3
+        - slot_id: text_image.body_1
+          alias: detail_body
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 4
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 1
+        - slot_id: text_image.image_2
+          alias: image_2
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 2
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 1
+        - slot_id: text_image.caption_2
+          alias: caption_2
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 2
+      image_count: 2
+      image_layout: horizontal
+      caption_slots: 2
+      body_slot_count: 1
+    - pattern_id: text_image.manual.procedure.three
+      kind: text_image
+      layout_name: Blank
+      slots:
+        - slot_id: text_image.title
+          alias: step_title
+          slot_type: title
+          required: true
+        - slot_id: text_image.step_no
+          alias: step_no
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 1
+        - slot_id: text_image.command_or_action
+          alias: command_or_action
+          slot_type: text
+          required: false
+          orientation: stack
+          order: 2
+        - slot_id: text_image.summary
+          alias: summary
+          slot_type: text
+          required: false
+          orientation: stack
+          order: 3
+        - slot_id: text_image.body_1
+          alias: detail_body
+          slot_type: text
+          required: true
+          orientation: stack
+          order: 4
+        - slot_id: text_image.image_1
+          alias: image_1
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 1
+        - slot_id: text_image.image_2
+          alias: image_2
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 2
+        - slot_id: text_image.image_3
+          alias: image_3
+          slot_type: image
+          required: true
+          orientation: horizontal
+          order: 3
+        - slot_id: text_image.caption_1
+          alias: caption_1
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 1
+        - slot_id: text_image.caption_2
+          alias: caption_2
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 2
+        - slot_id: text_image.caption_3
+          alias: caption_3
+          slot_type: caption
+          required: false
+          orientation: horizontal
+          order: 3
+      image_count: 3
+      image_layout: horizontal
+      caption_slots: 3
+      body_slot_count: 1

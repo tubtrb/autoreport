@@ -47,9 +47,10 @@ sequenceDiagram
 ```
 
 The debug app still reuses the same `/api/compile` and `/api/generate` logic.
-Its difference is the HTML surface plus a public-app guardrail: the default user
-app rejects image-backed drafts, while the debug app remains the place where
-compile/runtime inspection and upload-backed testing stay explicit.
+Its difference is the HTML surface plus the public-app guardrails: the default
+user app keeps the editorial starter text-first, the built-in manual starter
+allows ordered screenshot uploads on the manual template, and the debug app
+remains the place where compile/runtime inspection stays explicit.
 
 ## Inspection points
 
@@ -57,7 +58,7 @@ compile/runtime inspection and upload-backed testing stay explicit.
 - `GET /` in `autoreport/web/debug_app.py` is the developer-facing inspection flow.
 - `POST /api/compile` accepts multipart form data, not raw JSON, and is primarily surfaced by the debug app.
 - `POST /api/generate` also accepts multipart form data and returns a download.
-- The public app path now keeps `image_manifest` empty and rejects image-backed payloads.
+- The public app keeps `image_manifest` empty for the editorial starter, and uses ordered `image_manifest` uploads only for the built-in manual starter.
 - Temporary files are cleaned up after requests complete.
 
 ## Source of truth

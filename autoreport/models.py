@@ -195,12 +195,16 @@ class TitleSlidePayload:
 
     title: str
     subtitle: list[str]
+    slot_values: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "title": self.title,
             "subtitle": list(self.subtitle),
         }
+        if self.slot_values:
+            payload["slot_values"] = dict(self.slot_values)
+        return payload
 
 
 @dataclass(slots=True)
@@ -208,9 +212,13 @@ class ContentsSettings:
     """Controls whether an auto-generated contents slide is inserted."""
 
     enabled: bool = True
+    slot_values: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"enabled": self.enabled}
+        payload: dict[str, Any] = {"enabled": self.enabled}
+        if self.slot_values:
+            payload["slot_values"] = dict(self.slot_values)
+        return payload
 
 
 @dataclass(slots=True)
@@ -298,6 +306,7 @@ class AuthoringSlide:
     context: AuthoringSlideContext = field(default_factory=AuthoringSlideContext)
     assets: AuthoringSlideAssets = field(default_factory=AuthoringSlideAssets)
     layout_request: LayoutRequest | None = None
+    slot_values: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -313,6 +322,8 @@ class AuthoringSlide:
         }
         if self.assets.images:
             payload["assets"] = self.assets.to_dict()
+        if self.slot_values:
+            payload["slot_values"] = dict(self.slot_values)
         return payload
 
 

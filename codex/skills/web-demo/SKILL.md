@@ -68,7 +68,7 @@ architecture docs together when practical.
 
 The intended web flow is:
 
-1. in the user app, the user starts from one built-in website manual example that already includes the AI prompt comments at the top, edits that YAML directly, keeps the draft text-first, and generates the deck
+1. in the user app, the user starts from the built-in website intro starter that already includes the AI prompt comments at the top, edits that YAML directly, and can switch to the manual procedure starter when a screenshot-first guide is needed
 2. the user app should stay minimal and avoid contract/debug panes unless the design is intentionally expanded again
 3. in the debug app, a developer can inspect the full contract, normalized `authoring_payload`, compiled `report_payload`, and upload refs in parallel panes
 4. both apps still validate and generate through the same shared routes and core pipeline
@@ -76,9 +76,11 @@ The intended web flow is:
 Current design expectations:
 
 - the user app should stay single-flow and user-facing rather than becoming a manual slide-builder
-- the public user app should hide image-upload controls and reject image-backed drafts with the standard validation error shape
+- the default public starter should stay text-first and reject ad hoc image-backed drafts with the standard validation error shape
 - the debug app is the right place for extra panes, debug controls, and internal inspection helpers
 - the debug app may still keep upload inspection so image-backed drafts remain testable outside the default public surface
+- when the manual starter is active, keep screenshot uploads paired row-by-row with the matching image-bearing preview slide so the controls align with the exact slide that needs them
+- keep the paired manual rows visually compact: avoid repeated helper prose in the upload side and prefer one-line slide summaries at the top of each paired row
 - template inspection and compiled runtime debugging belong primarily to the debug app, not the default user app
 - the web layer should reuse shared contract-export and validation code instead of re-implementing schema rules
 - the homepage should default to one editable starter example rather than an AI prompt package or a manual builder workflow

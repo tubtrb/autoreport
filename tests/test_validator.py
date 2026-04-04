@@ -5,7 +5,11 @@ from __future__ import annotations
 import unittest
 
 from autoreport.models import AuthoringPayload, ReportPayload, TemplateContract
-from autoreport.template_flow import get_built_in_contract
+from autoreport.template_flow import (
+    compile_authoring_payload,
+    get_built_in_contract,
+    materialize_authoring_payload,
+)
 from autoreport.validator import (
     ValidationError,
     validate_authoring_payload,
@@ -114,6 +118,53 @@ def build_valid_authoring_payload() -> dict[str, object]:
     }
 
 
+def build_manual_report_content() -> dict[str, object]:
+    return {
+        "report_content": {
+            "title_slide": {
+                "pattern_id": "cover.manual",
+                "slots": {
+                    "doc_title": "Autoreport PowerPoint User Guide",
+                    "doc_subtitle": "Screenshot-first user guide",
+                    "doc_version": "v0.4",
+                    "author_or_owner": "Autoreport Team",
+                },
+            },
+            "contents_slide": {
+                "pattern_id": "contents.manual",
+                "slots": {
+                    "contents_title": "Contents",
+                    "contents_group_label": "Procedure Overview",
+                },
+            },
+            "slides": [
+                {
+                    "pattern_id": "text.manual.section_break",
+                    "slots": {
+                        "section_no": "1.",
+                        "section_title": "Choose A Starter Template",
+                        "section_subtitle": "Start with the built-in editorial or manual starter before editing content.",
+                    },
+                },
+                {
+                    "pattern_id": "text_image.manual.procedure.two",
+                    "slots": {
+                        "step_no": "1.2",
+                        "step_title": "Customize The Draft",
+                        "command_or_action": "Action: edit the YAML title, sections, and example copy.",
+                        "summary": "Compare the starter draft before and after the edits.",
+                        "detail_body": "Review the starter YAML.\nUpdate the guide text.\nConfirm the customer-facing changes.",
+                        "image_1": "image_1",
+                        "image_2": "image_2",
+                        "caption_1": "Starter YAML before editing",
+                        "caption_2": "Starter YAML after editing",
+                    },
+                },
+            ],
+        }
+    }
+
+
 class ValidatorTestCase(unittest.TestCase):
     """Verify template-contract, authoring, and runtime payload validation."""
 
@@ -152,6 +203,25 @@ class ValidatorTestCase(unittest.TestCase):
                 ("text_image.editorial.two_vertical", 2, "vertical", 1, 1),
                 ("text_image.editorial.three_horizontal", 3, "horizontal", 1, 1),
                 ("text_image.editorial.three_vertical", 3, "vertical", 1, 1),
+            ],
+        )
+
+    def test_validate_template_contract_accepts_manual_built_in_contract(self) -> None:
+        contract = validate_template_contract(
+            get_built_in_contract("autoreport_manual").to_dict()
+        )
+
+        self.assertIsInstance(contract, TemplateContract)
+        self.assertEqual(contract.template_id, "autoreport-manual-v1")
+        self.assertEqual(contract.title_slide.pattern_id, "cover.manual")
+        self.assertEqual(contract.contents_slide.pattern_id, "contents.manual")
+        self.assertEqual(
+            [pattern.pattern_id for pattern in contract.slide_patterns],
+            [
+                "text.manual.section_break",
+                "text_image.manual.procedure.one",
+                "text_image.manual.procedure.two",
+                "text_image.manual.procedure.three",
             ],
         )
 
@@ -194,9 +264,7 @@ class ValidatorTestCase(unittest.TestCase):
                                 "text_image.image_2": {
                                     "image": {"ref": "image_2", "fit": "contain"}
                                 },
-                                "text_image.caption_1": {
-                                    "text": "Shared caption"
-                                },
+                                "text_image.caption_1": {"text": "Shared caption"},
                             },
                         }
                     ],
@@ -219,8 +287,70 @@ class ValidatorTestCase(unittest.TestCase):
 
         self.assertIsInstance(payload, AuthoringPayload)
         self.assertEqual(payload.template_id, "autoreport-editorial-v1")
-        self.assertEqual([slide.goal for slide in payload.slides], ["What It Does", "Adoption Snapshot", "Why It Matters"])
+        self.assertEqual(
+            [slide.goal for slide in payload.slides],
+            ["What It Does", "Adoption Snapshot", "Why It Matters"],
+        )
         self.assertEqual(payload.slides[-1].layout_request.image_orientation, "auto")
+
+    def test_materialize_authoring_payload_preserves_manual_slot_alias_values(self) -> None:
+        payload, hints = materialize_authoring_payload(
+            build_manual_report_content(),
+            get_built_in_contract("autoreport_manual"),
+            available_image_refs=("image_1", "image_2"),
+        )
+
+        self.assertEqual(hints, [])
+        self.assertEqual(payload.title_slide.slot_values["doc_version"], "v0.4")
+        self.assertEqual(
+            payload.contents.slot_values["contents_group_label"],
+            "Procedure Overview",
+        )
+        self.assertEqual(payload.slides[0].goal, "1. Choose A Starter Template")
+        self.assertEqual(payload.slides[0].slot_values["section_title"], "Choose A Starter Template")
+        self.assertEqual(payload.slides[1].goal, "1.2 Customize The Draft")
+        self.assertEqual(payload.slides[1].slot_values["caption_2"], "Starter YAML after editing")
+
+    def test_compile_authoring_payload_keeps_manual_pattern_and_image_order(self) -> None:
+        authoring_payload, _ = materialize_authoring_payload(
+            build_manual_report_content(),
+            get_built_in_contract("autoreport_manual"),
+            available_image_refs=("image_1", "image_2"),
+        )
+
+        compiled = compile_authoring_payload(
+            authoring_payload,
+            get_built_in_contract("autoreport_manual"),
+        )
+
+        self.assertEqual(
+            [slide.pattern_id for slide in compiled.slides],
+            ["text.manual.section_break", "text_image.manual.procedure.two"],
+        )
+        self.assertEqual(compiled.slides[0].title, "1. Choose A Starter Template")
+        self.assertEqual(compiled.slides[1].title, "1.2 Customize The Draft")
+        self.assertEqual(
+            compiled.slides[1].body,
+            ["Review the starter YAML.", "Update the guide text.", "Confirm the customer-facing changes."],
+        )
+        self.assertIsNone(compiled.slides[1].image)
+        self.assertIsNone(compiled.slides[1].caption)
+        self.assertEqual(
+            compiled.slides[1].slot_overrides["text_image.image_1"].image.ref,
+            "image_1",
+        )
+        self.assertEqual(
+            compiled.slides[1].slot_overrides["text_image.image_2"].image.ref,
+            "image_2",
+        )
+        self.assertEqual(
+            compiled.slides[1].slot_overrides["text_image.caption_1"].text,
+            ["Starter YAML before editing"],
+        )
+        self.assertEqual(
+            compiled.slides[1].slot_overrides["text_image.caption_2"].text,
+            ["Starter YAML after editing"],
+        )
 
     def test_validate_authoring_payload_rejects_missing_layout_request(self) -> None:
         payload = build_valid_authoring_payload()

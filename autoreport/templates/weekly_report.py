@@ -12,6 +12,7 @@ from autoreport.models import (
     ImageSpec,
     PayloadSlide,
     ReportPayload,
+    SlotOverride,
     TemplateContract,
     TemplatePatternContract,
     TemplateSectionContract,
@@ -39,9 +40,12 @@ from autoreport.templates.autofill import (
 
 TEMPLATE_NAME = "weekly_report"
 BASIC_TEMPLATE_NAME = "autoreport_editorial"
-SUPPORTED_TEMPLATE_NAMES = (BASIC_TEMPLATE_NAME, TEMPLATE_NAME)
+MANUAL_TEMPLATE_NAME = "autoreport_manual"
+SUPPORTED_TEMPLATE_NAMES = (BASIC_TEMPLATE_NAME, MANUAL_TEMPLATE_NAME, TEMPLATE_NAME)
 BUILT_IN_TEMPLATE_ID = "autoreport-editorial-v1"
 BUILT_IN_TEMPLATE_LABEL = "Autoreport Editorial"
+MANUAL_TEMPLATE_ID = "autoreport-manual-v1"
+MANUAL_TEMPLATE_LABEL = "Autoreport Manual"
 TITLE_LAYOUT_INDEX = 0
 BLANK_LAYOUT_INDEX = 6
 
@@ -63,6 +67,13 @@ BASIC_EDITORIAL_LIGHT = (247, 248, 250)
 BASIC_EDITORIAL_PALE = (234, 242, 246)
 BASIC_EDITORIAL_LINE = (217, 224, 231)
 BASIC_EDITORIAL_PALE_LINE = (227, 236, 242)
+MANUAL_BG = (248, 250, 252)
+MANUAL_TEXT_PANEL = (255, 255, 255)
+MANUAL_FRAME = (226, 232, 240)
+MANUAL_ACCENT = (22, 78, 99)
+MANUAL_ACCENT_SOFT = (186, 230, 253)
+MANUAL_ACTION = (15, 118, 110)
+MANUAL_IMAGE_PANEL = (241, 245, 249)
 
 IGNORED_TEXT_PLACEHOLDER_TYPES = frozenset(
     getattr(PP_PLACEHOLDER, name)
@@ -96,10 +107,12 @@ def profile_template(
     template_path: Path | None,
     template_name: str = BASIC_TEMPLATE_NAME,
 ) -> TemplateProfile:
-    """Profile either the built-in editorial template or a user template."""
+    """Profile either a built-in template family or a user template."""
 
     if template_name == BASIC_TEMPLATE_NAME and template_path is None:
         return profile_basic_template(presentation, template_path=None)
+    if template_name == MANUAL_TEMPLATE_NAME and template_path is None:
+        return profile_manual_template(presentation, template_path=None)
 
     return profile_user_template(presentation, template_path=template_path)
 
@@ -297,6 +310,419 @@ def profile_basic_template(
         title_pattern=title_pattern,
         contents_pattern=contents_pattern,
         slide_patterns=slide_patterns,
+    )
+
+
+def profile_manual_template(
+    presentation: Presentation,
+    *,
+    template_path: Path | None,
+) -> TemplateProfile:
+    """Build the built-in screenshot-first manual profile."""
+
+    blank_layout = _get_layout(
+        presentation,
+        layout_index=BLANK_LAYOUT_INDEX,
+        layout_name="blank",
+        template_path=template_path,
+    )
+
+    title_pattern = PatternProfile(
+        pattern_id="cover.manual",
+        kind="cover",
+        layout_index=BLANK_LAYOUT_INDEX,
+        layout_name=blank_layout.name,
+        slots=(
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="cover.title",
+                alias="doc_title",
+                slot_type="title",
+                x_ratio=0.083,
+                y_ratio=0.122,
+                width_ratio=0.611,
+                height_ratio=0.116,
+                preferred_font_size=30,
+                min_font_size=20,
+                allowed_kinds=(SlotContentKind.TITLE,),
+            ),
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="cover.doc_subtitle",
+                alias="doc_subtitle",
+                slot_type="text",
+                x_ratio=0.083,
+                y_ratio=0.274,
+                width_ratio=0.611,
+                height_ratio=0.114,
+                preferred_font_size=18,
+                min_font_size=13,
+                allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS, SlotContentKind.SHORT_FACT_OR_STATUS),
+                orientation="stack",
+                order=1,
+                required=False,
+            ),
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="cover.doc_version",
+                alias="doc_version",
+                slot_type="text",
+                x_ratio=0.083,
+                y_ratio=0.720,
+                width_ratio=0.195,
+                height_ratio=0.056,
+                preferred_font_size=13,
+                min_font_size=11,
+                allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+                orientation="horizontal",
+                order=2,
+                required=False,
+            ),
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="cover.author_or_owner",
+                alias="author_or_owner",
+                slot_type="text",
+                x_ratio=0.298,
+                y_ratio=0.720,
+                width_ratio=0.255,
+                height_ratio=0.056,
+                preferred_font_size=13,
+                min_font_size=11,
+                allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+                orientation="horizontal",
+                order=3,
+                required=False,
+            ),
+        ),
+        decorations=_build_manual_cover_decorations(presentation),
+    )
+
+    contents_pattern = PatternProfile(
+        pattern_id="contents.manual",
+        kind="contents",
+        layout_index=BLANK_LAYOUT_INDEX,
+        layout_name=blank_layout.name,
+        slots=(
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="contents.title",
+                alias="contents_title",
+                slot_type="title",
+                x_ratio=0.083,
+                y_ratio=0.088,
+                width_ratio=0.611,
+                height_ratio=0.074,
+                preferred_font_size=24,
+                min_font_size=18,
+                allowed_kinds=(SlotContentKind.TITLE,),
+            ),
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="contents.group_label",
+                alias="contents_group_label",
+                slot_type="text",
+                x_ratio=0.083,
+                y_ratio=0.194,
+                width_ratio=0.380,
+                height_ratio=0.052,
+                preferred_font_size=14,
+                min_font_size=11,
+                allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+                orientation="stack",
+                order=1,
+                required=False,
+            ),
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name="contents.body_1",
+                alias="contents_entries",
+                slot_type="text",
+                x_ratio=0.083,
+                y_ratio=0.286,
+                width_ratio=0.547,
+                height_ratio=0.462,
+                preferred_font_size=18,
+                min_font_size=13,
+                allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS, SlotContentKind.SHORT_FACT_OR_STATUS),
+                orientation="stack",
+                order=2,
+            ),
+        ),
+        decorations=_build_manual_text_decorations(presentation),
+    )
+
+    slide_patterns = (
+        PatternProfile(
+            pattern_id="text.manual.section_break",
+            kind="text",
+            layout_index=BLANK_LAYOUT_INDEX,
+            layout_name=blank_layout.name,
+            slots=(
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text.title",
+                    alias="section_title",
+                    slot_type="title",
+                    x_ratio=0.171,
+                    y_ratio=0.316,
+                    width_ratio=0.606,
+                    height_ratio=0.112,
+                    preferred_font_size=28,
+                    min_font_size=18,
+                    allowed_kinds=(SlotContentKind.TITLE,),
+                ),
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text.section_no",
+                    alias="section_no",
+                    slot_type="text",
+                    x_ratio=0.083,
+                    y_ratio=0.316,
+                    width_ratio=0.067,
+                    height_ratio=0.112,
+                    preferred_font_size=24,
+                    min_font_size=18,
+                    allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+                    orientation="stack",
+                    order=1,
+                ),
+                _build_text_box_slot(
+                    presentation,
+                    layout_index=BLANK_LAYOUT_INDEX,
+                    slot_name="text.section_subtitle",
+                    alias="section_subtitle",
+                    slot_type="text",
+                    x_ratio=0.171,
+                    y_ratio=0.470,
+                    width_ratio=0.606,
+                    height_ratio=0.100,
+                    preferred_font_size=16,
+                    min_font_size=12,
+                    allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS, SlotContentKind.SHORT_FACT_OR_STATUS),
+                    orientation="stack",
+                    order=2,
+                    required=False,
+                ),
+            ),
+            decorations=_build_manual_text_decorations(presentation),
+        ),
+        *_build_manual_procedure_patterns(
+            presentation,
+            layout_name=blank_layout.name,
+        ),
+    )
+
+    return TemplateProfile(
+        template_name=MANUAL_TEMPLATE_NAME,
+        template_id=MANUAL_TEMPLATE_ID,
+        template_label=MANUAL_TEMPLATE_LABEL,
+        template_source="built_in",
+        template_path=None,
+        title_pattern=title_pattern,
+        contents_pattern=contents_pattern,
+        slide_patterns=slide_patterns,
+    )
+
+
+def _build_manual_procedure_patterns(
+    presentation: Presentation,
+    *,
+    layout_name: str,
+) -> tuple[PatternProfile, ...]:
+    return (
+        _build_manual_procedure_pattern(
+            presentation,
+            pattern_id="text_image.manual.procedure.one",
+            layout_name=layout_name,
+            body_region=(0.083, 0.372, 0.532, 0.330),
+            image_regions=((0.664, 0.214, 0.260, 0.408),),
+            caption_regions=((0.664, 0.654, 0.260, 0.066),),
+        ),
+        _build_manual_procedure_pattern(
+            presentation,
+            pattern_id="text_image.manual.procedure.two",
+            layout_name=layout_name,
+            body_region=(0.083, 0.340, 0.841, 0.108),
+            image_regions=(
+                (0.083, 0.516, 0.377, 0.208),
+                (0.548, 0.516, 0.377, 0.208),
+            ),
+            caption_regions=(
+                (0.083, 0.744, 0.377, 0.056),
+                (0.548, 0.744, 0.377, 0.056),
+            ),
+        ),
+        _build_manual_procedure_pattern(
+            presentation,
+            pattern_id="text_image.manual.procedure.three",
+            layout_name=layout_name,
+            body_region=(0.083, 0.340, 0.841, 0.094),
+            image_regions=(
+                (0.083, 0.500, 0.255, 0.188),
+                (0.372, 0.500, 0.255, 0.188),
+                (0.661, 0.500, 0.255, 0.188),
+            ),
+            caption_regions=(
+                (0.083, 0.710, 0.255, 0.056),
+                (0.372, 0.710, 0.255, 0.056),
+                (0.661, 0.710, 0.255, 0.056),
+            ),
+        ),
+    )
+
+
+def _build_manual_procedure_pattern(
+    presentation: Presentation,
+    *,
+    pattern_id: str,
+    layout_name: str,
+    body_region: tuple[float, float, float, float],
+    image_regions: tuple[tuple[float, float, float, float], ...],
+    caption_regions: tuple[tuple[float, float, float, float], ...],
+) -> PatternProfile:
+    slots: list[SlotDescriptor] = [
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.title",
+            alias="step_title",
+            slot_type="title",
+            x_ratio=0.171,
+            y_ratio=0.088,
+            width_ratio=0.543,
+            height_ratio=0.066,
+            preferred_font_size=22,
+            min_font_size=17,
+            allowed_kinds=(SlotContentKind.TITLE,),
+        ),
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.step_no",
+            alias="step_no",
+            slot_type="text",
+            x_ratio=0.083,
+            y_ratio=0.088,
+            width_ratio=0.067,
+            height_ratio=0.066,
+            preferred_font_size=18,
+            min_font_size=14,
+            allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+            orientation="stack",
+            order=1,
+        ),
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.command_or_action",
+            alias="command_or_action",
+            slot_type="text",
+            x_ratio=0.083,
+            y_ratio=0.182,
+            width_ratio=0.841,
+            height_ratio=0.050,
+            preferred_font_size=13,
+            min_font_size=11,
+            allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+            orientation="stack",
+            order=2,
+            required=False,
+        ),
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.summary",
+            alias="summary",
+            slot_type="text",
+            x_ratio=0.083,
+            y_ratio=0.250,
+            width_ratio=0.841,
+            height_ratio=0.068,
+            preferred_font_size=15,
+            min_font_size=12,
+            allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS, SlotContentKind.SHORT_FACT_OR_STATUS),
+            orientation="stack",
+            order=3,
+            required=False,
+        ),
+        _build_text_box_slot(
+            presentation,
+            layout_index=BLANK_LAYOUT_INDEX,
+            slot_name="text_image.body_1",
+            alias="detail_body",
+            slot_type="text",
+            x_ratio=body_region[0],
+            y_ratio=body_region[1],
+            width_ratio=body_region[2],
+            height_ratio=body_region[3],
+            preferred_font_size=15,
+            min_font_size=11,
+            allowed_kinds=(SlotContentKind.PARAGRAPH_OR_BULLETS,),
+            orientation="stack",
+            order=4,
+        ),
+    ]
+
+    for index, region in enumerate(image_regions, start=1):
+        slots.append(
+            _build_geometry_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name=f"text_image.image_{index}",
+                alias=f"image_{index}",
+                slot_type="image",
+                x_ratio=region[0],
+                y_ratio=region[1],
+                width_ratio=region[2],
+                height_ratio=region[3],
+                orientation="horizontal",
+                order=index,
+            )
+        )
+
+    for index, region in enumerate(caption_regions, start=1):
+        slots.append(
+            _build_text_box_slot(
+                presentation,
+                layout_index=BLANK_LAYOUT_INDEX,
+                slot_name=f"text_image.caption_{index}",
+                alias=f"caption_{index}",
+                slot_type="caption",
+                x_ratio=region[0],
+                y_ratio=region[1],
+                width_ratio=region[2],
+                height_ratio=region[3],
+                preferred_font_size=12,
+                min_font_size=10,
+                allowed_kinds=(SlotContentKind.SHORT_FACT_OR_STATUS,),
+                orientation="horizontal",
+                order=index,
+                required=False,
+            )
+        )
+
+    return PatternProfile(
+        pattern_id=pattern_id,
+        kind="text_image",
+        layout_index=BLANK_LAYOUT_INDEX,
+        layout_name=layout_name,
+        slots=tuple(slots),
+        decorations=_build_manual_text_image_decorations(
+            presentation,
+            body_region=body_region,
+            image_regions=image_regions,
+            caption_regions=caption_regions,
+        ),
     )
 
 
@@ -644,6 +1070,7 @@ def build_report_fill_plan(
         _plan_title_slide(
             payload.title_slide.title,
             payload.title_slide.subtitle,
+            payload.title_slide.slot_values,
             template_profile.title_pattern,
             diagnostics,
         )
@@ -662,6 +1089,11 @@ def build_report_fill_plan(
                 pattern=template_profile.contents_pattern,
                 diagnostics=diagnostics,
                 kind="contents",
+                slot_overrides=_build_named_slot_overrides(
+                    pattern=template_profile.contents_pattern,
+                    slot_values=payload.contents.slot_values,
+                    skip_aliases=_pattern_body_aliases(template_profile.contents_pattern),
+                ),
             )
         )
 
@@ -685,29 +1117,48 @@ def build_report_fill_plan(
 def _plan_title_slide(
     title: str,
     subtitle_items: list[str],
+    slot_values: dict[str, str],
     pattern: PatternProfile,
     diagnostics: DiagnosticReport,
 ) -> PlannedSlide:
     title_slot = pattern.slots_by_type("title")[0]
-    title_fit = fit_text_to_slot(title, title_slot)
+    title_text = slot_values.get(title_slot.alias or title_slot.slot_name, title)
+    title_fit = fit_text_to_slot(title_text, title_slot)
     _record_fit_diagnostics(
         diagnostics,
-        slide_title=title,
+        slide_title=title_text,
         fit_result=title_fit,
         label="cover title",
     )
 
-    subtitle_slots = pattern.slots_by_type("text")
-    subtitle_fills, _ = _plan_items_across_slots(
-        subtitle_items,
-        subtitle_slots,
+    subtitle_fills: list[PlannedTextFill] = []
+    remaining_subtitle_items = list(subtitle_items)
+    remaining_subtitle_slots: list[SlotDescriptor] = []
+    for slot in pattern.slots_by_type("text"):
+        alias = slot.alias or slot.slot_name
+        if alias not in slot_values:
+            remaining_subtitle_slots.append(slot)
+            continue
+        fill = _build_named_text_fill(slot, slot_values[alias])
+        subtitle_fills.append(fill)
+        if fill.fit_result is not None:
+            _record_fit_diagnostics(
+                diagnostics,
+                slide_title=title_text,
+                fit_result=fill.fit_result,
+                label=alias,
+            )
+    planned_subtitle_fills, _ = _plan_items_across_slots(
+        remaining_subtitle_items,
+        remaining_subtitle_slots,
         reserve_one_item_per_remaining_slot=True,
     )
+    subtitle_fills.extend(planned_subtitle_fills)
     for index, fill in enumerate(subtitle_fills, start=1):
         if fill.fit_result is not None:
             _record_fit_diagnostics(
                 diagnostics,
-                slide_title=title,
+                slide_title=title_text,
                 fit_result=fill.fit_result,
                 label=f"cover subtitle slot {index}",
             )
@@ -717,12 +1168,12 @@ def _plan_title_slide(
         kind=pattern.kind,
         layout_name=pattern.layout_name,
         layout_index=pattern.layout_index,
-        slide_title=title,
+        slide_title=title_text,
         decorations=list(pattern.decorations),
         text_fills=[
             PlannedTextFill(
                 slot=title_slot,
-                text=title,
+                text=title_text,
                 font_size=title_fit.font_size,
                 fit_result=title_fit,
             ),
@@ -779,9 +1230,9 @@ def _plan_textual_pattern_slides(
     slot_overrides = slot_overrides or {}
     title_slot = pattern.slots_by_type("title")[0]
     title_override = slot_overrides.get(title_slot.slot_name)
-    resolved_title = slide_title
+    display_title = slide_title
     if title_override is not None and getattr(title_override, "text", None):
-        resolved_title = "\n".join(title_override.text)
+        display_title = "\n".join(title_override.text)
 
     body_slots = list(pattern.slots_by_type("text"))
     override_fills: list[PlannedTextFill] = []
@@ -808,11 +1259,16 @@ def _plan_textual_pattern_slides(
     while remaining_items or continuation_index == 0:
         continuation = continuation_index > 0
         resolved_slide_title = (
-            f"{resolved_title} (cont.)"
+            f"{slide_title} (cont.)"
             if continuation
-            else resolved_title
+            else slide_title
         )
-        title_fit = fit_text_to_slot(resolved_slide_title, title_slot)
+        resolved_display_title = (
+            f"{display_title} (cont.)"
+            if continuation
+            else display_title
+        )
+        title_fit = fit_text_to_slot(resolved_display_title, title_slot)
         _record_fit_diagnostics(
             diagnostics,
             slide_title=resolved_slide_title,
@@ -851,7 +1307,7 @@ def _plan_textual_pattern_slides(
                 text_fills=[
                     PlannedTextFill(
                         slot=title_slot,
-                        text=resolved_slide_title,
+                        text=resolved_display_title,
                         font_size=title_fit.font_size,
                         fit_result=title_fit,
                     ),
@@ -986,6 +1442,45 @@ def _build_text_override_fill(slot: SlotDescriptor, override) -> PlannedTextFill
     )
 
 
+def _build_named_text_fill(slot: SlotDescriptor, value: str) -> PlannedTextFill:
+    if slot.slot_type in {"title", "caption"}:
+        fit_result = fit_text_to_slot(value, slot)
+        return PlannedTextFill(
+            slot=slot,
+            text=value,
+            font_size=fit_result.font_size,
+            fit_result=fit_result,
+        )
+    fit_result = fit_text_items_to_slot([value], slot)
+    return PlannedTextFill(
+        slot=slot,
+        items=[value][: fit_result.consumed_items],
+        font_size=fit_result.font_size,
+        fit_result=fit_result,
+    )
+
+
+def _build_named_slot_overrides(
+    *,
+    pattern: PatternProfile,
+    slot_values: dict[str, str],
+    skip_aliases: set[str] | None = None,
+) -> dict[str, SlotOverride]:
+    skip_aliases = set() if skip_aliases is None else set(skip_aliases)
+    overrides: dict[str, SlotOverride] = {}
+    for slot in pattern.slots:
+        if slot.slot_type == "image":
+            continue
+        alias = slot.alias or slot.slot_name
+        if alias in skip_aliases or alias not in slot_values:
+            continue
+        overrides[slot.slot_name] = SlotOverride(
+            slot_id=slot.slot_name,
+            text=[slot_values[alias]],
+        )
+    return overrides
+
+
 def _plan_items_across_slots(
     items: list[str],
     slots: tuple[SlotDescriptor, ...] | list[SlotDescriptor],
@@ -1054,6 +1549,13 @@ def _pattern_body_slots(pattern: PatternProfile) -> tuple[SlotDescriptor, ...]:
         for slot in pattern.slots_by_type("text")
         if slot.slot_name.startswith(f"{pattern.kind}.body_")
     )
+
+
+def _pattern_body_aliases(pattern: PatternProfile) -> set[str]:
+    return {
+        slot.alias or slot.slot_name
+        for slot in _pattern_body_slots(pattern)
+    }
 
 
 def _export_slot_contract(slot: SlotDescriptor) -> TemplateSlotContract:
@@ -1686,6 +2188,164 @@ def _infer_orientation(slots: list[SlotDescriptor] | tuple[SlotDescriptor, ...])
     if x_span <= max_width // 4:
         return "stack"
     return "vertical"
+
+
+def _build_manual_cover_decorations(
+    presentation: Presentation,
+) -> tuple[SlideDecoration, ...]:
+    return (
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=1.000,
+            height_ratio=1.000,
+            fill_rgb=MANUAL_BG,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=0.028,
+            height_ratio=1.000,
+            fill_rgb=MANUAL_ACCENT,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.720,
+            y_ratio=0.106,
+            width_ratio=0.214,
+            height_ratio=0.694,
+            fill_rgb=MANUAL_ACCENT_SOFT,
+            line_rgb=MANUAL_FRAME,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.083,
+            y_ratio=0.664,
+            width_ratio=0.470,
+            height_ratio=0.004,
+            fill_rgb=MANUAL_ACTION,
+        ),
+    )
+
+
+def _build_manual_text_decorations(
+    presentation: Presentation,
+) -> tuple[SlideDecoration, ...]:
+    return (
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=1.000,
+            height_ratio=1.000,
+            fill_rgb=MANUAL_BG,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=1.000,
+            height_ratio=0.034,
+            fill_rgb=MANUAL_ACCENT,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.064,
+            y_ratio=0.158,
+            width_ratio=0.862,
+            height_ratio=0.648,
+            fill_rgb=MANUAL_TEXT_PANEL,
+            line_rgb=MANUAL_FRAME,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.083,
+            y_ratio=0.176,
+            width_ratio=0.126,
+            height_ratio=0.004,
+            fill_rgb=MANUAL_ACTION,
+        ),
+    )
+
+
+def _build_manual_text_image_decorations(
+    presentation: Presentation,
+    *,
+    body_region: tuple[float, float, float, float],
+    image_regions: tuple[tuple[float, float, float, float], ...],
+    caption_regions: tuple[tuple[float, float, float, float], ...],
+) -> tuple[SlideDecoration, ...]:
+    decorations: list[SlideDecoration] = [
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=1.000,
+            height_ratio=1.000,
+            fill_rgb=MANUAL_BG,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.000,
+            y_ratio=0.000,
+            width_ratio=1.000,
+            height_ratio=0.034,
+            fill_rgb=MANUAL_ACCENT,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.064,
+            y_ratio=0.172,
+            width_ratio=0.862,
+            height_ratio=0.040,
+            fill_rgb=MANUAL_ACCENT_SOFT,
+            line_rgb=MANUAL_FRAME,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=body_region[0] - 0.012,
+            y_ratio=body_region[1] - 0.020,
+            width_ratio=body_region[2] + 0.024,
+            height_ratio=body_region[3] + 0.040,
+            fill_rgb=MANUAL_TEXT_PANEL,
+            line_rgb=MANUAL_FRAME,
+        ),
+        _build_ratio_decoration(
+            presentation,
+            x_ratio=0.083,
+            y_ratio=0.176,
+            width_ratio=0.126,
+            height_ratio=0.004,
+            fill_rgb=MANUAL_ACTION,
+        ),
+    ]
+    for region in image_regions:
+        decorations.append(
+            _build_ratio_decoration(
+                presentation,
+                x_ratio=region[0],
+                y_ratio=region[1],
+                width_ratio=region[2],
+                height_ratio=region[3],
+                fill_rgb=MANUAL_IMAGE_PANEL,
+                line_rgb=MANUAL_FRAME,
+            )
+        )
+    for region in caption_regions:
+        decorations.append(
+            _build_ratio_decoration(
+                presentation,
+                x_ratio=region[0],
+                y_ratio=region[1],
+                width_ratio=region[2],
+                height_ratio=region[3],
+                fill_rgb=MANUAL_TEXT_PANEL,
+                line_rgb=MANUAL_FRAME,
+            )
+        )
+    return tuple(decorations)
 
 
 def _build_basic_template_title_decorations(
