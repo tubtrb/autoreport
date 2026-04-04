@@ -10,13 +10,15 @@ description: Create release backup tags in the autoreport repository, clean up m
 Use this skill for repository-local release backup tagging and the matching
 post-merge branch cleanup flow.
 
-Default release flow in this repository:
+Default release flow in this repository when the user uses the version-master branch line:
 
-1. merge the release branch into `main`
-2. create an annotated `v<version>` tag on the merged `main` commit
-3. push the tag
-4. delete the merged source branch unless the user wants to keep it
-5. refresh `codex/next` from the updated `main`
+1. do active feature work on `codex/v<next>-master`
+2. squash or otherwise intentionally condense that release-bound history into `codex/next`
+3. finish release prep and the version bump on `codex/next`
+4. merge `codex/next` into `main`
+5. create an annotated `v<version>` tag on the merged `main` commit
+6. push the tag
+7. refresh `codex/next` from the updated `main`
 
 This skill is repo-local only. It does not manage the sibling `autorelease`
 repository unless the user explicitly asks for that separate flow.
@@ -35,7 +37,8 @@ repository unless the user explicitly asks for that separate flow.
 1. Confirm the release target.
 - Default the tag name to `v<project.version>` from `pyproject.toml`.
 - Prefer tagging the merged `main` release commit, not a deleted source branch tip.
-- If the release branch has already been merged, tag the merge commit on `main`.
+- If the release candidate has already been merged from `codex/next`, tag the merge commit on `main`.
+- Treat `codex/v<next>-master` as the feature source branch, not the tag target.
 
 2. Protect existing tags.
 - If the target tag already exists locally and on origin at the expected commit, report that it is already in place.
@@ -48,6 +51,7 @@ repository unless the user explicitly asks for that separate flow.
 
 4. Normalize the branch flow after merge.
 - Delete the merged source branch locally and on origin when the user asks for cleanup.
+- If the release used a dedicated `codex/v<released>-master` development line, delete that branch only after `codex/next`, `main`, and the tag all point at the intended release history.
 - Refresh `codex/next` from the pushed `main` commit.
 - If `codex/next` has drifted, recreate it from `main` instead of guessing at a merge.
 
@@ -55,7 +59,8 @@ repository unless the user explicitly asks for that separate flow.
 
 - Release tags use the form `v<semantic-version>`.
 - `main` is the post-merge source of truth for backup tags.
-- `codex/next` should mirror the updated `main` commit after release cleanup.
+- `codex/next` is the curated release-candidate line before merge and should mirror the updated `main` commit after release cleanup.
+- `codex/v<next>-master` is the preferred scratch feature line when the user wants branch-based development before the next release.
 
 ## Output Contract
 

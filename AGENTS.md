@@ -39,6 +39,11 @@
 - Keep temporary test artifacts under `tests/_tmp/`.
 - Keep local bootstrap state under `.codex/`; repo-tracked shared guidance belongs in `codex/`.
 
+## Branch Roles
+- `main`: released stable line and source of truth for release tags.
+- `codex/next`: curated release-candidate line for the next version. Keep it intentionally reviewable rather than using it as the scratch feature branch.
+- `codex/v<next>-master`: active development line for the next planned version when the user wants branch-based feature work before release promotion.
+
 ## Skill Routing
 - Load `codex/skills/autoreport-dev/SKILL.md` first for repository context.
 - Then load one primary focused skill based on the main surface being changed:
@@ -52,7 +57,7 @@
 - Public repo safety, secrets/PII leak checks, screenshot hygiene, and preflight before any public push/publish -> `public-repo-safety`
 - Release readiness checks, browser smoke tests, screenshots, download evidence, and verification-backed doc inputs -> `release-verification`
 - README, release notes, packaging metadata, public wording alignment -> `release-docs`
-- Release backup tags, merged-source-branch cleanup, and refreshing `codex/next` from `main` -> `release-tagging`
+- Release backup tags, squashed promotion from `codex/v<next>-master` into `codex/next`, merged-source-branch cleanup, and refreshing `codex/next` from `main` after release -> `release-tagging`
 - WordPress-style public Markdown posts for development logs, release notes, and user guides -> `write-doc-markdown`
 - Versioned post handoff from `docs/posts/` into the private `autorelease` publishing repo -> `autorelease-handoff`
 - If a task genuinely spans multiple surfaces, keep one primary skill and consult adjacent skills only where necessary.
@@ -69,6 +74,11 @@
 - When shipped behavior, public contracts, cleanup rules, verification flow, or orchestration expectations change, update the relevant repo-local skills and bootstrap guidance in the same task so future turns inherit the latest repo reality.
 - Stale agent or skill guidance is a blocker for signoff for the same reason stale code is a blocker: it causes later tasks to resurrect dead paths and wrong assumptions.
 - Use git history and tags for recovery, not stale bootstrap guidance left in tracked files after the product has already moved on.
+- When the user prefers the version-master branch flow, do active feature work on `codex/v<next>-master`, then squash or otherwise intentionally condense that history into `codex/next` before release prep.
+- In that flow, keep `main` release-oriented rather than treating it as the scratch feature branch.
+- Prefer bumping `pyproject.toml` and package version markers when the curated release candidate lands on `codex/next`, not at the start of `codex/v<next>-master`, unless the user explicitly wants the early bump.
+- Create annotated release tags only on the merged `main` commit after `codex/next` has been promoted into `main`.
+- After tagging, refresh `codex/next` from the tagged `main` commit before starting the next version-master line unless the user explicitly wants a different branch shape.
 - Treat repo-operation tasks on `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, and shared architecture/process guidance as operational changes rather than draft-only docs work.
 - Unless the user explicitly asks to stop earlier or use a different branch flow, finish those repo-operation tasks by validating the changed guidance, running `public-repo-safety`, committing on `main`, pushing `origin/main`, and refreshing `codex/next` from that pushed `main`.
 - When public release-site URLs or hosted demo endpoints change, update `docs/deployment/public-service-info.yaml` in the same task and keep the writing/handoff skills aligned so the homepage, guide, and release-facing posts do not drift.

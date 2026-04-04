@@ -31,7 +31,7 @@ and routes deeper work to one primary focused skill.
   - Public repo safety, leak scans, and screenshot hygiene -> `../public-repo-safety/SKILL.md`
   - Release readiness checks, browser smoke tests, and evidence capture -> `../release-verification/SKILL.md`
   - README/release/package messaging -> `../release-docs/SKILL.md`
-  - Release backup tags, merged-source-branch cleanup, or refreshing `codex/next` from `main` -> `../release-tagging/SKILL.md`
+  - Release backup tags, squashed promotion from `codex/v<next>-master` into `codex/next`, merged-source-branch cleanup, or refreshing `codex/next` from `main` -> `../release-tagging/SKILL.md`
   - WordPress-style development logs, release notes, and user guides -> `../write-doc-markdown/SKILL.md`
   - Handoff of versioned posts into the private `autorelease` repo -> `../autorelease-handoff/SKILL.md`
 - If a focused skill is missing, continue with this umbrella guidance and report the coverage gap.
@@ -80,6 +80,7 @@ and routes deeper work to one primary focused skill.
 
 - The public surface is now contract-first and Autoreport-branded, even though some internal module names still mention `weekly_report`.
 - The CLI and web demo both feed the same core generation path.
+- When the user chooses the version-master branch flow, treat `codex/v<next>-master` as the active feature line, `codex/next` as the curated release-candidate line, and `main` as the released line that receives the final tag.
 - Some strings and comments still carry older `v0.1` wording; preserve them unless intentionally updating the contract across code/tests/docs.
 - The web demo HTML currently contains tested literal copy from `autoreport/web/app.py`; treat it as contract until deliberately changed.
 
