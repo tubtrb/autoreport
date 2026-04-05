@@ -1,0 +1,4 @@
+interface:
+  display_name: "Branch Commit Guard"
+  short_description: "Guard protected next/master branches."
+  default_prompt: "Use $branch-commit-guard before staging or committing in autoreport when codex/next or codex/master may be checked out."

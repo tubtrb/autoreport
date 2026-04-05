@@ -12,7 +12,7 @@ post-merge branch cleanup flow.
 
 Default release flow in this repository when the user uses the version-master branch line:
 
-1. do active feature work on `codex/v<next>-master`
+1. do active feature work on `codex/v<next>-master` or its child task branches
 2. squash or otherwise intentionally condense that release-bound history into `codex/next`
 3. finish release prep and the version bump on `codex/next`
 4. merge `codex/next` into `main`
@@ -59,8 +59,8 @@ repository unless the user explicitly asks for that separate flow.
 
 - Release tags use the form `v<semantic-version>`.
 - `main` is the post-merge source of truth for backup tags.
-- `codex/next` is the curated release-candidate line before merge and should mirror the updated `main` commit after release cleanup.
-- `codex/v<next>-master` is the preferred scratch feature line when the user wants branch-based development before the next release.
+- `codex/next` is the curated release-candidate line before merge and should mirror the updated `main` commit after release cleanup. Treat it as protected integration history rather than a routine direct-commit feature branch.
+- `codex/v<next>-master` is the preferred active development line when the user wants branch-based development before the next release, and direct commits may still happen there under the current repo policy.
 
 ## Output Contract
 
