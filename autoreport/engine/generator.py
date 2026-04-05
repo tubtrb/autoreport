@@ -146,7 +146,10 @@ def _resolve_template_artifacts(
     template_name: str,
 ) -> tuple[TemplateProfile, TemplateContract]:
     if template_path is None:
-        return get_built_in_profile(), get_built_in_contract()
+        return (
+            get_built_in_profile(template_name),
+            get_built_in_contract(template_name),
+        )
 
     template_profile = profile_template(
         presentation,

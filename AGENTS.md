@@ -37,6 +37,9 @@
 ## Generated Artifacts
 - Do not commit generated output from `output/`.
 - Keep temporary test artifacts under `tests/_tmp/`.
+- Keep versioned post Markdown source under `docs/posts/*.md` tracked so guide, release-note, and devlog changes stay reviewable with the code they describe.
+- Keep reusable static public-doc assets under `docs/shared-assets/` when they should persist across releases.
+- Keep versioned screenshot capture folders under `docs/posts/*-image-v*/` local-only unless the asset is intentionally promoted into a tracked shared path.
 - Keep local bootstrap state under `.codex/`; repo-tracked shared guidance belongs in `codex/`.
 
 ## Branch Roles
@@ -90,6 +93,8 @@
 - The user app should stay optimized for the single "copy AI package -> paste draft -> generate" flow.
 - If a task needs extra panes, inspection widgets, manual helpers, or internal compile/normalize visibility, add or refine them in the debug app before cluttering the user app.
 - Shared compile/generate route behavior may be reused between the two apps, but the debug app must not become a hidden second implementation of the generation pipeline.
+- Treat the debug app primarily as a developer-facing validation workbench for contract inspection, normalization/compiled-payload analysis, upload debugging, and selected-case reruns.
+- If future work adds robustness checks across large prompt corpora or many template permutations, keep the high-volume execution in CLI or batch runners and let the debug app inspect summaries, failures, and representative reruns instead of becoming the bulk execution engine.
 - For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `main`, pushed, and `codex/next` has been refreshed from that pushed `main` when `next` is part of the active branch flow.
 - When old sibling directories from retired `codex/v0.3-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
 - If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v0.3-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.

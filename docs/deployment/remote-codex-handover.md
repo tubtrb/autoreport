@@ -32,19 +32,19 @@ The repository already includes reusable deployment assets:
 
 ## Expected Public Homepage
 
-The public app now starts from the text-first starter editor and should not show
-image-upload controls.
+The public app now starts directly from the manual procedure starter and keeps
+the paired upload/preview workflow visible for image-bearing slides.
 
 Expected homepage signals:
 
 - the page includes `Edit the starter deck and generate an Autoreport PPTX.`
 - the page includes `Starter Deck YAML`
-- the page includes `debug app or CLI`
-- the page does not include `Image Uploads`
-- the page does not include `Remove Upload`
+- the page includes `Manual Procedure Starter`
+- the page includes `Refresh Slide Assets`
 
-If `Image Uploads` still appears on the public URL, treat that as a deployment
-drift issue rather than a product ambiguity. The most likely causes are:
+If those manual-starter signals are missing from the public URL, treat that as a
+deployment drift issue rather than a product ambiguity. The most likely causes
+are:
 
 - the EC2 checkout is not actually on the latest `main`
 - the service was not restarted after pull or reinstall
@@ -63,12 +63,12 @@ git describe --tags --always
 git log --oneline -5
 ```
 
-2. Confirm the checkout includes the public image-removal change.
+2. Confirm the checkout includes the manual-starter homepage change.
 
 ```bash
 cd ~/autoreport
 git rev-parse HEAD
-git merge-base --is-ancestor 235a415 HEAD && echo "public image-removal commit present"
+git log --oneline -5
 ```
 
 3. Confirm the app health and homepage shape before changing the web stack.
@@ -85,8 +85,8 @@ In another shell:
 curl http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1:8000/ | grep -n "Edit the starter deck and generate an Autoreport PPTX."
 curl -s http://127.0.0.1:8000/ | grep -n "Starter Deck YAML"
-curl -s http://127.0.0.1:8000/ | grep -n "debug app or CLI"
-curl -s http://127.0.0.1:8000/ | grep -n "Image Uploads" && echo "unexpected upload UI present"
+curl -s http://127.0.0.1:8000/ | grep -n "Manual Procedure Starter"
+curl -s http://127.0.0.1:8000/ | grep -n "Refresh Slide Assets"
 ```
 
 4. Bootstrap or refresh the service stack from the tracked deployment assets.
@@ -106,12 +106,12 @@ sudo systemctl cat autoreport
 ps -ef | grep uvicorn
 curl http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1/ | grep -n "Starter Deck YAML"
-curl -s http://127.0.0.1/ | grep -n "debug app or CLI"
-curl -s http://127.0.0.1/ | grep -n "Image Uploads" && echo "unexpected upload UI present"
+curl -s http://127.0.0.1/ | grep -n "Manual Procedure Starter"
+curl -s http://127.0.0.1/ | grep -n "Refresh Slide Assets"
 journalctl -u autoreport -n 100 --no-pager
 ```
 
-6. If the repo is correct but the public URL still shows upload controls, force a clean service refresh.
+6. If the repo is correct but the public URL still serves stale homepage HTML, force a clean service refresh.
 
 ```bash
 cd ~/autoreport
@@ -123,7 +123,7 @@ python -m pip install -e .
 sudo systemctl daemon-reload
 sudo systemctl restart autoreport
 sudo systemctl reload nginx
-curl -s http://127.0.0.1/ | grep -n "Image Uploads" && echo "unexpected upload UI present"
+curl -s http://127.0.0.1/ | grep -n "Manual Procedure Starter"
 ```
 
 7. If the host is container-based instead of `systemd`, rebuild and replace the running image.
@@ -162,7 +162,8 @@ codex --help
 
 ## Troubleshooting Branches
 
-If the public URL still shows the upload section, use this decision tree:
+If the public URL still misses the expected manual-starter homepage or still
+serves the wrong app, use this decision tree:
 
 1. `git rev-parse HEAD` is older than expected
    Pull `origin/main` and reinstall the app.
@@ -185,5 +186,5 @@ The remote Codex task is complete when:
 - `curl http://127.0.0.1:8000/healthz` returns `{"status":"ok"}`
 - `curl http://127.0.0.1/` returns the Autoreport homepage through `nginx`
 - the homepage includes `Starter Deck YAML`
-- the homepage does not include `Image Uploads`
+- the homepage includes `Manual Procedure Starter`
 - no machine-specific secrets were written into the public repository

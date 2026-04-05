@@ -37,6 +37,7 @@ artifacts, and feed those results into release notes or a user guide.
 - Use the repository virtualenv: `.\venv\Scripts\python.exe`.
 - Prefer the narrow unittest targets from `AGENTS.md` before broader combinations.
 - If the task is specifically about web release readiness, run `.\venv\Scripts\python.exe -m unittest tests.test_web_app` before browser automation.
+- For the current public-web evidence flow, prefer `.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version <version>` after the narrow web tests. Install `-e .[e2e]` first when the optional Playwright extra is not available yet.
 
 3. Reproduce the user-facing flow in a real browser.
 - Prefer `playwright` for browser automation and screenshots.
@@ -54,6 +55,7 @@ artifacts, and feed those results into release notes or a user guide.
 - Save browser screenshots under `output/playwright/`.
 - Save temporary logs under `tests/_tmp/`.
 - Record which browser was used, which URL was exercised, and whether the download event fired.
+- The dedicated public-web runner also writes downloads under `.playwright-cli/downloads/` and can promote the `msedge` success capture into `docs/posts/guide-image-v<version>/image.png` when the user wants a guide-ready local asset.
 - Keep generated output under `output/` or `.playwright-cli/` unless the user explicitly asks to promote a curated asset into docs.
 
 5. Hand verified facts to documentation work.

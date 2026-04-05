@@ -1,0 +1,59 @@
+report_content:
+  title_slide:
+    pattern_id: cover.manual
+    slots:
+      doc_title: Autoreport PowerPoint User Guide
+      doc_subtitle: |
+        Screenshot-first guide for the public web manual mode
+      doc_version: v0.4.1
+      author_or_owner: Autoreport Team
+  contents_slide:
+    pattern_id: contents.manual
+    slots:
+      contents_title: Contents
+      contents_group_label: Procedure Overview
+  slides:
+    - pattern_id: text.manual.section_break
+      slots:
+        section_no: "1."
+        section_title: Choose A Starter Template
+        section_subtitle: Start with the built-in editorial or manual starter before editing content.
+    - pattern_id: text_image.manual.procedure.one
+      slots:
+        step_no: "1.1"
+        step_title: Review The Starter Example
+        command_or_action: "Action: open the starter example and confirm the selected template."
+        summary: Use one screenshot to show the starting editor state.
+        detail_body: |
+          Review the starter YAML, note the built-in template mode, and confirm
+          the page is ready before moving to the next step.
+        image_1: image_1
+        caption_1: Starter example loaded in the editor
+    - pattern_id: text_image.manual.procedure.two
+      slots:
+        step_no: "1.2"
+        step_title: Customize The Draft
+        command_or_action: "Action: edit the YAML title, sections, and example copy."
+        summary: Use the ordered screenshots to compare the starter draft before and after the edits.
+        detail_body: |
+          Update the guide title and slide text, then compare the edited YAML
+          against the original starter so the customer can see what changed.
+        image_1: image_2
+        image_2: image_3
+        caption_1: Starter YAML before editing
+        caption_2: Starter YAML after editing
+    - pattern_id: text_image.manual.procedure.three
+      slots:
+        step_no: "1.3"
+        step_title: Generate The PowerPoint
+        command_or_action: "Action: refresh the slide order and generate the PowerPoint deck."
+        summary: Use three screenshots to document preview, generation, and download.
+        detail_body: |
+          Refresh the manual slide order, confirm the PowerPoint preview, and
+          generate the deck so the download step is visible end to end.
+        image_1: image_4
+        image_2: image_5
+        image_3: image_6
+        caption_1: Slide preview ready
+        caption_2: Generation in progress
+        caption_3: PowerPoint download complete

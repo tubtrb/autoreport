@@ -85,41 +85,59 @@ assets under `deploy/aws-ec2/`.
 Run the local demo:
 
 ```bash
-uvicorn autoreport.web.app:app --host 0.0.0.0 --port 8000
+python -m autoreport.web.serve public --host 0.0.0.0 --port 8000
 ```
 
-The web demo currently targets the built-in editorial template only.
-It opens with a built-in website manual example by default, keeps the AI prompt
-comments at the top of the starter YAML, keeps the public flow text-first, and
-returns a generated `.pptx` for immediate download. The public page currently
-supports `text.editorial` and `metrics.editorial` drafts only; image-backed
-slides belong in the debug app or CLI flow.
+On Windows from the repo root, the shortest local command is:
+
+```powershell
+.\run-public.cmd
+```
+
+The wrapper above is the supported local launch path because it shuts down
+cleanly on `Ctrl-C` without printing the `uvicorn`/`asyncio` traceback that can
+appear on Python 3.14 when using `python -m uvicorn ...` directly.
+
+The web demo opens with the built-in manual procedure starter by default, keeps
+the AI prompt comments at the top of the starter YAML, and returns a generated
+`.pptx` for immediate download. The public page now focuses on the
+screenshot-first manual flow with paired upload and preview rows on the built-in
+`autoreport_manual` template.
 Slide counts are inferred dynamically from the authored slides list rather than
 entered as a separate field.
 Arbitrary PowerPoint template upload is currently a CLI-only path.
 
 The user-facing app is intentionally simple:
 
-1. start from the built-in starter example
+1. start from the built-in manual procedure starter
 2. keep or edit the AI prompt comments at the top of the YAML
-3. keep the public-web draft to text and metrics slides
-4. switch to the debug app or CLI when the deck needs images
-5. generate the deck
+3. keep the public homepage focused on the manual screenshot workflow
+4. use the paired upload panels and slide preview to align screenshots with each image-bearing slide
+5. use the debug app or CLI when the deck needs custom inspection or arbitrary image/template control
+6. generate the deck
 
 When you want a developer-facing surface with more panes for contract inspection,
 normalization, and compiled runtime debugging, run the separate debug app:
 
 ```bash
-uvicorn autoreport.web.debug_app:app --host 0.0.0.0 --port 8010
+python -m autoreport.web.serve debug --host 0.0.0.0 --port 8010
+```
+
+Or from the repo root on Windows:
+
+```powershell
+.\run-debug.cmd
 ```
 
 ## Example documents
 
 - `examples/autoreport_editorial_template_contract.yaml`: built-in editorial contract export
 - `examples/autoreport_editorial_report_content.yaml`: AI-facing draft example for another model to fill
-- `examples/autoreport_website_intro_report_content.yaml`: built-in website manual draft for the public text-first web demo
 - `examples/autoreport_editorial_authoring_payload.yaml`: built-in editorial authoring example, including the `text_image` example that uses `image_1`
 - `examples/autoreport_editorial_report_payload.yaml`: compiled runtime payload reference for the built-in editorial template
+- `examples/autoreport_manual_template_contract.yaml`: built-in manual contract export for screenshot-first procedure decks
+- `examples/autoreport_manual_report_content.yaml`: screenshot-first manual draft example for the built-in public manual starter
+- `examples/autoreport_manual_authoring_payload.yaml`: built-in manual authoring starter with alias-based slot values
 
 ## Data handling
 
@@ -132,7 +150,7 @@ generated files after download and does not retain payload contents by default.
 ## Current Release Boundaries
 
 - Contract inspection, authoring-payload scaffolding, authoring-to-runtime compilation, and PPTX generation are available through the CLI.
-- The public web demo covers the built-in editorial template, pasted `report_content` or `authoring_payload` YAML, public-web text and metrics slides, and immediate PPTX download.
-- Image-backed drafts remain available through the CLI and the separate debug web app rather than the default public web surface.
+- The public web demo covers the built-in manual procedure starter on `autoreport_manual`, pasted `report_content` or `authoring_payload` YAML, paired screenshot upload/preview for manual mode, and immediate PPTX download.
+- The default public homepage now leads directly with the manual starter rather than an editorial-first starter selector.
 - Generation remains deterministic and local to Python plus `python-pptx`; there is no server-side LLM call in the generation path.
 - Release-note, guide, and devlog handoff is prepared locally through `docs/posts/` and then synced into the private `autorelease` repository.

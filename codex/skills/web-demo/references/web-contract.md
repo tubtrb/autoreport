@@ -17,7 +17,7 @@ Do not collapse these two surfaces back into one crowded homepage unless the tas
 
 Entrypoint:
 
-- `uvicorn autoreport.web.app:app --host 127.0.0.1 --port 8000`
+- `python -m autoreport.web.serve public --host 127.0.0.1 --port 8000`
 
 Routes:
 
@@ -35,10 +35,16 @@ User-app UI contract:
 
 - Start from one built-in editable starter example by default.
 - Keep the AI prompt comments at the top of that starter YAML so the page always starts from one self-contained editable block.
-- Keep the default public starter text-first for the current hosted flow.
+- Keep the default public starter focused on the manual screenshot workflow for the current hosted flow.
 - Keep one large working input area as the primary surface.
 - Treat total slide count as dynamic; infer it from the draft, not from a separate input field.
-- Keep the user app minimal: reset the starter example, edit YAML, keep to text or metrics slides, and generate.
+- Keep the user app minimal: reset the starter example, edit YAML, pair uploads with image-bearing slide previews, and generate.
+- In manual mode, if a preview is shown, prefer the composed slide result over raw uploaded-image thumbnails.
+- Manual slide previews should follow the actual generation fill plan closely enough to reflect continuation slides, slot-level image retention, and fitted text/layout decisions rather than a naive compiled-payload sketch.
+- In manual mode, keep screenshot uploads paired with the exact preview row for each image-bearing slide so the controls and composed preview stay horizontally aligned.
+- Do not restore the old image-order list or a detached upload column in the user app; only image-bearing slides should show upload controls.
+- Keep the upload side compact: avoid repeated instructional paragraphs and use one-line slide summaries so paired rows stay dense and readable.
+- Do not restore the old website-intro/editorial starter selector in the user app.
 - Avoid helper panes such as template-contract or compiled-runtime inspection in the default user app when they do not directly improve the main flow.
 - Avoid manual slide-by-slide builder controls in the user app.
 - Make it explicit that image-backed drafts belong in the debug app or CLI rather than the default public page.
@@ -47,7 +53,7 @@ User-app UI contract:
 
 Entrypoint:
 
-- `uvicorn autoreport.web.debug_app:app --host 127.0.0.1 --port 8010`
+- `python -m autoreport.web.serve debug --host 127.0.0.1 --port 8010`
 
 Routes:
 
@@ -66,6 +72,8 @@ Debug-app UI contract:
 - It should make normalization and compiled payload inspection explicit.
 - It should help verify upload refs, pattern choices, and current contract export without changing the shared core API contract.
 - It must reuse the same `/api/compile` and `/api/generate` logic as the user app rather than drifting into a separate execution path.
+- It may become the inspection surface for template/prompt robustness workbench outputs such as corpus summaries, failure samples, and targeted reruns.
+- High-volume robustness execution across many drafts or templates should live in a CLI or batch runner, not in long-running browser-driven loops inside the debug app.
 
 ## Input Contract
 
@@ -100,6 +108,8 @@ For image-backed slides:
   - `normalized_authoring_yaml`
   - `compiled_yaml`
   - `slide_count`
+  - `required_images`
+  - `slide_previews`
   - `hints`
 
 `POST /api/generate`

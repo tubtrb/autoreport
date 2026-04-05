@@ -41,6 +41,7 @@ Default to English unless the user explicitly asks for another language.
 - Prefer showing or linking to an actual generated `.pptx` result in the published guide because it makes the output concrete for new readers.
 - In the final layout, keep the sample `.pptx` link or screenshot below the homepage/web demo command examples rather than near the top of the page.
 - Do not assume generated files should be committed to the repository; prefer hosted artifacts, release assets, or screenshots unless the user explicitly wants a repo-tracked sample in another safe location.
+- When the guide documents the external-AI drafting handoff, reuse the tracked insert screenshots under `docs/shared-assets/user-guide-ai-insert/` rather than taking new provider UI captures for each version.
 
 ## Formatting
 

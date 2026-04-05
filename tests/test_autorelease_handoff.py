@@ -28,6 +28,7 @@ SPEC.loader.exec_module(HANDOFF_MODULE)
 PostSpec = HANDOFF_MODULE.PostSpec
 PublicServiceInfo = HANDOFF_MODULE.PublicServiceInfo
 build_specs = HANDOFF_MODULE.build_specs
+sync_assets = HANDOFF_MODULE.sync_assets
 sync_homepage_live_service = HANDOFF_MODULE.sync_homepage_live_service
 transform_homepage_body = HANDOFF_MODULE.transform_homepage_body
 transform_guide_body = HANDOFF_MODULE.transform_guide_body
@@ -103,6 +104,49 @@ class HandoffRewriteTestCase(unittest.TestCase):
         self.assertIn("## Live service", rewritten)
         self.assertIn("Release-facing site home: `http://auto-report.org/`", rewritten)
         self.assertIn("Hosted demo app: `http://3.36.96.47/`", rewritten)
+
+    def test_transform_guide_body_rewrites_placeholder_image_and_drops_local_comment(self) -> None:
+        body = "\n".join(
+            [
+                "# User Guide",
+                "",
+                "This guide reflects the current implementation of Autoreport on the active branch.",
+                "",
+                "![Autoreport web demo](REPLACE_WITH_PUBLIC_IMAGE_URL)",
+                "",
+                "<!-- Local working screenshot asset: docs/posts/guide-image-v0.3.1/image.png -->",
+            ]
+        )
+
+        rewritten = transform_guide_body(body, self.make_spec(), self.make_args())
+
+        self.assertIn(
+            "![Autoreport web demo](../assets/guide/image.png)",
+            rewritten,
+        )
+        self.assertNotIn("REPLACE_WITH_PUBLIC_IMAGE_URL", rewritten)
+        self.assertNotIn("Local working screenshot asset", rewritten)
+
+    def test_transform_guide_body_rewrites_shared_external_ai_insert_assets(self) -> None:
+        body = "\n".join(
+            [
+                "# User Guide",
+                "",
+                "![Gemini starter brief](../shared-assets/user-guide-ai-insert/gemini-insert.png)",
+                "![ChatGPT starter brief](../shared-assets/user-guide-ai-insert/chatgpt-insert.png)",
+            ]
+        )
+
+        rewritten = transform_guide_body(body, self.make_spec(), self.make_args())
+
+        self.assertIn(
+            "![Gemini starter brief](../assets/guide/ai-insert/gemini-insert.png)",
+            rewritten,
+        )
+        self.assertIn(
+            "![ChatGPT starter brief](../assets/guide/ai-insert/chatgpt-insert.png)",
+            rewritten,
+        )
 
     def test_transform_release_notes_body_rewrites_workspace_reference(self) -> None:
         body = "\n".join(
@@ -181,6 +225,43 @@ class HandoffRewriteTestCase(unittest.TestCase):
             self.assertIsNone(guide_spec.source_asset_dir)
             self.assertIsNone(guide_spec.cover_image)
             self.assertIsNone(devlog_spec.source_asset_dir)
+
+    def test_sync_assets_copies_shared_guide_insert_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as autorelease_dir:
+            repo_root = Path(repo_dir)
+            source_path = repo_root / "docs" / "posts" / "autoreport-guide-v0.3.0.md"
+            source_path.parent.mkdir(parents=True)
+            source_path.write_text("# placeholder\n", encoding="utf-8")
+            shared_asset_dir = repo_root / "docs" / "shared-assets" / "user-guide-ai-insert"
+            shared_asset_dir.mkdir(parents=True)
+            (shared_asset_dir / "gemini-insert.png").write_bytes(b"png")
+
+            spec = PostSpec(
+                key="guide",
+                section="guide",
+                source_path=source_path,
+                target_path=Path(autorelease_dir) / "content" / "guides" / "guide.md",
+                slug="guide",
+                title="User Guide",
+                summary="Guide summary",
+                tags=("user-guide",),
+                transform_body=transform_guide_body,
+                source_asset_dir=None,
+                cover_image=None,
+            )
+
+            sync_assets(spec)
+
+            copied_asset = (
+                Path(autorelease_dir)
+                / "content"
+                / "assets"
+                / "guide"
+                / "ai-insert"
+                / "gemini-insert.png"
+            )
+            self.assertTrue(copied_asset.exists())
+            self.assertEqual(copied_asset.read_bytes(), b"png")
 
     def test_sync_homepage_live_service_updates_page_body(self) -> None:
         with tempfile.TemporaryDirectory() as autorelease_dir:

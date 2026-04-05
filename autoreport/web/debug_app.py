@@ -13,7 +13,7 @@ from autoreport.template_flow import (
     serialize_document,
 )
 from autoreport.web.app import (
-    AI_DRAFT_PROMPT_YAML,
+    MANUAL_DRAFT_PROMPT_YAML,
     compile_demo_payload,
     favicon,
     generate_demo_report,
@@ -42,7 +42,7 @@ app = FastAPI(
 def _render_debug_html() -> str:
     contract_json = json.dumps(_DEBUG_CONTRACT_YAML)
     starter_json = json.dumps(_DEBUG_STARTER_AUTHORING)
-    draft_json = json.dumps(AI_DRAFT_PROMPT_YAML)
+    draft_json = json.dumps(MANUAL_DRAFT_PROMPT_YAML)
     return """<!DOCTYPE html>
 <html lang="en">
   <head>

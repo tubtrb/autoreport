@@ -6,6 +6,7 @@ import unittest
 
 from fastapi.testclient import TestClient
 
+from autoreport.web.app import MANUAL_PROCEDURE_EXAMPLE_YAML
 from autoreport.web.debug_app import app
 
 
@@ -83,6 +84,27 @@ class WebDebugAppTestCase(unittest.TestCase):
         self.assertEqual(response.json()["payload_kind"], "content")
         self.assertIn("kind: text_image", response.json()["normalized_authoring_yaml"])
         self.assertIn("ref: image_1", response.json()["normalized_authoring_yaml"])
+
+    def test_debug_compile_route_supports_manual_built_in_contract(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": MANUAL_PROCEDURE_EXAMPLE_YAML,
+                "image_manifest": "[]",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["payload_kind"], "content")
+        self.assertIn(
+            "pattern_id: text.manual.section_break",
+            response.json()["compiled_yaml"],
+        )
+        self.assertIn(
+            "pattern_id: text_image.manual.procedure.three",
+            response.json()["compiled_yaml"],
+        )
 
 
 if __name__ == "__main__":

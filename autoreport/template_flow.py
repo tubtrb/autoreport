@@ -33,6 +33,7 @@ from autoreport.models import (
 from autoreport.outputs.pptx_writer import PowerPointWriter
 from autoreport.templates.weekly_report import (
     BASIC_TEMPLATE_NAME,
+    MANUAL_TEMPLATE_NAME,
     export_template_contract,
     profile_template,
 )
@@ -45,26 +46,32 @@ from autoreport.validator import (
 
 
 PUBLIC_BUILT_IN_TEMPLATE_NAME = BASIC_TEMPLATE_NAME
+SUPPORTED_BUILT_IN_TEMPLATE_NAMES = (
+    BASIC_TEMPLATE_NAME,
+    MANUAL_TEMPLATE_NAME,
+)
 
 
-@lru_cache(maxsize=1)
-def get_built_in_profile():
-    """Return the cached built-in editorial template profile."""
+@lru_cache(maxsize=4)
+def get_built_in_profile(template_name: str = PUBLIC_BUILT_IN_TEMPLATE_NAME):
+    """Return a cached built-in template profile."""
 
     writer = PowerPointWriter()
     presentation = writer._load_presentation(None)
     return profile_template(
         presentation,
         template_path=None,
-        template_name=PUBLIC_BUILT_IN_TEMPLATE_NAME,
+        template_name=template_name,
     )
 
 
-@lru_cache(maxsize=1)
-def get_built_in_contract() -> TemplateContract:
-    """Return the cached built-in editorial public contract."""
+@lru_cache(maxsize=4)
+def get_built_in_contract(
+    template_name: str = PUBLIC_BUILT_IN_TEMPLATE_NAME,
+) -> TemplateContract:
+    """Return a cached built-in public contract."""
 
-    return export_template_contract(get_built_in_profile())
+    return export_template_contract(get_built_in_profile(template_name))
 
 
 def inspect_template_contract(
@@ -74,15 +81,16 @@ def inspect_template_contract(
 ) -> TemplateContract:
     """Inspect a built-in or user-supplied template and export its contract."""
 
-    if built_in == PUBLIC_BUILT_IN_TEMPLATE_NAME or (
-        built_in is None and template_path is None
-    ):
+    if built_in is None and template_path is None:
         return get_built_in_contract()
+    if template_path is None and built_in in SUPPORTED_BUILT_IN_TEMPLATE_NAMES:
+        return get_built_in_contract(built_in)
 
     if template_path is None:
+        supported = ", ".join(SUPPORTED_BUILT_IN_TEMPLATE_NAMES)
         raise ValueError(
             f"Unsupported built-in template: {built_in} "
-            f"(supported: {PUBLIC_BUILT_IN_TEMPLATE_NAME})"
+            f"(supported: {supported})"
         )
 
     writer = PowerPointWriter()
@@ -90,7 +98,7 @@ def inspect_template_contract(
     profile = profile_template(
         presentation,
         template_path=template_path,
-        template_name=PUBLIC_BUILT_IN_TEMPLATE_NAME,
+        template_name=(built_in or PUBLIC_BUILT_IN_TEMPLATE_NAME),
     )
     return export_template_contract(profile)
 
@@ -101,6 +109,9 @@ def scaffold_payload(
     include_text_image: bool = False,
 ) -> AuthoringPayload:
     """Return a starter authoring payload for a validated template contract."""
+
+    if contract.template_id == "autoreport-manual-v1":
+        return _scaffold_manual_payload(contract)
 
     slides: list[AuthoringSlide] = []
 
@@ -227,32 +238,18 @@ def compile_authoring_payload(
     compiled_slides: list[PayloadSlide] = []
     for slide in payload.slides:
         pattern = _select_authoring_pattern(contract, slide)
-        body_lines = _build_body_lines(slide.context)
-        slot_overrides: dict[str, SlotOverride] = {}
-        runtime_image: ImageSpec | None = None
-        runtime_caption: str | None = None
-
-        if slide.layout_request is not None and slide.layout_request.kind == "text_image":
-            image_count = _pattern_image_count(pattern)
-            if image_count <= 1:
-                runtime_image = slide.assets.images[0]
-                runtime_caption = slide.context.caption
-            else:
-                for index, image in enumerate(slide.assets.images, start=1):
-                    slot_overrides[f"text_image.image_{index}"] = SlotOverride(
-                        slot_id=f"text_image.image_{index}",
-                        image=image,
-                    )
-                if slide.context.caption:
-                    slot_overrides["text_image.caption_1"] = SlotOverride(
-                        slot_id="text_image.caption_1",
-                        text=[slide.context.caption],
-                    )
+        body_lines = _build_compiled_body_lines(slide, pattern)
+        slot_overrides = _build_compiled_slot_overrides(slide, pattern)
+        runtime_image, runtime_caption = _compile_text_image_runtime_media(
+            slide,
+            pattern,
+            slot_overrides,
+        )
 
         compiled_slides.append(
             PayloadSlide(
                 kind=slide.layout_request.kind if slide.layout_request else "text",
-                title=slide.goal,
+                title=_derive_slide_title(slide, pattern),
                 include_in_contents=slide.include_in_contents,
                 pattern_id=pattern.pattern_id,
                 body=body_lines,
@@ -266,8 +263,15 @@ def compile_authoring_payload(
     return ReportPayload(
         payload_version=REPORT_PAYLOAD_VERSION,
         template_id=payload.template_id,
-        title_slide=payload.title_slide,
-        contents=payload.contents,
+        title_slide=TitleSlidePayload(
+            title=payload.title_slide.title,
+            subtitle=list(payload.title_slide.subtitle),
+            slot_values=dict(payload.title_slide.slot_values),
+        ),
+        contents=ContentsSettings(
+            enabled=payload.contents.enabled,
+            slot_values=dict(payload.contents.slot_values),
+        ),
         slides=compiled_slides,
     )
 
@@ -356,22 +360,36 @@ def _normalize_report_content(
         errors.append("Field 'title_slide' is required.")
         title_value = "Autoreport"
         subtitle_lines = ["Template-aware PPTX autofill engine"]
+        title_slot_values: dict[str, str] = {}
     else:
         title_slots = title_slide.get("slots")
         if not isinstance(title_slots, dict):
             errors.append("Field 'title_slide.slots' must be an object.")
             title_value = "Autoreport"
             subtitle_lines = ["Template-aware PPTX autofill engine"]
+            title_slot_values = {}
         else:
-            title_value = _normalize_scalar_slot(
-                title_slots.get("title"),
+            title_slot_values = _extract_named_slot_values(title_slots)
+            title_value = _resolve_title_value_from_slot_values(
+                title_slot_values,
+                contract.title_slide,
                 fallback="Autoreport",
             )
-            subtitle_lines = _split_text_lines(title_slots.get("subtitle_1"))
-            if not subtitle_lines:
-                subtitle_lines = ["Template-aware PPTX autofill engine"]
+            subtitle_lines = _resolve_subtitle_lines_from_slot_values(
+                title_slot_values,
+                contract.title_slide,
+                fallback=["Template-aware PPTX autofill engine"],
+            )
 
-    contents_enabled = isinstance(root.get("contents_slide"), dict)
+    raw_contents_slide = root.get("contents_slide")
+    contents_enabled = isinstance(raw_contents_slide, dict)
+    contents_slot_values: dict[str, str] = {}
+    if contents_enabled:
+        raw_contents_slots = raw_contents_slide.get("slots")
+        if not isinstance(raw_contents_slots, dict):
+            errors.append("Field 'contents_slide.slots' must be an object.")
+        else:
+            contents_slot_values = _extract_named_slot_values(raw_contents_slots)
 
     raw_slides = root.get("slides")
     if not isinstance(raw_slides, list) or not raw_slides:
@@ -403,8 +421,12 @@ def _normalize_report_content(
         title_slide=TitleSlidePayload(
             title=title_value,
             subtitle=subtitle_lines,
+            slot_values=title_slot_values,
         ),
-        contents=ContentsSettings(enabled=contents_enabled),
+        contents=ContentsSettings(
+            enabled=contents_enabled,
+            slot_values=contents_slot_values,
+        ),
         slides=slides,
     )
 
@@ -471,9 +493,14 @@ def _normalize_report_content_slide(
         )
         return None, next_generated_image_index
 
-    goal = _normalize_scalar_slot(slots.get("title"), fallback=f"Slide {slide_no}")
-    body_text = _normalize_multiline_text(slots.get("body_1"))
-    caption = _optional_string(slots.get("caption_1"))
+    slot_values = _extract_named_slot_values(slots, skip_prefixes=("image_",))
+    goal = _derive_goal_from_slot_values(
+        slot_values=slot_values,
+        pattern=pattern,
+        fallback=f"Slide {slide_no}",
+    )
+    body_text = _resolve_body_text_from_slot_values(slot_values, pattern)
+    caption = _resolve_primary_caption_from_slot_values(slot_values)
     images, image_notes, next_generated_image_index = _normalize_report_content_images(
         slots,
         available_image_refs=available_image_refs,
@@ -516,6 +543,7 @@ def _normalize_report_content_slide(
             context=context,
             assets=AuthoringSlideAssets(images=images if kind == "text_image" else []),
             layout_request=layout_request,
+            slot_values=slot_values,
         ),
         next_generated_image_index,
     )
@@ -551,7 +579,14 @@ def _normalize_report_content_images(
         looks_like_path = any(token in normalized for token in ("\\", "/")) or normalized.lower().endswith(
             (".png", ".jpg", ".jpeg")
         )
-        if normalized in available_ref_set or normalized == alias:
+        if (
+            normalized in available_ref_set
+            or normalized == alias
+            or (
+                normalized.startswith("image_")
+                and normalized.removeprefix("image_").isdigit()
+            )
+        ):
             images.append(ImageSpec(ref=normalized, fit="contain"))
             continue
         if looks_like_path:
@@ -734,6 +769,379 @@ def _optional_string(raw: Any) -> str | None:
     if not normalized:
         return None
     return normalized
+
+
+def _scaffold_manual_payload(contract: TemplateContract) -> AuthoringPayload:
+    return AuthoringPayload(
+        payload_version=AUTHORING_PAYLOAD_VERSION,
+        template_id=contract.template_id,
+        deck_context=DeckContext(
+            audience="customers",
+            tone="instructional",
+            objective="customer walkthrough for starter templates and PowerPoint generation",
+        ),
+        title_slide=TitleSlidePayload(
+            title="Autoreport PowerPoint User Guide",
+            subtitle=[
+                "Screenshot-first user guide",
+                "v0.4",
+                "Autoreport Team",
+            ],
+            slot_values={
+                "doc_title": "Autoreport PowerPoint User Guide",
+                "doc_subtitle": "Screenshot-first user guide",
+                "doc_version": "v0.4",
+                "author_or_owner": "Autoreport Team",
+            },
+        ),
+        contents=ContentsSettings(
+            enabled=True,
+            slot_values={
+                "contents_title": "Contents",
+                "contents_group_label": "Procedure Overview",
+            },
+        ),
+        slides=[
+            AuthoringSlide(
+                slide_no=1,
+                goal="1. Choose A Starter Template",
+                context=AuthoringSlideContext(),
+                assets=AuthoringSlideAssets(),
+                layout_request=LayoutRequest(
+                    kind="text",
+                    pattern_id="text.manual.section_break",
+                ),
+                slot_values={
+                    "section_no": "1.",
+                    "section_title": "Choose A Starter Template",
+                    "section_subtitle": "Start with the built-in editorial or manual starter before editing content.",
+                },
+            ),
+            AuthoringSlide(
+                slide_no=2,
+                goal="1.1 Review The Starter Example",
+                context=AuthoringSlideContext(
+                    summary="Open the starter example and confirm the selected template."
+                ),
+                assets=AuthoringSlideAssets(
+                    images=[ImageSpec(ref="image_1", fit="contain")]
+                ),
+                layout_request=LayoutRequest(
+                    kind="text_image",
+                    pattern_id="text_image.manual.procedure.one",
+                    image_count=1,
+                ),
+                slot_values={
+                    "step_no": "1.1",
+                    "step_title": "Review The Starter Example",
+                    "command_or_action": "Action: open the starter example and confirm the selected template.",
+                    "summary": "Use one screenshot to show the starting editor state.",
+                    "detail_body": "Review the starter YAML, note the built-in template mode, and confirm the page is ready before moving to the next step.",
+                    "caption_1": "Starter example loaded in the editor",
+                },
+            ),
+            AuthoringSlide(
+                slide_no=3,
+                goal="1.2 Customize The Draft",
+                context=AuthoringSlideContext(
+                    summary="Capture the starter draft before and after the edits."
+                ),
+                assets=AuthoringSlideAssets(
+                    images=[
+                        ImageSpec(ref="image_2", fit="contain"),
+                        ImageSpec(ref="image_3", fit="contain"),
+                    ]
+                ),
+                layout_request=LayoutRequest(
+                    kind="text_image",
+                    pattern_id="text_image.manual.procedure.two",
+                    image_count=2,
+                ),
+                slot_values={
+                    "step_no": "1.2",
+                    "step_title": "Customize The Draft",
+                    "command_or_action": "Action: edit the YAML title, sections, and example copy.",
+                    "summary": "Use the ordered screenshots to compare the starter draft before and after the edits.",
+                    "detail_body": "Update the guide title and slide text, then compare the edited YAML against the original starter so the customer can see what changed.",
+                    "caption_1": "Starter YAML before editing",
+                    "caption_2": "Starter YAML after editing",
+                },
+            ),
+            AuthoringSlide(
+                slide_no=4,
+                goal="1.3 Generate The PowerPoint",
+                context=AuthoringSlideContext(
+                    summary="Show the preview, generation, and download checkpoints."
+                ),
+                assets=AuthoringSlideAssets(
+                    images=[
+                        ImageSpec(ref="image_4", fit="contain"),
+                        ImageSpec(ref="image_5", fit="contain"),
+                        ImageSpec(ref="image_6", fit="contain"),
+                    ]
+                ),
+                layout_request=LayoutRequest(
+                    kind="text_image",
+                    pattern_id="text_image.manual.procedure.three",
+                    image_count=3,
+                ),
+                slot_values={
+                    "step_no": "1.3",
+                    "step_title": "Generate The PowerPoint",
+                    "command_or_action": "Action: refresh the slide order and generate the PowerPoint deck.",
+                    "summary": "Use three screenshots to document preview, generation, and download.",
+                    "detail_body": "Refresh the manual slide order, confirm the PowerPoint preview, and generate the deck so the download step is visible end to end.",
+                    "caption_1": "Slide preview ready",
+                    "caption_2": "Generation in progress",
+                    "caption_3": "PowerPoint download complete",
+                },
+            ),
+        ],
+    )
+
+
+def _extract_named_slot_values(
+    slots: dict[str, Any],
+    *,
+    skip_prefixes: tuple[str, ...] = (),
+) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for alias, raw_value in slots.items():
+        if not isinstance(alias, str):
+            continue
+        if any(alias.startswith(prefix) for prefix in skip_prefixes):
+            continue
+        normalized = _normalize_named_slot_value(raw_value)
+        if normalized is not None:
+            values[alias] = normalized
+    return values
+
+
+def _normalize_named_slot_value(raw_value: Any) -> str | None:
+    normalized = _optional_string(raw_value)
+    if normalized is not None:
+        return normalized
+    if isinstance(raw_value, bool):
+        return "true" if raw_value else "false"
+    if isinstance(raw_value, int):
+        return str(raw_value)
+    if isinstance(raw_value, float):
+        if raw_value.is_integer():
+            return f"{int(raw_value)}."
+        return format(raw_value, "g")
+    return None
+
+
+def _resolve_title_value_from_slot_values(
+    slot_values: dict[str, str],
+    section,
+    *,
+    fallback: str,
+) -> str:
+    title_alias = _section_title_alias(section)
+    if title_alias is not None and title_alias in slot_values:
+        return slot_values[title_alias]
+    return fallback
+
+
+def _resolve_subtitle_lines_from_slot_values(
+    slot_values: dict[str, str],
+    section,
+    *,
+    fallback: list[str],
+) -> list[str]:
+    lines: list[str] = []
+    for slot in _ordered_text_slots(section):
+        alias = slot.alias
+        if alias in slot_values:
+            lines.extend(_split_text_lines(slot_values[alias]))
+    return lines or fallback
+
+
+def _derive_goal_from_slot_values(
+    *,
+    slot_values: dict[str, str],
+    pattern: TemplatePatternContract | None,
+    fallback: str,
+) -> str:
+    if "section_no" in slot_values and "section_title" in slot_values:
+        return _join_title_parts(slot_values["section_no"], slot_values["section_title"])
+    if "step_no" in slot_values and "step_title" in slot_values:
+        return _join_title_parts(slot_values["step_no"], slot_values["step_title"])
+    title_alias = _pattern_title_alias(pattern)
+    if title_alias is not None and title_alias in slot_values:
+        return slot_values[title_alias]
+    return fallback
+
+
+def _resolve_body_text_from_slot_values(
+    slot_values: dict[str, str],
+    pattern: TemplatePatternContract | None,
+) -> str | None:
+    for alias in _pattern_body_aliases(pattern):
+        if alias in slot_values:
+            return slot_values[alias]
+    return None
+
+
+def _resolve_primary_caption_from_slot_values(
+    slot_values: dict[str, str],
+) -> str | None:
+    return slot_values.get("caption_1")
+
+
+def _build_compiled_body_lines(
+    slide: AuthoringSlide,
+    pattern: TemplatePatternContract,
+) -> list[str]:
+    for alias in _pattern_body_aliases(pattern):
+        if alias in slide.slot_values:
+            return [
+                line.strip()
+                for line in slide.slot_values[alias].splitlines()
+                if line.strip()
+            ] or [slide.slot_values[alias]]
+    return _build_body_lines(slide.context)
+
+
+def _build_compiled_slot_overrides(
+    slide: AuthoringSlide,
+    pattern: TemplatePatternContract,
+) -> dict[str, SlotOverride]:
+    slot_overrides: dict[str, SlotOverride] = {}
+    body_aliases = _pattern_body_aliases(pattern)
+    alias_to_slot_id = {
+        slot.alias: slot.slot_id
+        for slot in pattern.slots
+        if slot.alias is not None and slot.slot_type != "image"
+    }
+    for alias, value in slide.slot_values.items():
+        if alias in body_aliases:
+            continue
+        slot_id = alias_to_slot_id.get(alias)
+        if slot_id is None:
+            continue
+        slot_overrides[slot_id] = SlotOverride(
+            slot_id=slot_id,
+            text=[value],
+        )
+    return slot_overrides
+
+
+def _compile_text_image_runtime_media(
+    slide: AuthoringSlide,
+    pattern: TemplatePatternContract,
+    slot_overrides: dict[str, SlotOverride],
+) -> tuple[ImageSpec | None, str | None]:
+    if slide.layout_request is None or slide.layout_request.kind != "text_image":
+        return None, None
+
+    image_slots = sorted(
+        (slot for slot in pattern.slots if slot.slot_type == "image"),
+        key=lambda slot: slot.order or 0,
+    )
+    caption_slots = sorted(
+        (slot for slot in pattern.slots if slot.slot_type == "caption"),
+        key=lambda slot: slot.order or 0,
+    )
+    if len(image_slots) <= 1:
+        runtime_caption: str | None = None
+        if caption_slots:
+            primary_caption_alias = caption_slots[0].alias
+            if primary_caption_alias and primary_caption_alias in slide.slot_values:
+                runtime_caption = slide.slot_values[primary_caption_alias]
+                slot_overrides.pop(caption_slots[0].slot_id, None)
+            elif slide.context.caption:
+                runtime_caption = slide.context.caption
+        return (
+            slide.assets.images[0] if slide.assets.images else None,
+            runtime_caption,
+        )
+
+    for index, image in enumerate(slide.assets.images, start=1):
+        slot_id = f"text_image.image_{index}"
+        slot_overrides[slot_id] = SlotOverride(
+            slot_id=slot_id,
+            image=image,
+        )
+    for caption_slot in caption_slots:
+        alias = caption_slot.alias
+        if alias is not None and alias in slide.slot_values:
+            slot_overrides[caption_slot.slot_id] = SlotOverride(
+                slot_id=caption_slot.slot_id,
+                text=[slide.slot_values[alias]],
+            )
+    if slide.context.caption and caption_slots and caption_slots[0].slot_id not in slot_overrides:
+        slot_overrides[caption_slots[0].slot_id] = SlotOverride(
+            slot_id=caption_slots[0].slot_id,
+            text=[slide.context.caption],
+        )
+    return None, None
+
+
+def _derive_slide_title(
+    slide: AuthoringSlide,
+    pattern: TemplatePatternContract,
+) -> str:
+    if "section_no" in slide.slot_values and "section_title" in slide.slot_values:
+        return _join_title_parts(
+            slide.slot_values["section_no"],
+            slide.slot_values["section_title"],
+        )
+    if "step_no" in slide.slot_values and "step_title" in slide.slot_values:
+        return _join_title_parts(
+            slide.slot_values["step_no"],
+            slide.slot_values["step_title"],
+        )
+    title_alias = _pattern_title_alias(pattern)
+    if title_alias is not None and title_alias in slide.slot_values:
+        return slide.slot_values[title_alias]
+    return slide.goal
+
+
+def _join_title_parts(prefix: str, label: str) -> str:
+    normalized_prefix = prefix.strip()
+    normalized_label = label.strip()
+    if not normalized_prefix:
+        return normalized_label
+    if not normalized_label:
+        return normalized_prefix
+    if normalized_prefix[-1].isalnum():
+        return f"{normalized_prefix} {normalized_label}"
+    return f"{normalized_prefix} {normalized_label}"
+
+
+def _section_title_alias(section) -> str | None:
+    for slot in section.slots:
+        if slot.slot_type == "title":
+            return slot.alias
+    return None
+
+
+def _ordered_text_slots(section) -> list[Any]:
+    return sorted(
+        (slot for slot in section.slots if slot.slot_type == "text"),
+        key=lambda slot: (slot.order or 0, slot.alias or slot.slot_id),
+    )
+
+
+def _pattern_title_alias(pattern: TemplatePatternContract | None) -> str | None:
+    if pattern is None:
+        return None
+    for slot in pattern.slots:
+        if slot.slot_type == "title":
+            return slot.alias
+    return None
+
+
+def _pattern_body_aliases(pattern: TemplatePatternContract | None) -> tuple[str, ...]:
+    if pattern is None:
+        return ()
+    return tuple(
+        slot.alias
+        for slot in pattern.slots
+        if slot.slot_type == "text" and slot.slot_id.startswith(f"{pattern.kind}.body_")
+    )
 
 
 def load_template_contract(path: Path) -> TemplateContract:

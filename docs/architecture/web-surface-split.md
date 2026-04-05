@@ -9,9 +9,9 @@ The product flow and the debugging flow serve different users.
 
 The product flow is:
 
-1. start from one built-in starter example
+1. start from the built-in manual procedure starter
 2. edit the YAML directly
-3. keep the public-web draft to text or metrics slides
+3. keep the public-web draft on the manual screenshot workflow
 4. generate the deck
 
 The debugging flow is:
@@ -21,6 +21,7 @@ The debugging flow is:
 3. inspect compilation into `report_payload`
 4. inspect upload refs and error states for image-backed drafts
 5. verify the shared routes and generation path end to end
+6. inspect failures or representative samples from broader robustness runs without pushing that bulk workflow into the public app
 
 Trying to serve both flows in one screen made the product surface too noisy and
 encouraged manual slide-building controls that are not the intended user path.
@@ -44,8 +45,9 @@ Allowed UI:
 
 - one large input area
 - one or two primary actions
-- text-first helper copy about supported public slide kinds
-- a clear handoff to the debug app or CLI when images are needed
+- one built-in manual starter summary
+- paired screenshot upload and customer-facing slide preview rows for the manual starter
+- a clear handoff to the debug app or CLI when deeper inspection or custom template/image control is needed
 
 Avoid in the user app:
 
@@ -65,6 +67,7 @@ Intent:
 - give developers a place to inspect every stage of the web contract
 - verify normalization and compiled payloads without polluting the user app
 - preserve one shared generation pipeline under the hood
+- act as the inspection surface for robustness-validation work, while keeping the actual high-volume execution outside the browser UI
 
 Allowed UI:
 
@@ -73,6 +76,14 @@ Allowed UI:
 - normalization/compile helpers
 - explicit contract and runtime views
 - extra upload inspection controls
+- summary views for corpus or template validation runs
+- targeted rerun controls for selected failing or representative cases
+
+Keep out of the debug app when the work is high-volume by nature:
+
+- long-running bulk compile/generate loops across large prompt corpora
+- orchestration that should be resumable from the command line or CI
+- test-runner responsibilities that are better expressed as files, JSON summaries, or CLI reports
 
 ## Shared API contract
 
@@ -89,8 +100,12 @@ That means:
 - one generation path
 - no duplicated schema logic
 
-The split is mostly a UI split. The public app also adds one product guardrail:
-it rejects image-backed drafts so the default hosted surface stays text-first.
+The split is mostly a UI split. The public app also adds template-specific
+guardrails:
+
+- the public homepage now leads directly with the built-in manual starter
+- the built-in manual starter allows ordered image-backed drafts on the manual template
+- deeper inspection panes still stay in the debug app
 
 ## Input contract posture
 
@@ -107,11 +122,22 @@ The apps accept three surfaces:
 The user app should lead with `report_content`.
 The debug app may inspect all three more explicitly.
 
+## Validation Workbench Policy
+
+When future work needs confidence across hundreds or thousands of draft variations,
+split the job into two layers:
+
+1. a CLI or batch runner executes the large compile/generate matrix and writes structured summaries
+2. the debug app reads those summaries so a developer can inspect failures, compare normalized and compiled payloads, and rerun a small selected case
+
+This keeps the public product surface simple, keeps long-running robustness work scriptable, and still gives the web layer a useful place to analyze failures.
+
 ## Operational rule
 
 When future work needs more inspection, debugging, or manual controls:
 
 - first ask whether the feature belongs in the debug app
+- if the feature is really bulk robustness execution, keep the execution in a runner and expose only inspection or selected-case rerun controls in the debug app
 - only add it to the user app if it improves the primary user flow directly
 
 This rule exists to prevent debug clutter from re-entering the product surface.

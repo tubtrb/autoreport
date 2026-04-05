@@ -16,7 +16,11 @@ from autoreport.engine.generator import (
     prepare_generation_artifacts_from_mapping,
 )
 from autoreport.models import ReportRequest
-from autoreport.template_flow import inspect_template_contract, scaffold_payload
+from autoreport.template_flow import (
+    get_built_in_contract,
+    inspect_template_contract,
+    scaffold_payload,
+)
 
 
 TEST_TEMP_ROOT = Path("tests") / "_tmp"
@@ -54,6 +58,27 @@ def build_authoring_payload(
     ]
     text_image_slide["layout_request"]["image_count"] = len(image_paths)
     text_image_slide["layout_request"]["image_orientation"] = image_orientation
+    return payload
+
+
+def build_manual_authoring_payload(
+    *,
+    image_paths: list[Path],
+    long_detail_body: bool = False,
+) -> dict[str, object]:
+    payload = scaffold_payload(
+        inspect_template_contract(built_in="autoreport_manual")
+    ).to_dict()
+    image_iter = iter(image_paths)
+    for slide in payload["authoring_payload"]["slides"]:
+        for image in slide.get("assets", {}).get("images", []):
+            image.pop("ref", None)
+            image["path"] = str(next(image_iter))
+        if long_detail_body and slide["slide_no"] == 2:
+            slide["slot_values"]["detail_body"] = "\n".join(
+                f"Checkpoint {index}: verify the manual flow still documents each visible state."
+                for index in range(1, 80)
+            )
     return payload
 
 
@@ -124,6 +149,25 @@ class GeneratorTestCase(unittest.TestCase):
             ["Autoreport", "Contents", "What It Does", "Adoption Snapshot"],
         )
         self.assertEqual(len(artifacts.diagnostic_report.errors), 0)
+
+    def test_prepare_generation_artifacts_exposes_manual_contract_patterns(self) -> None:
+        artifacts = prepare_generation_artifacts_from_mapping(
+            scaffold_payload(get_built_in_contract("autoreport_manual")).to_dict(),
+            presentation=Presentation(),
+            template_name="autoreport_manual",
+            image_refs={f"image_{index}": Path(f"image_{index}.png") for index in range(1, 7)},
+        )
+
+        self.assertEqual(artifacts.template_contract.template_id, "autoreport-manual-v1")
+        self.assertEqual(
+            [pattern.pattern_id for pattern in artifacts.template_contract.slide_patterns],
+            [
+                "text.manual.section_break",
+                "text_image.manual.procedure.one",
+                "text_image.manual.procedure.two",
+                "text_image.manual.procedure.three",
+            ],
+        )
 
     def test_generate_report_from_mapping_creates_editorial_presentation_from_authoring_payload(self) -> None:
         test_dir = make_test_dir()
@@ -249,6 +293,89 @@ class GeneratorTestCase(unittest.TestCase):
         )
         self.assertEqual(text_image_slides[0].image_slot_names, ("text_image.image_1",))
         self.assertEqual(text_image_slides[1].image_slot_names, ())
+
+    def test_generate_report_from_mapping_supports_manual_presentation_and_contents_titles(self) -> None:
+        test_dir = make_test_dir()
+        try:
+            image_paths = []
+            for index in range(1, 7):
+                path = test_dir / f"manual_{index}.png"
+                path.write_bytes(PNG_BYTES)
+                image_paths.append(path)
+            output_path = test_dir / "output" / "autoreport_manual.pptx"
+
+            generate_report_from_mapping(
+                build_manual_authoring_payload(image_paths=image_paths),
+                output_path=output_path,
+                template_name="autoreport_manual",
+            )
+            presentation = Presentation(str(output_path))
+            contents_text = "\n".join(
+                shape.text
+                for shape in presentation.slides[1].shapes
+                if hasattr(shape, "text") and shape.text
+            )
+            procedure_two_image_shapes = [
+                shape
+                for shape in presentation.slides[4].shapes
+                if hasattr(shape, "image")
+            ]
+            procedure_three_image_shapes = [
+                shape
+                for shape in presentation.slides[5].shapes
+                if hasattr(shape, "image")
+            ]
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        self.assertEqual(len(presentation.slides), 6)
+        self.assertIn("1. Choose A Starter Template", contents_text)
+        self.assertIn("1.1 Review The Starter Example", contents_text)
+        self.assertIn("1.2 Customize The Draft", contents_text)
+        self.assertIn("1.3 Generate The PowerPoint", contents_text)
+        self.assertEqual(len(procedure_two_image_shapes), 2)
+        self.assertEqual(len(procedure_three_image_shapes), 3)
+
+    def test_manual_detail_body_continuation_keeps_images_on_primary_slide_only(self) -> None:
+        test_dir = make_test_dir()
+        try:
+            image_paths = []
+            for index in range(1, 7):
+                path = test_dir / f"manual_{index}.png"
+                path.write_bytes(PNG_BYTES)
+                image_paths.append(path)
+            artifacts = prepare_generation_artifacts_from_mapping(
+                build_manual_authoring_payload(
+                    image_paths=image_paths,
+                    long_detail_body=True,
+                ),
+                presentation=Presentation(),
+                template_name="autoreport_manual",
+            )
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
+
+        continued_manual_slides = [
+            slide
+            for slide in artifacts.generation_summary.slides
+            if slide.slide_title.startswith("1.1 Review The Starter Example")
+        ]
+
+        self.assertGreaterEqual(len(continued_manual_slides), 2)
+        self.assertEqual(continued_manual_slides[0].slide_title, "1.1 Review The Starter Example")
+        self.assertTrue(
+            all(
+                slide.slide_title == "1.1 Review The Starter Example (cont.)"
+                for slide in continued_manual_slides[1:]
+            )
+        )
+        self.assertEqual(
+            continued_manual_slides[0].image_slot_names,
+            ("text_image.image_1",),
+        )
+        self.assertTrue(
+            all(slide.image_slot_names == () for slide in continued_manual_slides[1:])
+        )
 
     def test_generate_report_uses_payload_file_and_default_output_directory(self) -> None:
         test_dir = make_test_dir()

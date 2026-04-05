@@ -77,6 +77,8 @@ If the user does not clearly specify the mode, ask one short question.
 
 5. Hand off branch-ready posts when appropriate.
 - `docs/posts/` is the local staging area, not the final publishing repository.
+- Keep versioned Markdown source files under `docs/posts/` repo-tracked so post wording changes travel with the implementation they describe.
+- Keep versioned screenshot capture folders under `docs/posts/*-image-v*/` local-only unless a reusable asset is intentionally promoted into `docs/shared-assets/`.
 - If the user is wrapping up a branch or preparing a version handoff, run `autorelease-handoff` after the posts are ready.
 - Prefer the automated handoff script over manual copy/paste so the `autorelease` contract and asset paths stay consistent.
 
@@ -117,6 +119,7 @@ If the user does not clearly specify the mode, ask one short question.
 - Keep that sample result near the end of the guide, after the reader has seen how to run the homepage/web demo.
 - Prefer sharing the result as a release asset, hosted download, or screenshot reference rather than committing generated files into `output/`.
 - When the user wants a screenshot-backed guide, capture the image through `release-verification` first and then write around the verified artifact.
+- When the guide explains the "paste the starter YAML into another AI" step, reuse the tracked static insert screenshots under `docs/shared-assets/user-guide-ai-insert/` instead of recapturing provider UI images for each release.
 
 ## Output Contract
 
