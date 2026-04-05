@@ -1,4 +1,4 @@
 """Top-level package for the autoreport project."""
 
-__version__ = "0.3.1"
+__version__ = "0.4.1"
 

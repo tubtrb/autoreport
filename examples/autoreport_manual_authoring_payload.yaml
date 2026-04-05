@@ -9,12 +9,12 @@ authoring_payload:
     title: Autoreport PowerPoint User Guide
     subtitle:
       - Screenshot-first user guide
-      - v0.4
+      - v0.4.1
       - Autoreport Team
     slot_values:
       doc_title: Autoreport PowerPoint User Guide
       doc_subtitle: Screenshot-first user guide
-      doc_version: v0.4
+      doc_version: v0.4.1
       author_or_owner: Autoreport Team
   contents:
     enabled: true

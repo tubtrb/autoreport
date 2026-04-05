@@ -32,43 +32,43 @@ read_project_version = RUNNER_MODULE.read_project_version
 
 class PublicWebPlaywrightHelperTestCase(unittest.TestCase):
     def test_normalize_version_label_prefixes_plain_version(self) -> None:
-        self.assertEqual(normalize_version_label("0.3.1"), "v0.3.1")
-        self.assertEqual(normalize_version_label("v0.3.1"), "v0.3.1")
+        self.assertEqual(normalize_version_label("0.4.1"), "v0.4.1")
+        self.assertEqual(normalize_version_label("v0.4.1"), "v0.4.1")
 
     def test_build_artifact_paths_follow_repo_convention(self) -> None:
         root = Path("C:/repo").resolve()
-        paths = build_artifact_paths(root, "0.3.1", "msedge")
+        paths = build_artifact_paths(root, "0.4.1", "msedge")
 
         self.assertEqual(
             paths["screenshot_dir"],
-            root / "output" / "playwright" / "v0.3.1" / "msedge",
+            root / "output" / "playwright" / "v0.4.1" / "msedge",
         )
         self.assertEqual(
             paths["download_dir"],
-            root / ".playwright-cli" / "downloads" / "v0.3.1" / "msedge",
+            root / ".playwright-cli" / "downloads" / "v0.4.1" / "msedge",
         )
         self.assertEqual(
             paths["guide_image"],
-            root / "docs" / "posts" / "guide-image-v0.3.1" / "image.png",
+            root / "docs" / "posts" / "guide-image-v0.4.1" / "image.png",
         )
 
     def test_promote_guide_image_copies_success_capture(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            success_capture = root / "output" / "playwright" / "v0.3.1" / "msedge" / "generation-success-full.png"
+            success_capture = root / "output" / "playwright" / "v0.4.1" / "msedge" / "generation-success-full.png"
             success_capture.parent.mkdir(parents=True)
             success_capture.write_bytes(b"png-bytes")
 
-            promoted = promote_guide_image(root, "0.3.1", success_capture)
+            promoted = promote_guide_image(root, "0.4.1", success_capture)
 
             self.assertEqual(
                 promoted,
-                root / "docs" / "posts" / "guide-image-v0.3.1" / "image.png",
+                root / "docs" / "posts" / "guide-image-v0.4.1" / "image.png",
             )
             self.assertEqual(promoted.read_bytes(), b"png-bytes")
 
     def test_build_screenshot_paths_use_action_focused_names(self) -> None:
-        screenshot_dir = Path("C:/repo/output/playwright/v0.3.1/msedge")
+        screenshot_dir = Path("C:/repo/output/playwright/v0.4.1/msedge")
         paths = build_screenshot_paths(screenshot_dir)
 
         self.assertEqual(
@@ -87,8 +87,8 @@ class PublicWebPlaywrightHelperTestCase(unittest.TestCase):
     def test_promote_guide_assets_copies_named_screenshots(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            guide_dir = root / "docs" / "posts" / "guide-image-v0.3.1"
-            screenshot_dir = root / "output" / "playwright" / "v0.3.1" / "msedge"
+            guide_dir = root / "docs" / "posts" / "guide-image-v0.4.1"
+            screenshot_dir = root / "output" / "playwright" / "v0.4.1" / "msedge"
             screenshot_dir.mkdir(parents=True)
             screenshot_paths = {
                 "starter_loaded": str(screenshot_dir / "01-manual-starter-loaded.png"),
@@ -97,7 +97,7 @@ class PublicWebPlaywrightHelperTestCase(unittest.TestCase):
             for source in screenshot_paths.values():
                 Path(source).write_bytes(b"png")
 
-            promoted_dir = promote_guide_assets(root, "0.3.1", screenshot_paths)
+            promoted_dir = promote_guide_assets(root, "0.4.1", screenshot_paths)
 
             self.assertEqual(promoted_dir, guide_dir)
             self.assertEqual(
@@ -116,14 +116,14 @@ class PublicWebPlaywrightHelperTestCase(unittest.TestCase):
                 "\n".join(
                     [
                         "[project]",
-                        'version = "0.4.0"',
+                        'version = "0.4.1"',
                         "",
                     ]
                 ),
                 encoding="utf-8",
             )
 
-            self.assertEqual(read_project_version(root), "0.4.0")
+            self.assertEqual(read_project_version(root), "0.4.1")
 
 
 if __name__ == "__main__":

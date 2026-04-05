@@ -70,7 +70,7 @@ report_content:
       doc_title: Replace with the guide title
       doc_subtitle: |
         Replace with a concise guide subtitle
-      doc_version: v0.4
+      doc_version: v0.4.1
       author_or_owner: Autoreport Team
   contents_slide:
     pattern_id: contents.manual
@@ -102,7 +102,7 @@ report_content:
       doc_title: Autoreport PowerPoint User Guide
       doc_subtitle: |
         Screenshot-first guide for the public web manual mode
-      doc_version: v0.4
+      doc_version: v0.4.1
       author_or_owner: Autoreport Team
   contents_slide:
     pattern_id: contents.manual
