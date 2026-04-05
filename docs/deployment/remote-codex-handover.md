@@ -32,19 +32,17 @@ The repository already includes reusable deployment assets:
 
 ## Expected Public Homepage
 
-The public app now starts from the editorial starter editor, includes a manual
-starter option, and keeps the manual upload controls hidden until the user
-switches modes in the browser.
+The public app now starts directly from the manual procedure starter and keeps
+the paired upload/preview workflow visible for image-bearing slides.
 
 Expected homepage signals:
 
 - the page includes `Edit the starter deck and generate an Autoreport PPTX.`
 - the page includes `Starter Deck YAML`
-- the page includes `Website Intro Starter`
 - the page includes `Manual Procedure Starter`
-- the page includes `debug app or CLI`
+- the page includes `Refresh Slide Assets`
 
-If those starter labels are missing from the public URL, treat that as a
+If those manual-starter signals are missing from the public URL, treat that as a
 deployment drift issue rather than a product ambiguity. The most likely causes
 are:
 
@@ -65,12 +63,12 @@ git describe --tags --always
 git log --oneline -5
 ```
 
-2. Confirm the checkout includes the public image-removal change.
+2. Confirm the checkout includes the manual-starter homepage change.
 
 ```bash
 cd ~/autoreport
 git rev-parse HEAD
-git merge-base --is-ancestor 235a415 HEAD && echo "public image-removal commit present"
+git log --oneline -5
 ```
 
 3. Confirm the app health and homepage shape before changing the web stack.
@@ -87,9 +85,8 @@ In another shell:
 curl http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1:8000/ | grep -n "Edit the starter deck and generate an Autoreport PPTX."
 curl -s http://127.0.0.1:8000/ | grep -n "Starter Deck YAML"
-curl -s http://127.0.0.1:8000/ | grep -n "Website Intro Starter"
 curl -s http://127.0.0.1:8000/ | grep -n "Manual Procedure Starter"
-curl -s http://127.0.0.1:8000/ | grep -n "debug app or CLI"
+curl -s http://127.0.0.1:8000/ | grep -n "Refresh Slide Assets"
 ```
 
 4. Bootstrap or refresh the service stack from the tracked deployment assets.
@@ -109,13 +106,12 @@ sudo systemctl cat autoreport
 ps -ef | grep uvicorn
 curl http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1/ | grep -n "Starter Deck YAML"
-curl -s http://127.0.0.1/ | grep -n "Website Intro Starter"
 curl -s http://127.0.0.1/ | grep -n "Manual Procedure Starter"
-curl -s http://127.0.0.1/ | grep -n "debug app or CLI"
+curl -s http://127.0.0.1/ | grep -n "Refresh Slide Assets"
 journalctl -u autoreport -n 100 --no-pager
 ```
 
-6. If the repo is correct but the public URL still shows upload controls, force a clean service refresh.
+6. If the repo is correct but the public URL still serves stale homepage HTML, force a clean service refresh.
 
 ```bash
 cd ~/autoreport
@@ -166,8 +162,8 @@ codex --help
 
 ## Troubleshooting Branches
 
-If the public URL still misses the expected starter selector or still serves the
-wrong app, use this decision tree:
+If the public URL still misses the expected manual-starter homepage or still
+serves the wrong app, use this decision tree:
 
 1. `git rev-parse HEAD` is older than expected
    Pull `origin/main` and reinstall the app.
@@ -190,6 +186,5 @@ The remote Codex task is complete when:
 - `curl http://127.0.0.1:8000/healthz` returns `{"status":"ok"}`
 - `curl http://127.0.0.1/` returns the Autoreport homepage through `nginx`
 - the homepage includes `Starter Deck YAML`
-- the homepage includes `Website Intro Starter`
 - the homepage includes `Manual Procedure Starter`
 - no machine-specific secrets were written into the public repository

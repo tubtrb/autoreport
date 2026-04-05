@@ -18,6 +18,8 @@ The final publishable contract lives in the private `autorelease` repository.
   -> `../autorelease/content/assets/autoreport-v<version-with-hyphens>-devlog/`
 - `docs/posts/guide-image-v<version>/`
   -> `../autorelease/content/assets/guide/`
+- `docs/shared-assets/user-guide-ai-insert/`
+  -> `../autorelease/content/assets/guide/ai-insert/`
 
 The guide path is intentionally stable because `autorelease` publishes the main
 user guide at `/guide/` and updates that page in place across releases.

@@ -64,9 +64,11 @@ This skill is especially important when:
   - `docs/posts/autoreport-v<version>-development-log.md`
   - `docs/posts/autoreport-guide-v<version>.md`
   - `docs/posts/autoreport-v<version>-release-notes.md`
+- The versioned Markdown files above are repo-tracked handoff source files, while versioned screenshot capture folders under `docs/posts/*-image-v*/` stay local-only unless explicitly promoted.
 - Expected source asset directories:
   - `docs/posts/devlog-image-v<version>/`
   - `docs/posts/guide-image-v<version>/`
+- Shared guide insert screenshots live under `docs/shared-assets/user-guide-ai-insert/` and are copied into `content/assets/guide/ai-insert/` during handoff.
 - Guide handoff currently updates the stable `guide` page in `autorelease` rather than creating a versioned guide slug there.
 - The handoff also keeps `../autorelease/content/pages/main.md` aligned with the
   tracked live-service block.

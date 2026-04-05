@@ -88,15 +88,20 @@ Run the local demo:
 python -m autoreport.web.serve public --host 0.0.0.0 --port 8000
 ```
 
+On Windows from the repo root, the shortest local command is:
+
+```powershell
+.\run-public.cmd
+```
+
 The wrapper above is the supported local launch path because it shuts down
 cleanly on `Ctrl-C` without printing the `uvicorn`/`asyncio` traceback that can
 appear on Python 3.14 when using `python -m uvicorn ...` directly.
 
-The web demo opens with the built-in editorial starter by default, keeps the AI
-prompt comments at the top of the starter YAML, and returns a generated `.pptx`
-for immediate download. The public page keeps the website intro flow on
-`text.editorial` and `metrics.editorial`, and it also exposes a separate manual
-starter that supports ordered screenshot uploads on the built-in
+The web demo opens with the built-in manual procedure starter by default, keeps
+the AI prompt comments at the top of the starter YAML, and returns a generated
+`.pptx` for immediate download. The public page now focuses on the
+screenshot-first manual flow with paired upload and preview rows on the built-in
 `autoreport_manual` template.
 Slide counts are inferred dynamically from the authored slides list rather than
 entered as a separate field.
@@ -104,10 +109,10 @@ Arbitrary PowerPoint template upload is currently a CLI-only path.
 
 The user-facing app is intentionally simple:
 
-1. start from the built-in starter example
+1. start from the built-in manual procedure starter
 2. keep or edit the AI prompt comments at the top of the YAML
-3. keep the default website intro draft on text and metrics slides
-4. switch to the manual starter when the deck needs ordered screenshots
+3. keep the public homepage focused on the manual screenshot workflow
+4. use the paired upload panels and slide preview to align screenshots with each image-bearing slide
 5. use the debug app or CLI when the deck needs custom inspection or arbitrary image/template control
 6. generate the deck
 
@@ -118,11 +123,16 @@ normalization, and compiled runtime debugging, run the separate debug app:
 python -m autoreport.web.serve debug --host 0.0.0.0 --port 8010
 ```
 
+Or from the repo root on Windows:
+
+```powershell
+.\run-debug.cmd
+```
+
 ## Example documents
 
 - `examples/autoreport_editorial_template_contract.yaml`: built-in editorial contract export
 - `examples/autoreport_editorial_report_content.yaml`: AI-facing draft example for another model to fill
-- `examples/autoreport_website_intro_report_content.yaml`: built-in website manual draft for the public text-first web demo
 - `examples/autoreport_editorial_authoring_payload.yaml`: built-in editorial authoring example, including the `text_image` example that uses `image_1`
 - `examples/autoreport_editorial_report_payload.yaml`: compiled runtime payload reference for the built-in editorial template
 - `examples/autoreport_manual_template_contract.yaml`: built-in manual contract export for screenshot-first procedure decks
@@ -140,7 +150,7 @@ generated files after download and does not retain payload contents by default.
 ## Current Release Boundaries
 
 - Contract inspection, authoring-payload scaffolding, authoring-to-runtime compilation, and PPTX generation are available through the CLI.
-- The public web demo covers the built-in editorial and manual templates, pasted `report_content` or `authoring_payload` YAML, starter selection, ordered screenshot upload for manual mode, and immediate PPTX download.
-- The default public homepage still leads with the editorial text-first starter, while the manual starter adds only ordered upload guidance instead of the full debug surface.
+- The public web demo covers the built-in manual procedure starter on `autoreport_manual`, pasted `report_content` or `authoring_payload` YAML, paired screenshot upload/preview for manual mode, and immediate PPTX download.
+- The default public homepage now leads directly with the manual starter rather than an editorial-first starter selector.
 - Generation remains deterministic and local to Python plus `python-pptx`; there is no server-side LLM call in the generation path.
 - Release-note, guide, and devlog handoff is prepared locally through `docs/posts/` and then synced into the private `autorelease` repository.

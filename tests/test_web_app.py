@@ -19,8 +19,6 @@ from autoreport.web.app import (
     MANUAL_PROCEDURE_EXAMPLE_YAML,
     MEDIA_TYPE_PPTX,
     PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML,
-    PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML,
-    WEBSITE_INTRO_EXAMPLE_YAML,
     app,
 )
 
@@ -174,7 +172,7 @@ class WebAppTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.client = TestClient(app)
 
-    def test_demo_page_renders_text_first_homepage(self) -> None:
+    def test_demo_page_renders_manual_starter_homepage(self) -> None:
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
@@ -185,18 +183,19 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Refresh Slide Assets", response.text)
         self.assertIn("Generate PPTX", response.text)
         self.assertIn("report_content", response.text)
-        self.assertIn("text-first", response.text)
-        self.assertIn("Keep public-web drafts to", response.text)
-        self.assertIn("debug app or CLI", response.text)
-        self.assertIn("Website Intro Starter", response.text)
         self.assertIn("Manual Procedure Starter", response.text)
+        self.assertIn("screenshot-first manual flow", response.text)
+        self.assertIn("Keep this public flow focused on", response.text)
         self.assertIn("PowerPoint Slide Preview", response.text)
         self.assertIn("matching upload panel on the", response.text)
         self.assertIn("list-style: none;", response.text)
         self.assertIn("font-size: 0.82rem;", response.text)
+        self.assertIn("Built-In Starter", response.text)
         self.assertNotIn("Image Order", response.text)
         self.assertNotIn("Screenshot Uploads", response.text)
         self.assertNotIn("Choose or paste screenshots for this slide", response.text)
+        self.assertNotIn("Website Intro Starter", response.text)
+        self.assertNotIn("Starter Mode", response.text)
         self.assertNotIn("Remove Upload", response.text)
         self.assertNotIn("Thumbnail Preview", response.text)
         self.assertNotIn("How To Use", response.text)
@@ -205,7 +204,6 @@ class WebAppTestCase(unittest.TestCase):
         self.assertNotIn("starter_app_uploads", response.text)
         self.assertNotIn("app-workspace.png", response.text)
         self.assertNotIn("/starter-assets/app-workspace.png", response.text)
-        self.assertNotIn("Built-In", response.text)
         self.assertNotIn("Advanced Debug: Compiled Report Payload", response.text)
         self.assertNotIn("Optional: View Template Contract", response.text)
         self.assertNotIn("Normalize Draft", response.text)
@@ -213,17 +211,17 @@ class WebAppTestCase(unittest.TestCase):
         self.assertNotIn("Optional: AI Prompt Package", response.text)
         self.assertNotIn("Reset To AI Draft Prompt", response.text)
 
-    def test_demo_page_defaults_to_prompted_website_intro_starter(self) -> None:
+    def test_demo_page_defaults_to_prompted_manual_starter(self) -> None:
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Autoreport Website Quick Manual", response.text)
-        self.assertIn("Published Guide And Updates Routes", response.text)
-        self.assertIn("Edit The Starter Deck YAML", response.text)
-        self.assertIn("Generate The Deck", response.text)
+        self.assertIn("Autoreport PowerPoint User Guide", response.text)
+        self.assertIn("Review The Manual Starter", response.text)
+        self.assertIn("Review The Starter Example", response.text)
+        self.assertIn("Generate The PowerPoint", response.text)
         self.assertIn("# Paste this brief into another AI", response.text)
         self.assertIn("report_content draft below", response.text)
-        self.assertIn("User Guide `/guide/`", response.text)
+        self.assertIn("Goal: draft a screenshot-first procedure manual", response.text)
 
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")
@@ -502,32 +500,6 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         presentation = Presentation(BytesIO(response.content))
         self.assertEqual(len(presentation.slides), 3)
-
-    def test_generate_endpoint_accepts_built_in_website_intro_example(self) -> None:
-        response = self.client.post(
-            "/api/generate",
-            data={
-                "payload_yaml": WEBSITE_INTRO_EXAMPLE_YAML,
-                "image_manifest": "[]",
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        presentation = Presentation(BytesIO(response.content))
-        self.assertEqual(len(presentation.slides), 5)
-
-    def test_generate_endpoint_accepts_prompted_built_in_website_intro_example(self) -> None:
-        response = self.client.post(
-            "/api/generate",
-            data={
-                "payload_yaml": PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML,
-                "image_manifest": "[]",
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        presentation = Presentation(BytesIO(response.content))
-        self.assertEqual(len(presentation.slides), 5)
 
     def test_generate_endpoint_accepts_manual_built_in_with_uploaded_images(self) -> None:
         manifest = [

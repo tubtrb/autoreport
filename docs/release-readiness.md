@@ -21,6 +21,20 @@ Run these first when tightening release-facing wording:
 .\venv\Scripts\python.exe -m unittest tests.test_web_app
 ```
 
+For repeatable public-web browser evidence and guide-image promotion, install the
+optional e2e dependency and run the dedicated Playwright runner:
+
+```powershell
+.\venv\Scripts\python.exe -m pip install -e .[e2e]
+.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version 0.3.1
+.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version 0.3.1 --promote-guide-image
+```
+
+The runner writes raw screenshots under `output/playwright/v0.3.1/`,
+downloads under `.playwright-cli/downloads/v0.3.1/`, a summary JSON under
+`tests/_tmp/`, and the promoted guide image to
+`docs/posts/guide-image-v0.3.1/image.png` when requested.
+
 The release-prep CLI flow can also be smoke-tested directly with a minimal
 runnable payload fixture:
 
@@ -68,8 +82,8 @@ the image-backed path.
 ## Current Release Scope
 
 - The CLI can inspect the built-in editorial template or a user-supplied `.pptx` template.
-- The public web demo exposes only the built-in editorial contract and starter-manual payload flow.
-- The public web demo accepts text and metrics slides only and rejects image-backed drafts with a validation error.
+- The public web demo exposes the built-in manual procedure starter with paired screenshot upload and preview rows.
+- The public web demo supports the built-in manual upload flow and still rejects broader image-backed drafts outside that public path.
 - Image-backed drafts remain available through the CLI and the separate debug web app.
 - The download path cleans up temporary output after the response is sent.
 

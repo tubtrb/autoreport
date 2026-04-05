@@ -68,7 +68,7 @@ architecture docs together when practical.
 
 The intended web flow is:
 
-1. in the user app, the user starts from the built-in website intro starter that already includes the AI prompt comments at the top, edits that YAML directly, and can switch to the manual procedure starter when a screenshot-first guide is needed
+1. in the user app, the user starts directly from the built-in manual procedure starter that already includes the AI prompt comments at the top, edits that YAML directly, and stays on the screenshot-first manual flow
 2. the user app should stay minimal and avoid contract/debug panes unless the design is intentionally expanded again
 3. in the debug app, a developer can inspect the full contract, normalized `authoring_payload`, compiled `report_payload`, and upload refs in parallel panes
 4. both apps still validate and generate through the same shared routes and core pipeline
@@ -76,8 +76,10 @@ The intended web flow is:
 Current design expectations:
 
 - the user app should stay single-flow and user-facing rather than becoming a manual slide-builder
-- the default public starter should stay text-first and reject ad hoc image-backed drafts with the standard validation error shape
+- the default public starter should stay focused on the manual screenshot workflow rather than splitting attention across an editorial starter selector
 - the debug app is the right place for extra panes, debug controls, and internal inspection helpers
+- the debug app should be treated as a validation workbench for inspecting template/prompt robustness runs, not as a second end-user product surface
+- when large prompt corpora or many template permutations need to be exercised, keep the high-volume compile/generate loop in a CLI or batch runner and use the debug app to inspect summaries, failure cases, and targeted reruns
 - the debug app may still keep upload inspection so image-backed drafts remain testable outside the default public surface
 - when the manual starter is active, keep screenshot uploads paired row-by-row with the matching image-bearing preview slide so the controls align with the exact slide that needs them
 - keep the paired manual rows visually compact: avoid repeated helper prose in the upload side and prefer one-line slide summaries at the top of each paired row

@@ -30,6 +30,8 @@ FRONT_MATTER_BODY_PATTERN = re.compile(
     r"^(---\s*\r?\n.*?\r?\n---\s*\r?\n?)(.*)$",
     re.DOTALL,
 )
+GUIDE_SHARED_AI_INSERT_SOURCE_PREFIX = "../shared-assets/user-guide-ai-insert/"
+GUIDE_SHARED_AI_INSERT_TARGET_SUBDIR = "ai-insert"
 
 
 @dataclass(frozen=True)
@@ -337,6 +339,10 @@ def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) ->
             f"]({source_prefix}/",
             f"](../assets/{spec.slug}/",
         )
+    body = body.replace(
+        f"]({GUIDE_SHARED_AI_INSERT_SOURCE_PREFIX}",
+        f"](../assets/{spec.slug}/{GUIDE_SHARED_AI_INSERT_TARGET_SUBDIR}/",
+    )
     body = re.sub(
         r"(?m)^This guide reflects .*?active branch\.",
         f"This guide reflects the Autoreport implementation at `{args.source_ref}`.",
@@ -460,19 +466,37 @@ def write_target_post(spec: PostSpec, args: argparse.Namespace) -> None:
     )
 
 
-def sync_assets(spec: PostSpec) -> None:
-    if spec.source_asset_dir is None or not spec.source_asset_dir.exists():
-        return
-
-    target_root = spec.target_path.parents[1] / "assets" / spec.slug
+def _copy_asset_tree(source_root: Path, target_root: Path) -> None:
     target_root.mkdir(parents=True, exist_ok=True)
-    for source in spec.source_asset_dir.rglob("*"):
+    for source in source_root.rglob("*"):
         if not source.is_file():
             continue
-        relative = source.relative_to(spec.source_asset_dir)
+        relative = source.relative_to(source_root)
         destination = target_root / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
+
+
+def _guide_shared_ai_insert_dir(spec: PostSpec) -> Path | None:
+    if spec.key != "guide":
+        return None
+    shared_dir = spec.source_path.parents[1] / "shared-assets" / "user-guide-ai-insert"
+    if not shared_dir.exists():
+        return None
+    return shared_dir
+
+
+def sync_assets(spec: PostSpec) -> None:
+    target_root = spec.target_path.parents[1] / "assets" / spec.slug
+    if spec.source_asset_dir is not None and spec.source_asset_dir.exists():
+        _copy_asset_tree(spec.source_asset_dir, target_root)
+
+    shared_guide_assets = _guide_shared_ai_insert_dir(spec)
+    if shared_guide_assets is not None:
+        _copy_asset_tree(
+            shared_guide_assets,
+            target_root / GUIDE_SHARED_AI_INSERT_TARGET_SUBDIR,
+        )
 
 
 def replace_markdown_body(text: str, body: str) -> str:

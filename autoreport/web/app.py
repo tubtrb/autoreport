@@ -53,48 +53,6 @@ PUBLIC_WEB_IMAGE_DISABLED_ERRORS = [
 
 _EDITORIAL_CONTRACT = get_built_in_contract(PUBLIC_BUILT_IN_TEMPLATE_NAME)
 _MANUAL_CONTRACT = get_built_in_contract(MANUAL_PUBLIC_TEMPLATE_NAME)
-AI_DRAFT_PROMPT_YAML = """
-# Paste this brief into another AI and ask it to fill the report_content draft below.
-# Goal: draft slide-ready content for Autoreport. The app will normalize report_content
-# into authoring_payload and then compile the runtime report_payload automatically.
-# How Autoreport uses this draft:
-# - Each item in report_content.slides becomes one deck slide.
-# - The number of slide entries is the number of content slides in the deck.
-# - pattern_id selects the PPT layout pattern, so it must come from template_contract.
-# - In report_content, kind is optional when pattern_id already matches template_contract.
-# - slots.title / slots.body_1 / slots.image_* / slots.caption_* map to template placeholders.
-# Rules for the other AI:
-# 1. Return the final answer as one fenced ```yaml code block.
-# 2. Inside that code block, keep the top-level key as report_content.
-# 3. Do not write any prose before or after the fenced YAML block.
-# 4. Do not open a second code block and do not split the YAML across plain text and code.
-# 5. Do not declare the total slide count anywhere. Autoreport infers it from slides[*].
-# 6. Choose pattern_id values from the template contract.
-# 7. Put narrative text into slots.body_1.
-# 8. In the public web demo, stay with text.editorial or metrics.editorial slides.
-# 9. Do not add slots.image_* or caption_* fields in this public-web draft.
-# 10. If a deck truly needs visuals, switch that draft to the debug app or CLI path.
-report_content:
-  title_slide:
-    pattern_id: cover.editorial
-    slots:
-      title: Replace with the deck title
-      subtitle_1: |
-        Replace with a concise subtitle
-  contents_slide:
-    pattern_id: contents.editorial
-    slots:
-      title: Contents
-      body_1: |
-        1. Add the first section title
-        2. Add the second section title
-  slides:
-    - pattern_id: text.editorial
-      slots:
-        title: First section title
-        body_1: |
-          Write the main narrative for this slide.
-""".strip()
 MANUAL_DRAFT_PROMPT_YAML = """
 # Paste this brief into another AI and ask it to fill the report_content draft below.
 # Goal: draft a screenshot-first procedure manual for Autoreport using the manual template.
@@ -136,49 +94,6 @@ report_content:
         image_1: image_1
         caption_1: First screenshot caption
 """.strip()
-WEBSITE_INTRO_EXAMPLE_YAML = f"""
-report_content:
-  title_slide:
-    pattern_id: cover.editorial
-    slots:
-      title: Autoreport Website Quick Manual
-      subtitle_1: |
-        Text-first starter flow for the public web demo
-  contents_slide:
-    pattern_id: contents.editorial
-    slots:
-      title: Contents
-      body_1: |
-        1. Published Guide And Updates Routes
-        2. Edit The Starter Deck YAML
-        3. Generate The Deck
-  slides:
-    - pattern_id: text.editorial
-      slots:
-        title: Published Guide And Updates Routes
-        body_1: |
-          When the release docs are published, the main reader routes are Home
-          `/`, User Guide `/guide/`, and the Updates hub under
-          `/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`.
-          This starter deck keeps the faster in-app walkthrough inside the main
-          editor so users can learn the browser flow and generate immediately.
-    - pattern_id: text.editorial
-      slots:
-        title: Edit The Starter Deck YAML
-        body_1: |
-          The main editor already includes the AI prompt comments and this
-          starter manual YAML in one place. Edit the titles and body text
-          directly, keep the draft text-first, and use Reset Starter Example to
-          restore the packaged manual.
-    - pattern_id: metrics.editorial
-      slots:
-        title: Generate The Deck
-        body_1: |
-          Default flow: edit the starter YAML
-          Supported slide kinds: text.editorial and metrics.editorial
-          Image-backed decks: move them to the debug app or CLI
-          Output: generate an editable PowerPoint deck
-""".strip()
 MANUAL_PROCEDURE_EXAMPLE_YAML = f"""
 report_content:
   title_slide:
@@ -198,8 +113,8 @@ report_content:
     - pattern_id: text.manual.section_break
       slots:
         section_no: "1."
-        section_title: Choose A Starter Template
-        section_subtitle: Start with the built-in editorial or manual starter before editing content.
+        section_title: Review The Manual Starter
+        section_subtitle: Start with the built-in manual procedure starter before editing content.
     - pattern_id: text_image.manual.procedure.one
       slots:
         step_no: "1.1"
@@ -240,10 +155,6 @@ report_content:
         caption_2: Generation in progress
         caption_3: PowerPoint download complete
 """.strip()
-AI_DRAFT_PROMPT_HEADER = AI_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
-PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML = (
-    f"{AI_DRAFT_PROMPT_HEADER}\n{WEBSITE_INTRO_EXAMPLE_YAML}"
-).strip()
 MANUAL_DRAFT_PROMPT_HEADER = MANUAL_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
 PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML = (
     f"{MANUAL_DRAFT_PROMPT_HEADER}\n{MANUAL_PROCEDURE_EXAMPLE_YAML}"
@@ -257,9 +168,7 @@ app = FastAPI(
 
 
 def _render_demo_html() -> str:
-    prompted_intro_example_json = json.dumps(PROMPTED_WEBSITE_INTRO_EXAMPLE_YAML)
     prompted_manual_example_json = json.dumps(PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML)
-    editorial_template_name_json = json.dumps(PUBLIC_BUILT_IN_TEMPLATE_NAME)
     manual_template_name_json = json.dumps(MANUAL_PUBLIC_TEMPLATE_NAME)
     return """<!DOCTYPE html>
 <html lang="en">
@@ -520,28 +429,23 @@ def _render_demo_html() -> str:
     <main>
       <h1>Edit the starter deck and generate an Autoreport PPTX.</h1>
       <p class="hero-copy">
-        Start from the built-in website intro starter below. The public demo
-        still defaults to the text-first editorial flow, and it can switch to
-        the screenshot-first manual starter when grouped screenshot uploads are
-        required.
+        Start from the built-in manual procedure starter below. The public demo
+        now focuses on the screenshot-first manual flow with paired upload and
+        preview rows for each image-bearing slide.
       </p>
       <section class="card">
         <div id="workspace" class="workspace">
           <div class="panel">
             <h2>Starter Deck YAML</h2>
             <p class="panel-copy">
-              Start from the built-in starter below with the AI prompt comments
-              at the top. Keep public-web drafts to editorial text and metrics
-              slides unless you switch to the manual starter for screenshot-led
-              procedures, then refresh the paired upload panels and slide
-              preview before generating.
+              Start from the built-in manual starter below with the AI prompt
+              comments at the top. Keep this public flow focused on
+              screenshot-led procedures, then refresh the paired upload panels
+              and slide preview before generating.
             </p>
             <div class="starter-switch">
-              <label for="starter-kind"><strong>Starter Mode</strong></label>
-              <select id="starter-kind" aria-label="Starter mode">
-                <option value="editorial">Website Intro Starter</option>
-                <option value="manual">Manual Procedure Starter</option>
-              </select>
+              <span><strong>Built-In Starter</strong></span>
+              <div class="rail-box">Manual Procedure Starter</div>
             </div>
             <div id="manual-stage" class="manual-stage" hidden>
               <div class="manual-stage-header">
@@ -566,9 +470,9 @@ def _render_demo_html() -> str:
               <div class="preview-status">
                 <h2>Status</h2>
                 <div id="status-message" class="panel-copy">
-                  The default website intro starter is loaded with the AI prompt
-                  and the text-first editorial walkthrough. Edit the draft and
-                  generate the PPTX.
+                  The built-in manual procedure starter is loaded with the AI
+                  prompt comments. Edit the draft, refresh the slide assets,
+                  and generate the PPTX.
                 </div>
                 <ul id="status-errors" class="status-errors"></ul>
                 <ul id="status-hints" class="status-hints"></ul>
@@ -586,13 +490,10 @@ def _render_demo_html() -> str:
       </section>
     </main>
     <script>
-      const PROMPTED_WEBSITE_INTRO_EXAMPLE = __PROMPTED_INTRO_EXAMPLE_JSON__;
       const PROMPTED_MANUAL_PROCEDURE_EXAMPLE = __PROMPTED_MANUAL_EXAMPLE_JSON__;
-      const EDITORIAL_TEMPLATE_NAME = __EDITORIAL_TEMPLATE_NAME_JSON__;
       const MANUAL_TEMPLATE_NAME = __MANUAL_TEMPLATE_NAME_JSON__;
       const workspace = document.getElementById("workspace");
       const payloadNode = document.getElementById("payload-yaml");
-      const starterKindNode = document.getElementById("starter-kind");
       const statusMessage = document.getElementById("status-message");
       const statusErrors = document.getElementById("status-errors");
       const statusHints = document.getElementById("status-hints");
@@ -602,18 +503,6 @@ def _render_demo_html() -> str:
       const slidePreviewList = document.getElementById("slide-preview-list");
       const refreshOrderButton = document.getElementById("refresh-order");
 
-      const STARTERS = {
-        editorial: {
-          templateName: EDITORIAL_TEMPLATE_NAME,
-          payload: PROMPTED_WEBSITE_INTRO_EXAMPLE,
-        },
-        manual: {
-          templateName: MANUAL_TEMPLATE_NAME,
-          payload: PROMPTED_MANUAL_PROCEDURE_EXAMPLE,
-        },
-      };
-
-      let currentMode = "editorial";
       let requiredImages = [];
       let selectedFilesByRef = new Map();
       let slidePreviews = [];
@@ -641,11 +530,11 @@ def _render_demo_html() -> str:
       }
 
       function isManualMode() {
-        return currentMode === "manual";
+        return true;
       }
 
       function currentTemplateName() {
-        return STARTERS[currentMode].templateName;
+        return MANUAL_TEMPLATE_NAME;
       }
 
       function syncManualLayout() {
@@ -1175,41 +1064,26 @@ def _render_demo_html() -> str:
         );
       }
 
-      function applyStarter(mode) {
-        currentMode = mode;
-        payloadNode.value = STARTERS[mode].payload;
+      function applyStarter() {
+        payloadNode.value = PROMPTED_MANUAL_PROCEDURE_EXAMPLE;
         resetUploads();
-        if (isManualMode()) {
-          setStatus(
-            "Manual starter loaded.",
-            [],
-            [
-              "Refresh the manual draft to build aligned upload panels beside the matching slide previews.",
-              "Only image-bearing slides get upload controls, so text-only slides stay preview-only.",
-              "Choose or paste screenshots in the paired panel and watch the composed preview update immediately.",
-            ]
-          );
-          void refreshImageOrder();
-          return;
-        }
         setStatus(
-          "Starter example restored.",
+          "Manual starter loaded.",
           [],
           [
-            "The AI prompt comments are back at the top of the starter YAML.",
-            "The built-in website walkthrough is back in the starter YAML.",
-            "The public web flow stays on text and metrics slides.",
-            "Switch to the manual starter when a deck needs ordered screenshots.",
+            "The AI prompt comments are back at the top of the manual starter YAML.",
+            "Refresh the manual draft to build aligned upload panels beside the matching slide previews.",
+            "Only image-bearing slides get upload controls, so text-only slides stay preview-only.",
           ]
         );
+        void refreshImageOrder();
       }
 
-      applyStarter("editorial");
+      applyStarter();
 
       document.getElementById("reset-starter").addEventListener("click", () => {
-        applyStarter(currentMode);
+        applyStarter();
       });
-      starterKindNode.addEventListener("change", () => applyStarter(starterKindNode.value));
       refreshOrderButton.addEventListener("click", () => { void refreshImageOrder(); });
 
       document.getElementById("generate-button").addEventListener("click", async () => {
@@ -1258,14 +1132,8 @@ def _render_demo_html() -> str:
     </script>
   </body>
 </html>""".replace(
-        "__PROMPTED_INTRO_EXAMPLE_JSON__",
-        prompted_intro_example_json,
-    ).replace(
         "__PROMPTED_MANUAL_EXAMPLE_JSON__",
         prompted_manual_example_json,
-    ).replace(
-        "__EDITORIAL_TEMPLATE_NAME_JSON__",
-        editorial_template_name_json,
     ).replace(
         "__MANUAL_TEMPLATE_NAME_JSON__",
         manual_template_name_json,

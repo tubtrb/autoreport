@@ -20,13 +20,19 @@ sequenceDiagram
     App-->>Browser: starter-manual HTML + prompted YAML
 
     User->>Browser: Keep or edit the starter manual YAML
-    opt Draft asks for images
-        Browser->>API: POST /api/compile or /api/generate with image-backed YAML
-        API-->>Browser: 422 JSON validation_error
-    end
+    Browser->>API: POST /api/compile { payload_yaml, built_in=autoreport_manual, image_manifest=[] }
+    API->>Loader: parse_yaml_text(payload_yaml)
+    Loader-->>API: raw mapping
+    API->>Normalize: materialize_authoring_payload(raw_data, manual contract)
+    Normalize-->>API: authoring payload
+    API->>Compile: materialize_report_payload(authoring_payload, manual contract)
+    Compile-->>API: compiled report payload + required image refs
+    API-->>Browser: 200 JSON { required_images, slide_previews }
+
+    User->>Browser: Upload screenshots in the paired slide rows
 
     User->>Browser: Click Generate PPTX
-    Browser->>API: POST /api/generate { payload_yaml, image_manifest=[] }
+    Browser->>API: POST /api/generate { payload_yaml, built_in=autoreport_manual, image_manifest, uploaded files }
     API->>Loader: parse_yaml_text(payload_yaml)
     Loader-->>API: raw mapping
     API->>Generator: generate_report_from_mapping(raw_data, image_refs, output_path)
@@ -48,9 +54,9 @@ sequenceDiagram
 
 The debug app still reuses the same `/api/compile` and `/api/generate` logic.
 Its difference is the HTML surface plus the public-app guardrails: the default
-user app keeps the editorial starter text-first, the built-in manual starter
-allows ordered screenshot uploads on the manual template, and the debug app
-remains the place where compile/runtime inspection stays explicit.
+user app now leads directly with the built-in manual starter, allows ordered
+screenshot uploads on the manual template, and keeps compile/runtime inspection
+explicitly in the debug app.
 
 ## Inspection points
 
@@ -58,7 +64,7 @@ remains the place where compile/runtime inspection stays explicit.
 - `GET /` in `autoreport/web/debug_app.py` is the developer-facing inspection flow.
 - `POST /api/compile` accepts multipart form data, not raw JSON, and is primarily surfaced by the debug app.
 - `POST /api/generate` also accepts multipart form data and returns a download.
-- The public app keeps `image_manifest` empty for the editorial starter, and uses ordered `image_manifest` uploads only for the built-in manual starter.
+- The public app uses ordered `image_manifest` uploads only for the built-in manual starter.
 - Temporary files are cleaned up after requests complete.
 
 ## Source of truth
