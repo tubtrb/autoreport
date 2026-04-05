@@ -26,6 +26,7 @@ and routes deeper work to one primary focused skill.
   - Loader/schema/example/tests -> `../report-schema/SKILL.md`
   - Template/generator/writer -> `../pptx-output/SKILL.md`
   - FastAPI/demo HTML/API -> `../web-demo/SKILL.md`
+  - Protected integration branches, branch choice before commit, or direct-commit guards for `codex/next` or `codex/master` -> `../branch-commit-guard/SKILL.md`
   - Shared repo-operation guidance, repo-local skills, tracked handover docs, or other operating-surface policy sync -> `../repo-ops-policy-sync/SKILL.md`
   - Remote deployment handover, EC2 drift checks, public-server mismatch, or entrypoint verification -> `../remote-deployment-handover/SKILL.md`
   - Public repo safety, leak scans, and screenshot hygiene -> `../public-repo-safety/SKILL.md`
@@ -80,7 +81,7 @@ and routes deeper work to one primary focused skill.
 
 - The public surface is now contract-first and Autoreport-branded, even though some internal module names still mention `weekly_report`.
 - The CLI and web demo both feed the same core generation path.
-- When the user chooses the version-master branch flow, treat `codex/v<next>-master` as the active feature line, `codex/next` as the curated release-candidate line, and `main` as the released line that receives the final tag.
+- When the user chooses the version-master branch flow, treat `codex/v<next>-master` as the active feature line where direct commits may still happen, treat `codex/next` as a protected curated release-candidate line, treat `codex/master` as a protected integration branch when present, and treat `main` as the released line that receives the final tag.
 - Some strings and comments still carry older `v0.1` wording; preserve them unless intentionally updating the contract across code/tests/docs.
 - The web demo HTML currently contains tested literal copy from `autoreport/web/app.py`; treat it as contract until deliberately changed.
 
