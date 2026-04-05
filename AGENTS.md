@@ -44,8 +44,8 @@
 
 ## Branch Roles
 - `main`: released stable line and source of truth for release tags.
-- `codex/next`: curated release-candidate line for the next version. Keep it intentionally reviewable rather than using it as the scratch feature branch or a routine direct-commit work branch.
-- `codex/master`: protected integration branch when present. Do not treat it as a routine direct-commit work branch unless the user explicitly overrides that rule.
+- `codex/next`: curated release-candidate line for the next version. Keep it intentionally reviewable rather than using it as the scratch feature branch or a routine direct-commit work branch. Reserve direct commits there for intentional integration work such as promotion, merge, squash, sync, or release cleanup.
+- `codex/master`: protected integration branch when present. Do not treat it as a routine direct-commit work branch. Reserve direct commits there for intentional integration work such as merge, sync, or other branch-maintenance tasks unless the user explicitly overrides that rule.
 - `codex/v<next>-master`: active development line for the next planned version when the user wants branch-based feature work before release promotion. Direct commits remain allowed there under the current repo policy.
 
 ## Skill Routing
@@ -79,8 +79,8 @@
 - When shipped behavior, public contracts, cleanup rules, verification flow, or orchestration expectations change, update the relevant repo-local skills and bootstrap guidance in the same task so future turns inherit the latest repo reality.
 - Stale agent or skill guidance is a blocker for signoff for the same reason stale code is a blocker: it causes later tasks to resurrect dead paths and wrong assumptions.
 - Use git history and tags for recovery, not stale bootstrap guidance left in tracked files after the product has already moved on.
-- Before staging, committing, or pushing from `codex/next` or `codex/master`, load `codex/skills/branch-commit-guard/SKILL.md` and stop unless the user explicitly authorizes a direct commit on that protected branch.
-- Treat `codex/next` and `codex/master` as protected integration branches for Codex-authored work. Use child branches for routine changes instead of incremental direct commits there.
+- Before staging, committing, or pushing from `codex/next` or `codex/master`, load `codex/skills/branch-commit-guard/SKILL.md` and stop unless the work is intentional protected-branch integration work such as promotion, merge, squash, sync, or release cleanup, or the user explicitly authorizes another direct commit on that branch.
+- Treat `codex/next` and `codex/master` as protected integration branches for Codex-authored work. Use child branches for routine changes instead of incremental direct commits there, and keep direct commits on the protected branches for deliberate integration history only.
 - When the user prefers the version-master branch flow, do active feature work on `codex/v<next>-master`, then squash or otherwise intentionally condense that history into `codex/next` before release prep.
 - In that flow, keep `main` release-oriented rather than treating it as the scratch feature branch.
 - Prefer bumping `pyproject.toml` and package version markers when the curated release candidate lands on `codex/next`, not at the start of `codex/v<next>-master`, unless the user explicitly wants the early bump.

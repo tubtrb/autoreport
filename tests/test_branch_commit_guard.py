@@ -33,6 +33,7 @@ class BranchCommitGuardScriptTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("protected branch 'codex/next'", result.stderr)
         self.assertIn("git switch -c codex/next-task", result.stderr)
+        self.assertIn("intentional integration work", result.stderr)
 
     def test_blocks_codex_master(self) -> None:
         result = self.run_guard("--branch", "codex/master", "--task", "hotfix")
@@ -40,6 +41,7 @@ class BranchCommitGuardScriptTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("protected branch 'codex/master'", result.stderr)
         self.assertIn("git switch -c codex/master-hotfix", result.stderr)
+        self.assertIn("release promotion", result.stderr)
 
     def test_allows_version_master_branch(self) -> None:
         result = self.run_guard("--branch", "codex/v0.4-master")
@@ -55,4 +57,7 @@ class BranchCommitGuardScriptTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0)
-        self.assertIn("Protected branch 'codex/next' allowed", result.stdout)
+        self.assertIn(
+            "Protected branch 'codex/next' allowed for intentional integration work",
+            result.stdout,
+        )

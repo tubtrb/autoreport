@@ -38,7 +38,7 @@ def suggested_branch_name(branch: str, task: str) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Block direct commits on protected integration branches."
+        description="Block routine direct commits on protected integration branches."
     )
     parser.add_argument(
         "--branch",
@@ -52,7 +52,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--allow-protected",
         action="store_true",
-        help="Bypass the block. Use only when the user explicitly approved it.",
+        help=(
+            "Bypass the block for intentional integration work on a protected "
+            "branch, such as merge, squash, sync, release promotion, or another "
+            "explicit user-approved exception."
+        ),
     )
     return parser.parse_args()
 
@@ -72,16 +76,17 @@ def main() -> int:
         )
         print(f"  git switch -c {suggestion}", file=sys.stderr)
         print(
-            "Use --allow-protected only when the user explicitly authorizes a "
-            "direct commit on this branch.",
+            "Use --allow-protected only for intentional integration work on "
+            "this branch, such as merge, squash, sync, release promotion, or "
+            "another explicit user-approved direct commit.",
             file=sys.stderr,
         )
         return 2
 
     if branch in PROTECTED_BRANCHES:
         print(
-            f"[OVERRIDE] Protected branch '{branch}' allowed because "
-            "--allow-protected was supplied."
+            f"[OVERRIDE] Protected branch '{branch}' allowed for intentional "
+            "integration work because --allow-protected was supplied."
         )
         return 0
 
