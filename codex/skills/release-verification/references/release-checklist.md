@@ -17,7 +17,7 @@ be backed by fresh proof from the current branch.
 
 ## Web Demo Minimum Bar
 
-For the current `v0.3.x` web demo, the minimum browser signoff should include:
+For the current public web demo, the minimum browser signoff should include:
 
 - homepage loads at `/`
 - demo title is visible

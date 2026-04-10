@@ -18,25 +18,58 @@ import collect_worker_reports  # noqa: E402
 import sync_policy_worktrees  # noqa: E402
 import workstream_runtime  # noqa: E402
 
+TEST_BASE_BRANCH = "codex/v9.9.9-master"
+TEST_BRANCH_PREFIX = workstream_runtime.workstream_branch_prefix(TEST_BASE_BRANCH)
+TEST_WORKTREE_PREFIX = workstream_runtime.cleanup_directory_prefix(TEST_BASE_BRANCH)
+TEST_WEB_BRANCH = f"{TEST_BRANCH_PREFIX}web-authoring-ux"
+TEST_GENERATION_BRANCH = f"{TEST_BRANCH_PREFIX}generation-preview"
+TEST_RELEASE_BRANCH = f"{TEST_BRANCH_PREFIX}release-prep"
+
 
 class WorkstreamRuntimeTests(unittest.TestCase):
     def test_parse_worktree_list_handles_porcelain_output(self) -> None:
         text = (
             "worktree C:/repo\n"
             "HEAD abc123\n"
-            "branch refs/heads/codex/v0.3-web-authoring-ux\n\n"
+            f"branch refs/heads/{TEST_WEB_BRANCH}\n\n"
             "worktree C:/repo2\n"
             "HEAD def456\n"
-            "branch refs/heads/codex/v0.3-master\n"
+            f"branch refs/heads/{TEST_BASE_BRANCH}\n"
         )
         entries = workstream_runtime.parse_worktree_list(text)
         self.assertEqual(2, len(entries))
         self.assertEqual("C:/repo", entries[0]["worktree"])
-        self.assertEqual("refs/heads/codex/v0.3-master", entries[1]["branch"])
+        self.assertEqual(f"refs/heads/{TEST_BASE_BRANCH}", entries[1]["branch"])
+
+    def test_version_helpers_derive_prefixes_from_base_branch(self) -> None:
+        self.assertEqual(TEST_BRANCH_PREFIX, workstream_runtime.workstream_branch_prefix(TEST_BASE_BRANCH))
+        self.assertEqual(TEST_WORKTREE_PREFIX, workstream_runtime.cleanup_directory_prefix(TEST_BASE_BRANCH))
+
+    def test_infer_active_base_branch_falls_back_to_highest_known_version_master(self) -> None:
+        def fake_run_git(args: list[str], cwd=None):
+            if args == ["branch", "--show-current"]:
+                return mock.Mock(returncode=0, stdout="main\n", stderr="")
+            if args == ["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes/origin"]:
+                return mock.Mock(
+                    returncode=0,
+                    stdout="\n".join(
+                        [
+                            "refs/heads/codex/v0.4.1-master",
+                            "refs/heads/codex/v0.4.2-master",
+                            "refs/remotes/origin/codex/v0.3.9-master",
+                        ]
+                    ),
+                    stderr="",
+                )
+            raise AssertionError(f"Unexpected git args: {args}")
+
+        with mock.patch.object(workstream_runtime, "run_git", side_effect=fake_run_git):
+            inferred = workstream_runtime.infer_active_base_branch()
+        self.assertEqual("codex/v0.4.2-master", inferred)
 
     def test_discover_workstreams_uses_local_config_override(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            task_root = Path(tmp) / "autoreport_v0.3-web-authoring-ux"
+            task_root = Path(tmp) / f"{TEST_WORKTREE_PREFIX}web-authoring-ux"
             codex_dir = task_root / ".codex"
             codex_dir.mkdir(parents=True)
             (codex_dir / "workstream.json").write_text(
@@ -52,14 +85,14 @@ class WorkstreamRuntimeTests(unittest.TestCase):
             fake_output = (
                 f"worktree {task_root}\n"
                 "HEAD abc123\n"
-                "branch refs/heads/codex/v0.3-web-authoring-ux\n\n"
+                f"branch refs/heads/{TEST_WEB_BRANCH}\n\n"
                 f"worktree {Path(tmp) / 'autoreport'}\n"
                 "HEAD def456\n"
-                "branch refs/heads/codex/v0.3-master\n"
+                f"branch refs/heads/{TEST_BASE_BRANCH}\n"
             )
             fake_completed = mock.Mock(returncode=0, stdout=fake_output, stderr="")
             with mock.patch.object(workstream_runtime, "run_git", return_value=fake_completed):
-                workstreams = workstream_runtime.discover_workstreams()
+                workstreams = workstream_runtime.discover_workstreams(base_branch=TEST_BASE_BRANCH)
             self.assertEqual(1, len(workstreams))
             self.assertEqual("ux", workstreams[0].key)
             self.assertEqual(("tests.test_web_app",), workstreams[0].test_modules)
@@ -67,8 +100,8 @@ class WorkstreamRuntimeTests(unittest.TestCase):
     def test_discover_retired_sibling_directories_ignores_registered_worktrees(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             workspace_root = Path(tmp)
-            active = (workspace_root / "autoreport_v0.3-web-authoring-ux").resolve()
-            retired = (workspace_root / "autoreport_v0.3-old-branch").resolve()
+            active = (workspace_root / f"{TEST_WORKTREE_PREFIX}web-authoring-ux").resolve()
+            retired = (workspace_root / f"{TEST_WORKTREE_PREFIX}old-branch").resolve()
             unrelated = (workspace_root / "something_else").resolve()
             active.mkdir()
             retired.mkdir()
@@ -76,7 +109,9 @@ class WorkstreamRuntimeTests(unittest.TestCase):
             with mock.patch.object(workstream_runtime, "WORKSPACE_ROOT", workspace_root), mock.patch.object(
                 workstream_runtime, "registered_worktree_paths", return_value={active}
             ):
-                retired_dirs = workstream_runtime.discover_retired_sibling_directories()
+                retired_dirs = workstream_runtime.discover_retired_sibling_directories(
+                    base_branch=TEST_BASE_BRANCH
+                )
             self.assertEqual([retired], retired_dirs)
 
     def test_shared_broadcast_policy_is_present_in_bootstrap_docs(self) -> None:
@@ -181,7 +216,7 @@ class WorkstreamRuntimeTests(unittest.TestCase):
             / "skills"
             / "report-schema"
             / "references"
-            / "weekly-report-schema.md"
+            / "contract-payload-schema.md"
         ).read_text(encoding="utf-8")
         web_contract_text = (
             repo_root
@@ -237,7 +272,7 @@ class CollectorContractTests(unittest.TestCase):
                 json.dumps(
                     {
                         "workstream_key": "generation-preview",
-                        "branch": "codex/v0.3-generation-preview",
+                        "branch": TEST_GENERATION_BRANCH,
                         "head": "abc123",
                         "updated_at": "2026-03-29T01:00:00+09:00",
                         "status": "in_progress",
@@ -273,7 +308,7 @@ class CollectorContractTests(unittest.TestCase):
                 json.dumps(
                     {
                         "workstream_key": "release-prep",
-                        "branch": "codex/v0.3-release-prep",
+                        "branch": TEST_RELEASE_BRANCH,
                         "head": "abc123",
                         "completed_at": "",
                         "completion_summary": "",
@@ -302,13 +337,13 @@ class CollectorContractTests(unittest.TestCase):
         workstreams = [
             workstream_runtime.Workstream(
                 key="generation-preview",
-                branch="codex/v0.3-generation-preview",
+                branch=TEST_GENERATION_BRANCH,
                 path=Path("C:/fake/generation-preview"),
                 test_modules=("tests.test_generator",),
             ),
             workstream_runtime.Workstream(
                 key="release-prep",
-                branch="codex/v0.3-release-prep",
+                branch=TEST_RELEASE_BRANCH,
                 path=Path("C:/fake/release-prep"),
                 test_modules=("tests.test_cli",),
             ),
@@ -348,7 +383,7 @@ class SyncPolicyWorktreesTests(unittest.TestCase):
     def make_workstream(self) -> workstream_runtime.Workstream:
         return workstream_runtime.Workstream(
             key="generation-preview",
-            branch="codex/v0.3-generation-preview",
+            branch=TEST_GENERATION_BRANCH,
             path=Path("C:/fake/worktree"),
             test_modules=("tests.test_generator",),
         )
@@ -360,7 +395,7 @@ class SyncPolicyWorktreesTests(unittest.TestCase):
         ):
             result = sync_policy_worktrees.sync_workstream(
                 workstream,
-                base_branch="codex/v0.3-master",
+                base_branch=TEST_BASE_BRANCH,
                 checkpoint_dirty=False,
                 push=False,
                 dry_run=True,
@@ -380,7 +415,7 @@ class SyncPolicyWorktreesTests(unittest.TestCase):
         ):
             result = sync_policy_worktrees.sync_workstream(
                 workstream,
-                base_branch="codex/v0.3-master",
+                base_branch=TEST_BASE_BRANCH,
                 checkpoint_dirty=False,
                 push=True,
                 dry_run=True,

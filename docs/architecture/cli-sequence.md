@@ -8,7 +8,7 @@ sequenceDiagram
     participant CLI as "cli.main"
     participant Generator as "generate_report"
     participant Loader as "load_yaml"
-    participant Validator as "validate_report"
+    participant Payload as "materialize_report_payload"
     participant Template as "content blocks + fill plan"
     participant Writer as "PowerPointWriter.write_fill_plan"
     participant FS as "Filesystem"
@@ -20,8 +20,8 @@ sequenceDiagram
     FS-->>Loader: YAML text
     Loader-->>Generator: raw mapping
     Generator->>Writer: load template or default presentation
-    Generator->>Validator: validate_report(raw_data)
-    Validator-->>Generator: WeeklyReport
+    Generator->>Payload: materialize_report_payload(raw_data, contract)
+    Payload-->>Generator: ReportPayload
     Generator->>Template: build content blocks and fill plan
     Template-->>Generator: profiled template + planned slides
     Generator->>Writer: write_fill_plan(presentation, output_path, fill_plan)

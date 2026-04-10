@@ -25,7 +25,7 @@ job is not complete until the shared branch state has been updated on origin.
 - If the task also needs release tags or nontrivial branch normalization, also
   read `../release-tagging/SKILL.md`.
 - If the task is really the master-thread workstream flow on
-  `codex/v0.3-master`, switch to `../workstream-orchestrator/SKILL.md` instead
+  `codex/v<version>-master`, switch to `../workstream-orchestrator/SKILL.md` instead
   of forcing the ordinary `main` plus `codex/next` path.
 
 ## Workflow
@@ -46,7 +46,8 @@ job is not complete until the shared branch state has been updated on origin.
   `main`.
 
 3. Validate narrowly but concretely.
-- Run `quick_validate.py` for any new or edited repo-local skill folder.
+- Run the narrowest repository-backed validation that covers the changed operating surface.
+- For repo-local skills or shared architecture docs, prefer the unittest module that locks the referenced guidance when one exists; otherwise cite the inspected source files that justify the guidance.
 - If the changed guidance makes claims about a tested runtime behavior, run the
   narrow matching tests before pushing.
 - If the change is guidance-only and grounded in already-inspected code or

@@ -1,13 +1,13 @@
 {
   "workstream_key": "generation-preview",
-  "branch": "codex/v0.3-generation-preview",
+  "branch": "codex/v<version>-generation-preview",
   "head": "replace-with-current-head-sha",
   "completed_at": "2026-03-29T01:15:00+09:00",
   "completion_summary": "Briefly summarize the shipped branch outcome for master review.",
   "last_green_test_command": "C:\\absolute\\path\\to\\autoreport\\venv\\Scripts\\python.exe -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer",
-  "primary_artifact_path": "C:\\absolute\\path\\to\\autoreport_v0.3-generation-preview\\tests\\_tmp\\generation_preview\\final-review.pptx",
+  "primary_artifact_path": "C:\\absolute\\path\\to\\autoreport_v<version>-generation-preview\\tests\\_tmp\\generation_preview\\final-review.pptx",
   "artifact_paths": [
-    "C:\\absolute\\path\\to\\autoreport_v0.3-generation-preview\\tests\\_tmp\\generation_preview\\final-review.pptx"
+    "C:\\absolute\\path\\to\\autoreport_v<version>-generation-preview\\tests\\_tmp\\generation_preview\\final-review.pptx"
   ],
   "visible_result": "Describe what the user or reviewer can now see directly in the artifact.",
   "known_gaps": "Describe the residual limitations that remain outside this branch.",

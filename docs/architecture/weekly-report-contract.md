@@ -1,7 +1,8 @@
-# Weekly Report Contract
+# Weekly Report Legacy Note
 
-This document summarizes the current accepted weekly report payload.
-It is intentionally small and test-oriented, so it can be used as a checklist when inspecting feature-level behavior.
+This document is a legacy migration note for the older weekly-only payload shape.
+It is not the current public Autoreport contract.
+Keep it only as a reminder of why some internal module names still mention `weekly_report`.
 
 ```mermaid
 flowchart TD
@@ -17,7 +18,7 @@ flowchart TD
     METRICS --> OPEN["open_issues: integer >= 0"]
 ```
 
-## Required fields
+## Historical weekly fields
 
 | Field | Rule |
 | --- | --- |
@@ -29,7 +30,7 @@ flowchart TD
 | `risks` | required, at least one non-empty string item |
 | `next_steps` | required, at least one non-empty string item |
 
-## Metrics object
+## Historical metrics object
 
 | Field | Rule |
 | --- | --- |
@@ -38,25 +39,20 @@ flowchart TD
 
 No other metric keys are accepted.
 
-## Current limits
+## Current status
 
-- Only the weekly report shape is supported.
-- Additional top-level fields are rejected.
-- `report_type` is explicitly rejected.
-- The literal validation error still says `Field 'report_type' is not supported in v0.1.` because that exact string is part of the tested contract.
-- The weekly flow still starts with title, highlights, metrics, risks, and next steps, but long sections may spill into continuation slides.
+- The current public contract-first runtime is described by `template_contract`, `report_content`, `authoring_payload`, and `report_payload`.
+- This weekly-only shape is no longer the public source of truth for validation or generation behavior.
+- Internal compatibility helpers and file names may still mention `weekly_report`, but contributor guidance should not describe this as the live product contract.
 
 ## Inspection points
 
-- Validation trims accepted strings before building the `WeeklyReport` model.
-- Validation collects multiple errors before raising `ValidationError`.
-- The contract is enforced before any template or PowerPoint work begins.
-- Example input lives in `examples/weekly_report.yaml`.
+- Use this note only when an internal helper name or historical document still references the weekly-era model.
+- Current behavior claims should instead cite `README.md`, `autoreport/template_flow.py`, `autoreport/validator.py`, and the matching current tests.
 
-## Source of truth
+## Historical source anchors
 
-- `examples/weekly_report.yaml`
 - `autoreport/validator.py`
 - `autoreport/models.py`
 - `autoreport/templates/weekly_report.py`
-- `tests/test_validator.py`
+- git history for the pre-contract-first weekly payload era

@@ -1,6 +1,6 @@
 ---
 name: pptx-output
-description: Handle weekly template shaping, generation orchestration, PowerPoint writing, and template compatibility behavior for autoreport outputs.
+description: Handle template shaping, generation orchestration, PowerPoint writing, and template compatibility behavior for autoreport outputs.
 ---
 
 # PPTX Output
@@ -17,7 +17,7 @@ and the tests that lock generation and template compatibility behavior.
 - Read `../autoreport-dev/SKILL.md`.
 - Read `references/pptx-pipeline.md`.
 - Read `../../../docs/architecture/template-aware-autofill-engine.md`.
-- If the task affects `v0.3` branch planning, generalized contracts, or cross-thread ownership, also read `../../../docs/architecture/v0.3-template-workstreams.md`.
+- If the task affects versioned branch planning, generalized contracts, or cross-thread ownership, also read `../../../docs/architecture/template-workstreams.md`.
 - Read `../../../autoreport/templates/weekly_report.py`.
 - Read `../../../autoreport/engine/generator.py`.
 - Read `../../../autoreport/outputs/pptx_writer.py`.
@@ -32,12 +32,12 @@ and the tests that lock generation and template compatibility behavior.
 - Keep orchestration separate from file writing.
 
 2. Keep template context stable.
-- `build_weekly_report_content_blocks` expresses the semantic weekly sections.
+- `build_weekly_report_content_blocks` still carries a legacy name, but it now shapes the semantic contract-driven slide content used by the supported built-in templates.
 - `build_weekly_report_fill_plan` maps those sections into template slots and continuation slides.
 - Preserve slide ordering and metric labeling unless the task intentionally changes presentation structure.
 
 3. Treat template compatibility as a first-class contract.
-- The current weekly profile dynamically searches the supplied template for a compatible title layout and a compatible body layout instead of assuming fixed indices.
+- The current template profile dynamically searches the supplied template for a compatible title layout and compatible body layouts instead of assuming fixed indices.
 - Title slides may use either a real title placeholder or title-like text placeholders; body slides still need a title slot plus one primary content slot.
 - Preserve explicit template error types so CLI and web surfaces can map them cleanly.
 
@@ -63,15 +63,15 @@ Current design expectations:
 - slide titles should remain the source for `Contents` generation so the table of contents reflects the real deck
 - text slots may be singular or multiple, and may need horizontal, vertical, or stacked ordering
 - image slots should follow the same slot-first philosophy as text slots, including deterministic ordering and fit policy
-- generalized template-driven paths should be added in a way that preserves today's working weekly flow until migration is intentional
+- generalized template-driven paths should be added in a way that preserves today's working editorial/manual flows until migration is intentional
 
 ## Current Constraints
 
-- Supported template names are currently `weekly_report` and `basic_template`.
+- Supported built-in template names are currently `autoreport_editorial` and `autoreport_manual`, with `weekly_report` retained as a legacy internal alias.
 - Default output path is `output/<source-stem>.pptx` when the caller does not provide one.
 - The default writer path uses a fresh `Presentation()` if no template path is supplied.
-- For `weekly_report`, a user-supplied template path is now profiled placeholder-first and written back through that template's own layouts.
-- `basic_template` is a neutral sanitized profile that uses a clean built-in deck and, when a reference `.pptx` is provided, copies only the slide size instead of the original branding/theme.
+- `autoreport_editorial` is the current editorial built-in profile, and `autoreport_manual` is the current screenshot-first manual built-in profile.
+- The legacy `weekly_report` template name is an internal compatibility path layered under the editorial profile rather than the primary public product name.
 - Existing slides from a template are cleared before report slides are added.
 - The current fit policy prefers the default font size, shrinks as needed, then spills onto continuation slides.
 - Diagnostics currently cover font shrink, overflow spill, out-of-bounds risk, and user-template font substitution risk.
@@ -79,7 +79,7 @@ Current design expectations:
 ## Design Hygiene
 
 - If a task changes the template contract, slot model, contents policy, or template-selection flow, update the matching architecture doc in `docs/architecture/`.
-- If a task changes ownership or parallel implementation boundaries for `v0.3`, update `v0.3-template-workstreams.md`.
+- If a task changes ownership or parallel implementation boundaries for versioned workstreams, update `template-workstreams.md`.
 - Prefer documenting new shared interfaces in tests or docs before asking adjacent threads to depend on them.
 
 ## Output Contract

@@ -1,7 +1,8 @@
-# v0.3 Template Workstreams
+# Template Workstreams
 
-This note defines the current `v0.3` parallel work split for the contract-first
-Autoreport product line.
+This note defines the current versioned parallel work split for the contract-first
+Autoreport product line when one version-master line is being developed in
+multiple worktrees.
 It is contributor-facing planning guidance, not public product copy.
 
 ## Why this file exists
@@ -10,7 +11,7 @@ The target runtime flow is:
 
 1. user inspects a built-in or user-supplied PowerPoint template
 2. `autoreport` exports the matching template contract
-3. a human or another AI fills the report payload
+3. a human or another AI fills `report_content` or `authoring_payload`
 4. `autoreport` generates an editable `.pptx`
 
 That product surface is broad enough to benefit from parallel work, but the
@@ -19,16 +20,19 @@ shared contract model.
 
 ## Branch strategy
 
-- Integration base branch: `codex/v0.3-master`
-- Task branches branch from that base and merge back into that base
-- The active task branches are intentionally horizontal:
-  - `codex/v0.3-contract-hardening`
-  - `codex/v0.3-web-authoring-ux`
-  - `codex/v0.3-generation-preview`
-  - `codex/v0.3-release-prep`
+- Integration base branch: `codex/v<version>-master`
+- Task branches branch from that base and merge back into that base.
+- The active task branches are intentionally horizontal, for example:
+  - `codex/v<version>-contract-hardening`
+  - `codex/v<version>-web-authoring-ux`
+  - `codex/v<version>-generation-preview`
+  - `codex/v<version>-release-prep`
 - Maintenance or integration-support branches such as
-  `codex/v0.3-bootstrap-*` and `codex/v0.3-salvage-*` are not treated as active
+  `codex/v<version>-bootstrap-*` and `codex/v<version>-salvage-*` are not treated as active
   workstreams for orchestration purposes
+- The workstream-orchestrator defaults should infer the active `<version>` from the
+  checked-out `codex/v<version>-master` branch when possible, or else from the
+  highest discovered version-master branch in the repo.
 
 ## Shared guardrails
 
@@ -110,20 +114,20 @@ report_payload:
 
 ## Contract ownership
 
-- `codex/v0.3-contract-hardening` owns exported contract shape, payload shape,
+- `codex/v<version>-contract-hardening` owns exported contract shape, payload shape,
   validation strictness, and example fixture clarity
-- `codex/v0.3-web-authoring-ux` owns how the contract and payload are shown and
+- `codex/v<version>-web-authoring-ux` owns how the contract and payload are shown and
   edited in the web surface
-- `codex/v0.3-generation-preview` owns how payload content lands in profiled
+- `codex/v<version>-generation-preview` owns how payload content lands in profiled
   slots and how generation evidence is surfaced
-- `codex/v0.3-release-prep` owns release-facing wording, package/release docs,
+- `codex/v<version>-release-prep` owns release-facing wording, package/release docs,
   and user-facing examples once behavior is confirmed
 
 ## Active workstreams
 
 ### 1. Contract Hardening
 
-- Branch: `codex/v0.3-contract-hardening`
+- Branch pattern: `codex/v<version>-contract-hardening`
 - Owns:
   - contract export shape stability
   - payload validation rules
@@ -141,7 +145,7 @@ report_payload:
 
 ### 2. Web Authoring UX
 
-- Branch: `codex/v0.3-web-authoring-ux`
+- Branch pattern: `codex/v<version>-web-authoring-ux`
 - Owns:
   - contract panel readability
   - payload editing helpers
@@ -155,7 +159,7 @@ report_payload:
 
 ### 3. Generation Preview
 
-- Branch: `codex/v0.3-generation-preview`
+- Branch pattern: `codex/v<version>-generation-preview`
 - Owns:
   - text/image slot landing quality
   - continuation and spill behavior
@@ -174,7 +178,7 @@ report_payload:
 
 ### 4. Release Prep
 
-- Branch: `codex/v0.3-release-prep`
+- Branch pattern: `codex/v<version>-release-prep`
 - Owns:
   - `README.md`
   - `pyproject.toml`
@@ -187,10 +191,10 @@ report_payload:
 
 ## Merge order
 
-1. `codex/v0.3-contract-hardening`
-2. `codex/v0.3-generation-preview`
-3. `codex/v0.3-web-authoring-ux`
-4. `codex/v0.3-release-prep`
+1. `codex/v<version>-contract-hardening`
+2. `codex/v<version>-generation-preview`
+3. `codex/v<version>-web-authoring-ux`
+4. `codex/v<version>-release-prep`
 
 `generation-preview` and `web-authoring-ux` may proceed in parallel, but
 `contract-hardening` should freeze shared field names and slot rules first.
@@ -200,9 +204,9 @@ report_payload:
 - The workstream-orchestrator should not rely on a fixed list of sibling
   folders.
 - Instead, it should discover active task worktrees from `git worktree list`
-  and treat branches under `codex/v0.3-*` as candidates.
-- Integration/maintenance branches such as `codex/v0.3-master`,
-  `codex/v0.3-bootstrap-*`, and `codex/v0.3-salvage-*` are excluded from the
+  and treat branches under the active `codex/v<version>-*` line as candidates.
+- Integration/maintenance branches such as `codex/v<version>-master`,
+  `codex/v<version>-bootstrap-*`, and `codex/v<version>-salvage-*` are excluded from the
   active task list by default.
 - Each active task worktree may optionally define local orchestration metadata
   in `.codex/workstream.json`, such as:
@@ -217,5 +221,5 @@ Each task branch should close only after it can answer "yes" to all of these:
 - Is the owned interface documented in code or tests?
 - Are the narrow verification commands passing?
 - Are unrelated files left alone?
-- Is `codex/v0.3-master` still the correct merge target?
+- Is `codex/v<version>-master` still the correct merge target?
 - Did the branch avoid changing public wording unless it owned the flow?

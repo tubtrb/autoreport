@@ -8,7 +8,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from workstream_runtime import REPO_ROOT, SHARED_PYTHON, WORKSPACE_ROOT, Workstream, discover_workstreams, recommended_test_command, run_git
+from workstream_runtime import (
+    REPO_ROOT,
+    SHARED_PYTHON,
+    WORKSPACE_ROOT,
+    Workstream,
+    discover_workstreams,
+    infer_active_base_branch,
+    recommended_test_command,
+    run_git,
+)
 
 
 def run_command(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -207,8 +216,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--base-branch",
-        default="codex/v0.3-master",
-        help="Shared base branch that task worktrees should rebase onto. Default: codex/v0.3-master",
+        default=infer_active_base_branch(),
+        help="Shared version-master branch that discovered task worktrees should rebase onto. Defaults to the inferred active version-master branch.",
     )
     parser.add_argument(
         "--checkpoint-dirty",
@@ -255,7 +264,7 @@ def main() -> int:
         sys.stdout.write("\n")
         return 1
 
-    workstreams = discover_workstreams()
+    workstreams = discover_workstreams(base_branch=args.base_branch)
     results = [
         sync_workstream(
             workstream,

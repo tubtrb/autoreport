@@ -16,10 +16,10 @@ flowchart TD
     PARSEOK -->|No| CLIYAML["stderr parse or file message, exit 1"]
     WEBPARSEOK -->|No| WEBYAML["400 yaml_parse_error"]
 
-    PARSEOK -->|Yes| VALIDATE["validate_report(data)"]
+    PARSEOK -->|Yes| VALIDATE["materialize_report_payload(data, contract)"]
     WEBPARSEOK -->|Yes| VALIDATE
 
-    VALIDATE --> VALIDOK{"Valid weekly report?"}
+    VALIDATE --> VALIDOK{"Valid contract-driven payload?"}
     VALIDOK -->|No and CLI| CLIVAL["stderr validation list, exit 1"]
     VALIDOK -->|No and Web| WEBVAL["422 validation_error"]
 
@@ -52,10 +52,10 @@ flowchart TD
 ## Validation checkpoints
 
 - Top-level content must be a YAML mapping.
-- Required fields must exist and normalize to non-empty values.
-- `highlights`, `risks`, and `next_steps` must be non-empty lists of non-empty strings.
-- `metrics` must be an object with exactly `tasks_completed` and `open_issues`.
-- Additional top-level fields are rejected.
+- `template_contract`, `authoring_payload`, `report_payload`, and AI-facing `report_content` all have separate validation paths.
+- Required fields must exist and normalize to non-empty values inside the active contract shape.
+- Authoring/runtime payloads must match the selected template contract, including slide kinds, slot values, image refs, and layout requests.
+- Additional unsupported fields are rejected rather than silently ignored.
 
 ## Inspection points
 

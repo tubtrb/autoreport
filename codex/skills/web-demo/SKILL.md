@@ -18,12 +18,14 @@ the FastAPI routes, the embedded HTML/JavaScript, and the tests that lock web be
 - If the task affects template selection, contract display, or template-driven generation flow, also read:
   - `../../../docs/architecture/template-aware-autofill-engine.md`
   - `../../../docs/architecture/web-surface-split.md`
-  - `../../../docs/architecture/v0.3-template-workstreams.md`
+  - `../../../docs/architecture/template-workstreams.md`
 - Read `../../../autoreport/web/app.py`.
 - Read `../../../autoreport/web/debug_app.py` when the task touches debug workflows or when the product/debug surface split matters.
 - Read `../../../tests/test_web_app.py`.
 - Read `../../../tests/test_web_debug_app.py` when the task touches the debug app.
 - Read `../../../autoreport/engine/generator.py`, `../../../autoreport/loader.py`, and `../../../autoreport/validator.py` if endpoint behavior changes.
+- If the task is primarily real-model prompt corpus collection or debug-app corpus summaries, also read `../ai-corpus-verification/SKILL.md`.
+- If the task is specifically manual YAML auto-repair or post-restart live proof for the public manual flow, also read `../manual-yaml-repair-proof/SKILL.md`.
 
 ## Workflow
 
@@ -38,6 +40,7 @@ the FastAPI routes, the embedded HTML/JavaScript, and the tests that lock web be
 - Keep YAML parsing, validation, and PowerPoint generation delegated to shared core modules.
 - Do not duplicate schema rules inside the web layer.
 - The debug app may expose more developer controls, but it should not fork the compile/generate execution path away from the user app.
+- When the public manual flow repairs common AI indentation drift, keep that repair in the shared pre-parse path so `/api/manual-draft-check`, `/api/compile`, and `/api/generate` all exercise the same recovery logic.
 
 3. Keep web error payloads consistent.
 - Preserve the current JSON shape with `error_type`, `message`, and optional `errors`.
@@ -62,7 +65,7 @@ the FastAPI routes, the embedded HTML/JavaScript, and the tests that lock web be
 
 ## Current Design Frame
 
-Treat this section as living web-surface guidance for the `v0.3` direction.
+Treat this section as living web-surface guidance for the current public/manual direction.
 If the template-driven user flow changes, update this skill and the paired
 architecture docs together when practical.
 
@@ -75,14 +78,17 @@ The intended web flow is:
 
 Current design expectations:
 
-- the user app should stay single-flow and user-facing rather than becoming a manual slide-builder
+- the user app should stay single-flow and user-facing rather than becoming a full manual slide-builder
 - the default public starter should stay focused on the manual screenshot workflow rather than splitting attention across an editorial starter selector
 - the debug app is the right place for extra panes, debug controls, and internal inspection helpers
+- when the debug workbench grows beyond one comfortable page, split the developer flow into multiple debug-focused screens instead of pushing every proof/control panel onto one page
 - the debug app should be treated as a validation workbench for inspecting template/prompt robustness runs, not as a second end-user product surface
 - when large prompt corpora or many template permutations need to be exercised, keep the high-volume compile/generate loop in a CLI or batch runner and use the debug app to inspect summaries, failure cases, and targeted reruns
 - the debug app may still keep upload inspection so image-backed drafts remain testable outside the default public surface
 - when the manual starter is active, keep screenshot uploads paired row-by-row with the matching image-bearing preview slide so the controls align with the exact slide that needs them
 - keep the paired manual rows visually compact: avoid repeated helper prose in the upload side and prefer one-line slide summaries at the top of each paired row
+- lightweight add/remove manual slide controls are allowed in the user app when they edit the YAML draft in place and avoid reorder/replace slide-builder controls
+- a lightweight manual draft checker is allowed in the user app when it surfaces blocking pattern-rule issues before generation without turning the page into a full debug dashboard
 - template inspection and compiled runtime debugging belong primarily to the debug app, not the default user app
 - the web layer should reuse shared contract-export and validation code instead of re-implementing schema rules
 - the homepage should default to one editable starter example rather than an AI prompt package or a manual builder workflow
@@ -92,6 +98,7 @@ Current design expectations:
 - compiled runtime payload inspection belongs primarily to the debug app and only secondarily to the user app
 - error payloads for template-driven validation should stay consistent with the existing web error shape
 - if contract download or skeleton generation is added, it should be covered by web tests in the same change
+- if the manual flow claims to recover real AI YAML drift, pair the web tests with saved-corpus recheck and at least one fresh HTTP smoke against the restarted local server
 
 ## Output Contract
 

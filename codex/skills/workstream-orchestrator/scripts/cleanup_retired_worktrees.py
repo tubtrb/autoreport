@@ -5,17 +5,25 @@ import json
 import sys
 from pathlib import Path
 
-from workstream_runtime import WORKSPACE_ROOT, delete_directory, directory_item_count, discover_retired_sibling_directories
+from workstream_runtime import (
+    WORKSPACE_ROOT,
+    cleanup_directory_prefix,
+    delete_directory,
+    directory_item_count,
+    discover_retired_sibling_directories,
+    infer_active_base_branch,
+)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="List or delete retired sibling worktree directories that are no longer registered with git."
     )
+    default_prefix = cleanup_directory_prefix(infer_active_base_branch())
     parser.add_argument(
         "--prefix",
-        default="autoreport_v0.3-",
-        help="Directory name prefix to inspect under the workspace root. Default: autoreport_v0.3-",
+        default=default_prefix,
+        help="Directory name prefix to inspect under the workspace root. Defaults to the inferred active version prefix.",
     )
     parser.add_argument(
         "--delete",

@@ -40,7 +40,7 @@ This skill is especially important when:
 - Default command:
   - `.\venv\Scripts\python.exe codex/skills/autorelease-handoff/scripts/handoff_posts_to_autorelease.py`
 - Common explicit form:
-  - `.\venv\Scripts\python.exe codex/skills/autorelease-handoff/scripts/handoff_posts_to_autorelease.py --version 0.3.0 --source-ref codex/v0.3-master`
+  - `.\venv\Scripts\python.exe codex/skills/autorelease-handoff/scripts/handoff_posts_to_autorelease.py --version <version> --source-ref codex/v<version>-master`
 
 3. Let the script own the contract conversion.
 - It rewrites the versioned source posts into the `autorelease` front matter contract.

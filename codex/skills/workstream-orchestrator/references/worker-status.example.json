@@ -1,6 +1,6 @@
 {
   "workstream_key": "generation-preview",
-  "branch": "codex/v0.3-generation-preview",
+  "branch": "codex/v<version>-generation-preview",
   "head": "replace-with-current-head-sha",
   "updated_at": "2026-03-29T01:05:00+09:00",
   "status": "in_progress",
@@ -11,7 +11,7 @@
     "input": "Describe the template, payload, image, or other concrete input used for this checkpoint.",
     "command": "List the exact command or main command used to produce the evidence.",
     "artifact_paths": [
-      "C:\\absolute\\path\\to\\autoreport_v0.3-generation-preview\\tests\\_tmp\\generation_preview\\checkpoint-artifact.pptx"
+      "C:\\absolute\\path\\to\\autoreport_v<version>-generation-preview\\tests\\_tmp\\generation_preview\\checkpoint-artifact.pptx"
     ],
     "visible_result": "Describe what visibly or behaviorally changed.",
     "remaining_gap": "Describe the next unresolved gap or blocker."

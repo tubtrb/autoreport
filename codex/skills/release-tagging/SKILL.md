@@ -43,7 +43,7 @@ repository unless the user explicitly asks for that separate flow.
 2. Protect existing tags.
 - If the target tag already exists locally and on origin at the expected commit, report that it is already in place.
 - If the tag exists at a different commit, stop and ask before moving or recreating it.
-- Prefer annotated tags with a short release message such as `Release v0.3.0`.
+- Prefer annotated tags with a short release message such as `Release v<version>`.
 
 3. Push the tag intentionally.
 - Push the tag explicitly with `git push origin <tag>`.

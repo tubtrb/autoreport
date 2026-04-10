@@ -1,6 +1,6 @@
 ---
 name: workstream-orchestrator
-description: Monitor and orchestrate active autoreport v0.3 task worktrees. Use when acting as the master thread to inspect discovered sibling worktrees, verify branch and narrow-test health, decide each thread's next action, and write per-thread instructions into `.codex/master-next.txt`.
+description: Monitor and orchestrate active autoreport versioned task worktrees. Use when acting as the master thread to inspect discovered sibling worktrees, verify branch and narrow-test health, decide each thread's next action, and write per-thread instructions into `.codex/master-next.txt`.
 ---
 
 # Workstream Orchestrator
@@ -8,10 +8,14 @@ description: Monitor and orchestrate active autoreport v0.3 task worktrees. Use 
 ## Overview
 
 Use this skill for the master-thread role that coordinates the active
-`codex/v0.3-*` task worktrees. Keep contract ownership and merge order aligned
+`codex/v<version>-*` task worktrees. Keep contract ownership and merge order aligned
 while pushing short, concrete next-step instructions into each worktree's
 private `.codex/` state. Instruction files stay text-based, while worker
 progress and completion reports live in JSON under the same `.codex/` folder.
+
+By default, the orchestration scripts should infer the active `<version>` from
+the checked-out `codex/v<version>-master` branch when possible, or else from
+the highest discovered version-master branch in the repo.
 
 Master-thread git control is the default operating mode for this skill.
 Workers may continue local development, local tests, and local WIP commits, but
@@ -23,7 +27,7 @@ force-push decisions whenever branch history needs to stay aligned.
 - Read `../../../AGENTS.md`.
 - Read `../autoreport-dev/SKILL.md`.
 - Read `../../../docs/architecture/template-aware-autofill-engine.md`.
-- Read `../../../docs/architecture/v0.3-template-workstreams.md`.
+- Read `../../../docs/architecture/template-workstreams.md`.
 - Read `references/orchestration.md`.
 - If a thread is about to push, open a PR, or claim public readiness, also read
   `../public-repo-safety/SKILL.md`.
@@ -45,7 +49,7 @@ force-push decisions whenever branch history needs to stay aligned.
 - Push each branch toward the smallest valuable next milestone: interface
   freeze, conflict reduction, fixture hardening, rebase readiness, or final
   examples.
-- Keep ownership boundaries from `v0.3-template-workstreams.md`; do not widen a
+- Keep ownership boundaries from `template-workstreams.md`; do not widen a
   thread just because files overlap.
 - Before calling a branch ready or landing it on master, scan its touched
   surfaces for stale predecessor code, stale homepage copy, stale examples, or
@@ -63,8 +67,8 @@ force-push decisions whenever branch history needs to stay aligned.
   `codex/skills/`, and shared architecture docs as master-owned changes.
 - A policy change is not complete just because it is committed locally. The
   strict completion bar is:
-  - the change is committed on `codex/v0.3-master`
-  - `codex/v0.3-master` is pushed
+  - the change is committed on the active `codex/v<version>-master` base
+  - that version-master base is pushed
   - the policy sync script has rebased the active task worktrees onto the
     pushed base and rerun their narrow checks
 - After a policy change lands on the shared base, use the policy sync script to
@@ -80,7 +84,7 @@ force-push decisions whenever branch history needs to stay aligned.
   integration history.
 
 4. Clean retired sibling directories after branch/worktree retirement.
-- When old `autoreport_v0.3-*` sibling directories are left behind after a
+- When old `autoreport_v<version>-*` sibling directories are left behind after a
   branch or worktree is removed, treat their cleanup as master-owned hygiene.
 - Use the cleanup script to compare the workspace root against the current git
   worktree registry.
@@ -160,7 +164,7 @@ force-push decisions whenever branch history needs to stay aligned.
 
 - The shared interpreter lives under the main repo at `.\venv\Scripts\python.exe`
   when commands are run from the main `autoreport` repo root.
-- Do not assume sibling worktrees such as `autoreport_v0.3-*` carry their own
+- Do not assume sibling worktrees such as `autoreport_v<version>-*` carry their own
   `.venv` directory.
 - If you are currently inside a sibling worktree and need to run a shared
   orchestration script, use the main repo interpreter via a relative path such
@@ -178,7 +182,7 @@ force-push decisions whenever branch history needs to stay aligned.
 ```
 
 ```bash
-.\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\sync_policy_worktrees.py --base-branch codex/v0.3-master --checkpoint-dirty --push --pretty
+.\venv\Scripts\python.exe codex\skills\workstream-orchestrator\scripts\sync_policy_worktrees.py --checkpoint-dirty --push --pretty
 ```
 
 ```bash

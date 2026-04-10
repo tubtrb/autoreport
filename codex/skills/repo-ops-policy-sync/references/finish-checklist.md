@@ -32,12 +32,12 @@ Unless the user explicitly asks to pause or keep the change local:
 1. Skill files changed:
 
 ```bash
-python <path-to-skill-creator>/scripts/quick_validate.py <skill-folder>
+.\venv\Scripts\python.exe -m unittest <relevant-test-module>
 ```
 
-Resolve `<path-to-skill-creator>` from the installed `$skill-creator` location
-for the current machine instead of hard-coding a local absolute path into
-tracked repo guidance.
+Choose the narrowest test module that locks the edited shared guidance when one
+exists. When no dedicated test covers the change, cite the inspected source
+files that justify the updated guidance instead of inventing a fake validator.
 
 2. Runtime claims changed:
 Run the narrow matching tests from `AGENTS.md`.

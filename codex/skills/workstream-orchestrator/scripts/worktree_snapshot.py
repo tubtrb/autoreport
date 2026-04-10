@@ -6,7 +6,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from workstream_runtime import REPO_ROOT, SHARED_PYTHON, WORKSPACE_ROOT, Workstream, discover_workstreams, recommended_test_command
+from workstream_runtime import (
+    REPO_ROOT,
+    SHARED_PYTHON,
+    WORKSPACE_ROOT,
+    Workstream,
+    discover_workstreams,
+    infer_active_base_branch,
+    recommended_test_command,
+)
 
 
 def run_command(args: list[str], cwd: Path) -> tuple[int, str, str]:
@@ -88,7 +96,12 @@ def snapshot_workstream(workstream: Workstream, run_tests: bool) -> dict[str, ob
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Snapshot discovered autoreport v0.3 task worktrees for master-thread orchestration."
+        description="Snapshot discovered versioned autoreport task worktrees for master-thread orchestration."
+    )
+    parser.add_argument(
+        "--base-branch",
+        default=infer_active_base_branch(),
+        help="Version-master branch whose child workstreams should be discovered. Defaults to the inferred active version-master branch.",
     )
     parser.add_argument(
         "--run-tests",
@@ -108,9 +121,10 @@ def main() -> int:
     snapshot = {
         "repo_root": str(REPO_ROOT),
         "workspace_root": str(WORKSPACE_ROOT),
+        "base_branch": args.base_branch,
         "workstreams": [
             snapshot_workstream(workstream, args.run_tests)
-            for workstream in discover_workstreams()
+            for workstream in discover_workstreams(base_branch=args.base_branch)
         ],
     }
     json.dump(snapshot, sys.stdout, indent=2 if args.pretty else None)

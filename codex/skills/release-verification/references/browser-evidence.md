@@ -21,9 +21,9 @@ Do not commit generated files from `output/` by default.
 
 Use names that preserve version and browser context, for example:
 
-- `output/playwright/homepage/autoreport-v0.3.0-homepage-full.png`
-- `output/playwright/homepage/autoreport-v0.3.0-chrome-success-full.png`
-- `output/playwright/homepage/autoreport-v0.3.0-edge-success-full.png`
+- `output/playwright/homepage/autoreport-v<version>-homepage-full.png`
+- `output/playwright/homepage/autoreport-v<version>-chrome-success-full.png`
+- `output/playwright/homepage/autoreport-v<version>-edge-success-full.png`
 
 ## What To Mention In Summaries
 

@@ -32,6 +32,7 @@
 - Generation or writer changes: `.\venv\Scripts\python.exe -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer`
 - User web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_app`
 - Debug web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_debug_app`
+- Manual YAML auto-repair, manual checker pre-parse recovery, or restarted-server proof claims: `.\venv\Scripts\python.exe -m unittest tests.test_web_app tests.test_web_serve`, then `powershell -File codex\skills\manual-yaml-repair-proof\scripts\run_server_proof.ps1 -Session extai-chatgpt-spot -SmokeCount 1`
 - Cross-cutting changes: run the narrow focused tests first, then expand to the relevant combination above.
 
 ## Generated Artifacts
@@ -54,8 +55,10 @@
 - CLI, argparse, exit codes, user-visible command output -> `autoreport-cli`
 - YAML loading, models, validator rules, template/report payload examples, schema tests -> `report-schema`
 - Template shaping, generation orchestration, writer behavior, template compatibility -> `pptx-output`
-- Active `codex/v0.3-*` task worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
+- Active `codex/v<version>-*` task worktree monitoring, master-thread orchestration, and `.codex/master-next.txt` dispatch -> `workstream-orchestrator`
 - FastAPI user app, debug app, shared web API routes, HTML surfaces, API error shape, web tests -> `web-demo`
+- External AI prompt-corpus sampling, repeated `/api/manual-draft-check` reruns, provider-by-provider spot tests, and debug-app corpus table design -> `ai-corpus-verification`
+- Manual YAML auto-repair, saved-corpus salvage reruns, and post-restart live server proof for the manual `report_content` flow -> `manual-yaml-repair-proof`
 - Branch choice, protected integration branches, and commit/push guards for `codex/next` or `codex/master` -> `branch-commit-guard`
 - Shared repo-operation surfaces such as `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, and shared architecture/process guidance -> `repo-ops-policy-sync`
 - Remote EC2/public app handover, deployment drift checks, systemd/nginx or container refresh, and public-vs-debug entrypoint confirmation -> `remote-deployment-handover`
@@ -95,9 +98,10 @@
 - Shared compile/generate route behavior may be reused between the two apps, but the debug app must not become a hidden second implementation of the generation pipeline.
 - Treat the debug app primarily as a developer-facing validation workbench for contract inspection, normalization/compiled-payload analysis, upload debugging, and selected-case reruns.
 - If future work adds robustness checks across large prompt corpora or many template permutations, keep the high-volume execution in CLI or batch runners and let the debug app inspect summaries, failures, and representative reruns instead of becoming the bulk execution engine.
+- When the public manual flow claims to recover common AI YAML indentation drift, do not stop at unit tests alone. Recheck at least one saved real corpus with the current repair path and run at least one fresh HTTP smoke against the restarted local server using the production-faithful full prompt comments.
 - For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `main`, pushed, and `codex/next` has been refreshed from that pushed `main` when `next` is part of the active branch flow.
-- When old sibling directories from retired `codex/v0.3-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
-- If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v0.3-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.
+- When old sibling directories from retired `codex/v<version>-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
+- If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v<version>-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.
 - For master-thread orchestration, once branch-specific instructions have been written into each active worktree's `.codex/master-next.txt`, treat that file as the only authoritative branch-specific instruction channel.
 - After `.codex/master-next.txt` has been written, do not restate branch-specific tasks, owned-file lists, or per-branch test commands in user-facing chat unless the user explicitly asks for the branch details or a worktree is missing its instruction file.
 - The normal user-facing follow-up after instruction dispatch is one shared broadcast telling workers to reload the latest policy/skill files and then follow their local `.codex/master-next.txt`.

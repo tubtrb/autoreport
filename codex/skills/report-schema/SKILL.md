@@ -14,10 +14,10 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 
 - Read `../../../AGENTS.md`.
 - Read `../autoreport-dev/SKILL.md`.
-- Read `references/weekly-report-schema.md`.
+- Read `references/contract-payload-schema.md`.
 - If the task affects generalized template-driven payloads, also read:
   - `../../../docs/architecture/template-aware-autofill-engine.md`
-  - `../../../docs/architecture/v0.3-template-workstreams.md`
+  - `../../../docs/architecture/template-workstreams.md`
 - Read `../../../autoreport/loader.py`, `../../../autoreport/models.py`, and `../../../autoreport/validator.py`.
 - Read `../../../examples/autoreport_editorial_template_contract.yaml`.
 - Read `../../../examples/autoreport_editorial_report_content.yaml`.
@@ -42,8 +42,8 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 - Update tests in the same change when error wording or allowed keys change.
 
 4. Treat legacy wording intentionally.
-- The validator currently rejects `report_type` with error text that mentions `v0.1`.
-- Preserve that string unless the task intentionally updates the tested contract everywhere it appears.
+- Internal module names may still mention `weekly_report`.
+- Keep public schema guidance on the current contract-first shapes unless the task intentionally renames the compatibility layer everywhere it appears.
 
 ## Current Constraints
 
@@ -57,7 +57,7 @@ Use this skill for `autoreport/loader.py`, `autoreport/models.py`,
 
 ## Current Design Frame
 
-Treat this section as living schema guidance for the `v0.3` direction.
+Treat this section as living schema guidance for the current contract-first direction.
 If the generalized template-driven contract changes, update this skill and the
 paired architecture docs together when practical.
 

@@ -7,7 +7,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from workstream_runtime import REPO_ROOT, WORKSPACE_ROOT, Workstream, discover_workstreams
+from workstream_runtime import (
+    REPO_ROOT,
+    WORKSPACE_ROOT,
+    Workstream,
+    discover_workstreams,
+    infer_active_base_branch,
+)
 
 STATUS_VALUES = {"in_progress", "blocked", "ready_for_review"}
 STATUS_REQUIRED_FIELDS = {
@@ -44,7 +50,12 @@ STATUS_EVIDENCE_REQUIRED_FIELDS = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Collect worker checkpoint/final reports from discovered autoreport v0.3 task worktrees."
+        description="Collect worker checkpoint/final reports from discovered versioned autoreport task worktrees."
+    )
+    parser.add_argument(
+        "--base-branch",
+        default=infer_active_base_branch(),
+        help="Version-master branch whose child workstreams should be discovered. Defaults to the inferred active version-master branch.",
     )
     parser.add_argument(
         "--key",
@@ -399,7 +410,10 @@ def workstream_has_report_errors(item: dict[str, Any]) -> bool:
 def main() -> int:
     args = parse_args()
     stale_after = timedelta(hours=args.stale_hours)
-    discovered, missing_keys = filter_workstreams_by_key(discover_workstreams(), args.keys)
+    discovered, missing_keys = filter_workstreams_by_key(
+        discover_workstreams(base_branch=args.base_branch),
+        args.keys,
+    )
     workstreams = [collect_workstream(workstream, stale_after) for workstream in discovered]
     summary = {
         "total": len(workstreams),
@@ -411,6 +425,7 @@ def main() -> int:
     payload = {
         "repo_root": str(REPO_ROOT),
         "workspace_root": str(WORKSPACE_ROOT),
+        "base_branch": args.base_branch,
         "stale_after_hours": args.stale_hours,
         "selected_keys": args.keys or [],
         "missing_keys": missing_keys,

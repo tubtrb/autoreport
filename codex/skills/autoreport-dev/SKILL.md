@@ -16,16 +16,17 @@ and routes deeper work to one primary focused skill.
 - Read `../../../AGENTS.md`.
 - Read `../../../README.md` and `../../../pyproject.toml` for the current public frame and package metadata.
 - Start with `references/current-repo.md`.
-- If the task touches the `v0.3` template-aware direction, also read:
+- If the task touches versioned template workstreams, template-aware branch planning, or cross-thread ownership, also read:
   - `../../../docs/architecture/template-aware-autofill-engine.md`
   - `../../../docs/architecture/web-surface-split.md` when web UX and debug-surface boundaries matter
-  - `../../../docs/architecture/v0.3-template-workstreams.md`
+  - `../../../docs/architecture/template-workstreams.md`
 - Identify the primary surface before editing:
   - Parallel worktree monitoring/orchestration -> `../workstream-orchestrator/SKILL.md`
   - CLI/entrypoint -> `../autoreport-cli/SKILL.md`
   - Loader/schema/example/tests -> `../report-schema/SKILL.md`
   - Template/generator/writer -> `../pptx-output/SKILL.md`
   - FastAPI/demo HTML/API -> `../web-demo/SKILL.md`
+  - Manual YAML auto-repair, saved-corpus salvage reruns, or post-restart live proof for the manual `report_content` flow -> `../manual-yaml-repair-proof/SKILL.md`
   - Protected integration branches, branch choice before commit, or direct-commit guards for `codex/next` or `codex/master` -> `../branch-commit-guard/SKILL.md`
   - Shared repo-operation guidance, repo-local skills, tracked handover docs, or other operating-surface policy sync -> `../repo-ops-policy-sync/SKILL.md`
   - Remote deployment handover, EC2 drift checks, public-server mismatch, or entrypoint verification -> `../remote-deployment-handover/SKILL.md`
@@ -82,12 +83,12 @@ and routes deeper work to one primary focused skill.
 - The public surface is now contract-first and Autoreport-branded, even though some internal module names still mention `weekly_report`.
 - The CLI and web demo both feed the same core generation path.
 - When the user chooses the version-master branch flow, treat `codex/v<next>-master` as the active feature line where direct commits may still happen, treat `codex/next` as a protected curated release-candidate line, treat `codex/master` as a protected integration branch when present, and treat `main` as the released line that receives the final tag.
-- Some strings and comments still carry older `v0.1` wording; preserve them unless intentionally updating the contract across code/tests/docs.
+- The current public web flow is manual-first, while the editorial template remains a supported built-in path for CLI and debug-oriented work.
 - The web demo HTML currently contains tested literal copy from `autoreport/web/app.py`; treat it as contract until deliberately changed.
 
 ## Current Design Frame
 
-Treat this as living contributor guidance for the `v0.3` direction.
+Treat this as living contributor guidance for the current template-contract direction.
 It may evolve as real template workflows are exercised, so keep the paired
 architecture docs and focused skills aligned when it changes.
 
@@ -104,7 +105,7 @@ Current design expectations:
 - template selection and contract display are first-class product behavior, not just internal debugging helpers
 - slide titles should drive the generated `Contents` slide so the outline stays in sync with the real deck
 - text and image placement should be template-slot driven, including horizontal and vertical arrangements when the template exposes them
-- generalized template contracts, `authoring_payload` scaffolds, compiled runtime payloads, and built-in editorial flows are now the primary product path; legacy weekly-only wording should be treated as migration debt unless tests still lock it
+- generalized template contracts, `authoring_payload` scaffolds, compiled runtime payloads, and the built-in editorial/manual flows are the current supported product paths; legacy weekly-only wording should be treated as migration debt unless tests still lock it
 - repo-local skill text should describe the current repo, not a historical snapshot; stale skill guidance should be treated as maintenance debt that blocks accurate future work
 - when the design frame changes, update both the architecture docs and the relevant repo-local skill in the same task when practical
 

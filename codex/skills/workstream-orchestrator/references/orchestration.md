@@ -3,11 +3,11 @@
 ## Discovery model
 
 - Discover active task worktrees from `git worktree list --porcelain`.
-- Default branch scope is `codex/v0.3-*`.
+- Default branch scope is the active `codex/v<version>-*` line.
 - Default exclusions:
-  - `codex/v0.3-master`
-  - `codex/v0.3-bootstrap-*`
-  - `codex/v0.3-salvage-*`
+  - `codex/v<version>-master`
+  - `codex/v<version>-bootstrap-*`
+  - `codex/v<version>-salvage-*`
 - Any active task worktree may optionally define local orchestration metadata in
   `.codex/workstream.json`.
 
@@ -27,7 +27,7 @@ the branch suffix and infer a narrow test recipe from the branch name.
 ## Retired sibling directory cleanup
 
 - After worktree or branch retirement, the workspace may still contain old
-  sibling directories such as `autoreport_v0.3-*`.
+  sibling directories such as `autoreport_v<version>-*`.
 - These directories are not authoritative; the git worktree registry is.
 - Use `cleanup_retired_worktrees.py` to compare the workspace root against the
   current git worktree list.
@@ -43,10 +43,10 @@ the branch suffix and infer a narrow test recipe from the branch name.
 
 ## Current active task branches
 
-- `codex/v0.3-contract-hardening`
-- `codex/v0.3-web-authoring-ux`
-- `codex/v0.3-generation-preview`
-- `codex/v0.3-release-prep`
+- `codex/v<version>-contract-hardening`
+- `codex/v<version>-web-authoring-ux`
+- `codex/v<version>-generation-preview`
+- `codex/v<version>-release-prep`
 
 These branches may or may not all have live sibling worktrees at a given
 moment; orchestration scripts should operate on the discovered worktree set, not
@@ -73,10 +73,10 @@ root unless the user explicitly sets another interpreter.
 
 ## Merge order
 
-1. `codex/v0.3-contract-hardening`
-2. `codex/v0.3-generation-preview`
-3. `codex/v0.3-web-authoring-ux`
-4. `codex/v0.3-release-prep`
+1. `codex/v<version>-contract-hardening`
+2. `codex/v<version>-generation-preview`
+3. `codex/v<version>-web-authoring-ux`
+4. `codex/v<version>-release-prep`
 
 `generation-preview` and `web-authoring-ux` may move in parallel once contract
 field names and slot rules are stable enough.
@@ -111,9 +111,9 @@ field names and slot rules are stable enough.
 
 Use this mode when the master thread changes tracked shared operating rules.
 
-1. Commit the policy change on `codex/v0.3-master`.
-2. Push `codex/v0.3-master`.
-3. Run `sync_policy_worktrees.py --base-branch codex/v0.3-master --checkpoint-dirty --push`.
+1. Commit the policy change on the active `codex/v<version>-master` base.
+2. Push that version-master base.
+3. Run `sync_policy_worktrees.py --base-branch codex/v<version>-master --checkpoint-dirty --push`, or rely on the script's inferred default when the active base is already clear from the repo state.
 4. Confirm that all active task worktrees either:
    - contain the new base commit and passed their narrow checks, or
    - failed loudly with an explicit blocker in the sync report.
@@ -123,7 +123,7 @@ Detailed sync sequence:
 
 1. Inspect each active task worktree for local changes.
 2. Create a checkpoint commit if the worktree is dirty.
-3. Rebase the task branch onto `origin/codex/v0.3-master`.
+3. Rebase the task branch onto `origin/codex/v<version>-master`.
 4. Run the branch's narrow verification command.
 5. Push the rebased branch when it already exists remotely or when it has
    unique task commits beyond the base.
@@ -131,7 +131,7 @@ Detailed sync sequence:
      rewrites history
 6. Leave branches with no unique commits beyond the base unpushed unless the
    user explicitly wants placeholder remotes.
-7. After the sync succeeds, run retired sibling cleanup when old `autoreport_v0.3-*`
+7. After the sync succeeds, run retired sibling cleanup when old `autoreport_v<version>-*`
    directories remain in the workspace.
 8. If cleanup reports an empty retired directory blocked by a Windows lock,
    ask the user to restart the Codex desktop app, then rerun the cleanup step
@@ -265,7 +265,7 @@ Required value quality:
 - Final review still requires opening `primary_artifact_path` for visual
   verification.
 - Workers should self-check their own handoff before asking for master review:
-  `..\autoreport\venv\Scripts\python.exe ..\autoreport\codex\skills\workstream-orchestrator\scripts\collect_worker_reports.py --key <workstream-key> --fail-on-errors --fail-unless-ready --pretty`
+`..\autoreport\venv\Scripts\python.exe ..\autoreport\codex\skills\workstream-orchestrator\scripts\collect_worker_reports.py --key <workstream-key> --fail-on-errors --fail-unless-ready --pretty`
 
 ## Functional evidence policy
 

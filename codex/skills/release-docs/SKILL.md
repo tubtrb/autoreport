@@ -57,7 +57,7 @@ handover notes, or other shared repo-operation guidance, switch to
 - README should describe the contract-first Autoreport flow with CLI and web-demo entry points.
 - Package name, version, and entrypoint metadata should be taken from `pyproject.toml`, not copied into skill docs as fixed values.
 - Public examples should point to the current contract/payload files, not the retired weekly-only example.
-- Some validator strings still mention `v0.1`; changing them is a contract change, not just copy editing.
+- Legacy weekly-report terminology may still appear in internal module names or historical docs; do not present it as the current public contract.
 
 ## Output Contract
 

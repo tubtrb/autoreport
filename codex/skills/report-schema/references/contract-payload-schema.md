@@ -11,6 +11,9 @@
   - `examples/autoreport_editorial_report_content.yaml`
   - `examples/autoreport_editorial_authoring_payload.yaml`
   - `examples/autoreport_editorial_report_payload.yaml`
+  - `examples/autoreport_manual_template_contract.yaml`
+  - `examples/autoreport_manual_report_content.yaml`
+  - `examples/autoreport_manual_authoring_payload.yaml`
 
 ## Required Payload Fields
 
@@ -41,6 +44,6 @@ names a valid pattern.
 - Mixed AI output that splits one YAML document across plain text and a later fenced block should be treated as invalid broken draft output.
 - `report_content` should derive slide kind from a valid `pattern_id` when possible, and truncated or unknown `pattern_id` values should surface as contract errors instead of unrelated internal-field errors.
 - AI-facing `report_content` prompts should default to non-image patterns unless the user truly has visuals to provide later; image fields should not be invented by default.
-- `validate_report` trims strings and list items before building the current validated payload model.
+- The current validation helpers trim strings and list items before building the typed contract, authoring, or runtime payload models.
 - Validation errors are collected and surfaced in a stable order locked by tests.
-- Legacy error strings that still mention earlier versions should be treated as compatibility debt unless the tests intentionally change them.
+- Legacy internal names that still mention `weekly_report` should be treated as compatibility debt unless the task intentionally renames that compatibility layer everywhere it appears.
