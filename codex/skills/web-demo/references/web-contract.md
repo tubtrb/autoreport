@@ -39,6 +39,8 @@ User-app UI contract:
 - Keep one large working input area as the primary surface.
 - Treat total slide count as dynamic; infer it from the draft, not from a separate input field.
 - Keep the user app minimal: reset the starter example, edit YAML, pair uploads with image-bearing slide previews, and generate.
+- The user app may include lightweight add/remove manual slide controls when they edit the existing YAML draft in place instead of becoming a full manual builder.
+- The user app may include a lightweight manual draft checker when it catches invalid manual pattern_id choices and numbering issues before generation.
 - In manual mode, if a preview is shown, prefer the composed slide result over raw uploaded-image thumbnails.
 - Manual slide previews should follow the actual generation fill plan closely enough to reflect continuation slides, slot-level image retention, and fitted text/layout decisions rather than a naive compiled-payload sketch.
 - In manual mode, keep screenshot uploads paired with the exact preview row for each image-bearing slide so the controls and composed preview stay horizontally aligned.
@@ -46,7 +48,9 @@ User-app UI contract:
 - Keep the upload side compact: avoid repeated instructional paragraphs and use one-line slide summaries so paired rows stay dense and readable.
 - Do not restore the old website-intro/editorial starter selector in the user app.
 - Avoid helper panes such as template-contract or compiled-runtime inspection in the default user app when they do not directly improve the main flow.
-- Avoid manual slide-by-slide builder controls in the user app.
+- Avoid full manual slide-by-slide builder controls in the user app.
+- A preset gallery is acceptable only when it keeps YAML as the primary working surface and limits manual controls to targeted add/remove actions instead of reorder/replace controls.
+- A manual draft checker is acceptable only when it stays rule-focused, surfaces blocking issues before generation, and does not expand into a full compiled-payload inspection pane.
 - Make it explicit that image-backed drafts belong in the debug app or CLI rather than the default public page.
 
 ## Debug App Contract

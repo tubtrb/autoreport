@@ -30,6 +30,21 @@ _DEBUG_CONTRACT_YAML = serialize_document(
     _DEBUG_CONTRACT.to_dict(),
     fmt="yaml",
 ).strip()
+_DEBUG_RECHECK_COMMAND = (
+    r".\venv\Scripts\python.exe "
+    r"codex\skills\manual-yaml-repair-proof\scripts\recheck_manual_corpus.py "
+    r"--artifact-dir output\playwright\<artifact-folder>"
+)
+_DEBUG_SERVER_SMOKE_COMMAND = (
+    r"powershell -File "
+    r"codex\skills\manual-yaml-repair-proof\scripts\run_server_proof.ps1 "
+    r"-Session extai-chatgpt-spot -SmokeCount 1"
+)
+_DEBUG_SERVER_CORPUS_COMMAND = (
+    r"powershell -File "
+    r"codex\skills\manual-yaml-repair-proof\scripts\run_server_proof.ps1 "
+    r"-Session extai-chatgpt-spot -SmokeCount 1 -CorpusCount 20"
+)
 
 app = FastAPI(
     title="Autoreport Debug Demo",
@@ -39,16 +54,26 @@ app = FastAPI(
 )
 
 
-def _render_debug_html() -> str:
-    contract_json = json.dumps(_DEBUG_CONTRACT_YAML)
-    starter_json = json.dumps(_DEBUG_STARTER_AUTHORING)
-    draft_json = json.dumps(MANUAL_DRAFT_PROMPT_YAML)
+def _render_debug_shell(
+    *,
+    page_title: str,
+    intro: str,
+    body_html: str,
+    active_page: str,
+    script_html: str = "",
+) -> str:
+    workspace_nav_class = (
+        "debug-nav-link is-active" if active_page == "workspace" else "debug-nav-link"
+    )
+    proof_nav_class = (
+        "debug-nav-link is-active" if active_page == "proof" else "debug-nav-link"
+    )
     return """<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Autoreport Debug Demo</title>
+    <title>__PAGE_TITLE__</title>
     <style>
       :root {
         --bg: #0f172a;
@@ -57,6 +82,7 @@ def _render_debug_html() -> str:
         --text: #e2e8f0;
         --muted: #9fb0c8;
         --accent: #38bdf8;
+        --accent-strong: #0ea5e9;
         --border: #24334d;
       }
       * { box-sizing: border-box; }
@@ -69,10 +95,38 @@ def _render_debug_html() -> str:
       }
       main { max-width: 1680px; margin: 0 auto; padding: 28px 20px 40px; }
       h1 { margin: 0 0 10px; color: var(--accent); }
-      p { color: var(--muted); line-height: 1.6; }
-      .layout { display: grid; grid-template-columns: 320px minmax(420px, 1.1fr) minmax(420px, 1.1fr); gap: 16px; align-items: start; }
-      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; }
       h2 { margin: 0 0 10px; font-size: 1rem; }
+      p { color: var(--muted); line-height: 1.6; }
+      .hero-copy { max-width: 920px; margin: 0 0 18px; }
+      .debug-nav {
+        display: inline-flex;
+        gap: 10px;
+        margin-bottom: 18px;
+        padding: 8px;
+        background: rgba(11, 19, 35, 0.62);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+      }
+      .debug-nav-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .debug-nav-link:hover { color: var(--text); border-color: rgba(159,176,200,0.2); }
+      .debug-nav-link.is-active {
+        background: rgba(14,165,233,0.14);
+        border-color: rgba(56,189,248,0.38);
+        color: var(--text);
+      }
+      .layout { display: grid; grid-template-columns: 320px minmax(420px, 1.1fr) minmax(420px, 1.1fr); gap: 16px; align-items: start; }
+      .proof-layout { display: grid; grid-template-columns: minmax(360px, 0.8fr) minmax(420px, 1fr) minmax(420px, 1fr); gap: 16px; align-items: start; }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; min-width: 0; }
       textarea {
         width: 100%;
         min-height: 320px;
@@ -86,7 +140,6 @@ def _render_debug_html() -> str:
       }
       .short { min-height: 210px; }
       .actions { display: grid; gap: 10px; margin-top: 14px; }
-      .button-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
       button {
         border: none;
         border-radius: 12px;
@@ -98,23 +151,72 @@ def _render_debug_html() -> str:
         color: white;
       }
       button.secondary { background: #1e293b; color: var(--text); border: 1px solid var(--border); }
-      .status-errors, .status-hints, .upload-list { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
+      .status-errors, .status-hints, .upload-list, .proof-list {
+        margin: 12px 0 0;
+        padding-left: 18px;
+        line-height: 1.6;
+      }
       .status-errors { color: #fca5a5; }
       .status-hints { color: #86efac; }
-      .upload-list { color: var(--muted); }
+      .upload-list, .proof-list { color: var(--muted); }
+      .command-box { min-height: 132px; }
+      .proof-callout {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(14,165,233,0.08);
+        border: 1px solid rgba(56,189,248,0.2);
+      }
+      .proof-grid { display: grid; gap: 16px; }
+      .proof-stage {
+        display: grid;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(11, 19, 35, 0.68);
+        border: 1px solid rgba(36,51,77,0.9);
+      }
+      .proof-stage-label {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(14,165,233,0.16);
+        color: var(--text);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
       @media (max-width: 1280px) {
-        .layout { grid-template-columns: 1fr; }
+        .layout, .proof-layout { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>Autoreport Debug Demo</h1>
-      <p>
-        This is a developer-facing surface. Use it to inspect the full template contract,
-        normalize AI drafts into authoring payloads, inspect compiled runtime payloads,
-        and verify uploads before generation.
-      </p>
+      <nav class="debug-nav" aria-label="Debug sections">
+        <a href="/" class="__WORKSPACE_NAV_CLASS__">Debug Workspace</a>
+        <a href="/proof" class="__PROOF_NAV_CLASS__">Repair Proof</a>
+      </nav>
+      <h1>__PAGE_TITLE__</h1>
+      <p class="hero-copy">__INTRO__</p>
+      __BODY_HTML__
+    </main>
+    __SCRIPT_HTML__
+  </body>
+</html>""".replace("__PAGE_TITLE__", page_title).replace("__INTRO__", intro).replace(
+        "__BODY_HTML__", body_html
+    ).replace("__SCRIPT_HTML__", script_html).replace(
+        "__WORKSPACE_NAV_CLASS__", workspace_nav_class
+    ).replace("__PROOF_NAV_CLASS__", proof_nav_class)
+
+
+def _render_debug_workspace_html() -> str:
+    contract_json = json.dumps(_DEBUG_CONTRACT_YAML)
+    starter_json = json.dumps(_DEBUG_STARTER_AUTHORING)
+    draft_json = json.dumps(MANUAL_DRAFT_PROMPT_YAML)
+    body_html = """
       <div class="layout">
         <section class="card">
           <h2>Debug Controls</h2>
@@ -146,8 +248,8 @@ def _render_debug_html() -> str:
           <textarea id="compiled-yaml" class="short" readonly aria-label="Compiled report payload"></textarea>
         </section>
       </div>
-    </main>
-    <script>
+"""
+    script_html = """<script>
       const CONTRACT_YAML = __CONTRACT_JSON__;
       const STARTER_AUTHORING = __STARTER_JSON__;
       const AI_DRAFT_PROMPT = __DRAFT_JSON__;
@@ -273,17 +375,107 @@ def _render_debug_html() -> str:
           uploadedRefs.length ? [`Available refs: ${uploadedRefs.map((item) => item.ref).join(", ")}`] : []
         );
       });
-    </script>
-  </body>
-</html>""".replace("__CONTRACT_JSON__", contract_json).replace("__STARTER_JSON__", starter_json).replace("__DRAFT_JSON__", draft_json)
+    </script>""".replace("__CONTRACT_JSON__", contract_json).replace(
+        "__STARTER_JSON__", starter_json
+    ).replace("__DRAFT_JSON__", draft_json)
+    return _render_debug_shell(
+        page_title="Autoreport Debug Demo",
+        intro=(
+            "This is a developer-facing surface. Use it to inspect the full template "
+            "contract, normalize AI drafts into authoring payloads, inspect compiled "
+            "runtime payloads, and verify uploads before generation."
+        ),
+        body_html=body_html,
+        active_page="workspace",
+        script_html=script_html,
+    )
 
 
-DEBUG_INDEX_HTML = _render_debug_html()
+def _render_debug_proof_html() -> str:
+    body_html = """
+      <div class="proof-layout">
+        <section class="card">
+          <h2>Proof Runbook</h2>
+          <p>
+            Use this screen after manual YAML auto-repair, prompt transport, or local
+            server restarts. Keep the main workspace focused on compile and generate
+            inspection, and keep proof work here as a separate developer flow.
+          </p>
+          <div class="proof-grid">
+            <div class="proof-stage">
+              <span class="proof-stage-label">1. Code Proof</span>
+              <ul class="proof-list">
+                <li>Run `tests.test_web_app` and `tests.test_web_serve` first.</li>
+                <li>Do not claim server proof when narrow tests are red.</li>
+              </ul>
+            </div>
+            <div class="proof-stage">
+              <span class="proof-stage-label">2. Saved Corpus Recheck</span>
+              <ul class="proof-list">
+                <li>Replay an existing ChatGPT artifact set through the current in-process repair path.</li>
+                <li>This proves the new logic actually recovers historical failures.</li>
+              </ul>
+            </div>
+            <div class="proof-stage">
+              <span class="proof-stage-label">3. Restarted Server Proof</span>
+              <ul class="proof-list">
+                <li>Confirm `/healthz` on the restarted local server.</li>
+                <li>Run at least one fresh ChatGPT HTTP smoke against `/api/manual-draft-check`.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="proof-callout">
+            Treat these as two distinct questions:
+            code recovery against saved corpus, and live restarted-server behavior against a fresh conversation.
+          </div>
+        </section>
+        <section class="card">
+          <h2>Saved Corpus Recheck</h2>
+          <p>Replay a saved artifact directory through the current manual YAML repair path.</p>
+          <textarea class="command-box" readonly aria-label="Saved corpus recheck command">__RECHECK_COMMAND__</textarea>
+          <h2 style="margin-top: 18px;">Live Server Smoke</h2>
+          <p>Use the restarted local server and exercise the HTTP checker path end to end.</p>
+          <textarea class="command-box" readonly aria-label="Live server smoke command">__SERVER_SMOKE_COMMAND__</textarea>
+        </section>
+        <section class="card">
+          <h2>Stronger Live Proof</h2>
+          <p>Use this when one smoke is not enough and you want a fresh live corpus sample set.</p>
+          <textarea class="command-box" readonly aria-label="Stronger live proof command">__SERVER_CORPUS_COMMAND__</textarea>
+          <h2 style="margin-top: 18px;">Expected Evidence</h2>
+          <ul class="proof-list">
+            <li>`recheck-summary.txt` from a saved real-provider artifact folder</li>
+            <li>`summary.txt` from the fresh smoke or corpus output folder</li>
+            <li>Warnings that show auto-repair was applied when the AI drift was indentation-only</li>
+          </ul>
+        </section>
+      </div>
+""".replace("__RECHECK_COMMAND__", _DEBUG_RECHECK_COMMAND).replace(
+        "__SERVER_SMOKE_COMMAND__", _DEBUG_SERVER_SMOKE_COMMAND
+    ).replace("__SERVER_CORPUS_COMMAND__", _DEBUG_SERVER_CORPUS_COMMAND)
+    return _render_debug_shell(
+        page_title="Autoreport Repair Proof",
+        intro=(
+            "Use this separate proof screen when you need to show that manual YAML "
+            "recovery works against saved ChatGPT artifacts and against the restarted "
+            "HTTP server path."
+        ),
+        body_html=body_html,
+        active_page="proof",
+    )
+
+
+DEBUG_INDEX_HTML = _render_debug_workspace_html()
+DEBUG_PROOF_HTML = _render_debug_proof_html()
 
 
 @app.get("/", response_class=HTMLResponse)
 def debug_page() -> HTMLResponse:
     return HTMLResponse(DEBUG_INDEX_HTML)
+
+
+@app.get("/proof", response_class=HTMLResponse)
+def debug_proof_page() -> HTMLResponse:
+    return HTMLResponse(DEBUG_PROOF_HTML)
 
 
 app.add_api_route("/healthz", healthcheck, methods=["GET"])

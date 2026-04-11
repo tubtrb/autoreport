@@ -28,9 +28,11 @@ PNG_BYTES = base64.b64decode(
 REQUIRED_UI_TEXT = (
     "Manual Procedure Starter",
     "Reset Starter Example",
-    "Refresh Slide Assets",
+    "Add Slide",
+    "Check Draft",
     "Generate PPTX",
     "PowerPoint Slide Preview",
+    "Slide Style Gallery",
 )
 EXPECTED_DOWNLOAD_NAME = "autoreport_demo.pptx"
 SCREENSHOT_FILE_NAMES = {
@@ -405,8 +407,8 @@ def run_browser_evidence(
             capture_top_viewport_with_overlay(
                 page,
                 screenshot_paths["starter_loaded"],
-                locator=page.locator("#payload-yaml"),
-                label="Edit or paste YAML here",
+                locator=page.locator("#add-slide-button"),
+                label="Choose a style and add a slide",
             )
 
             file_inputs = page.locator(".slide-upload-slot input[type=file]")
@@ -417,16 +419,21 @@ def run_browser_evidence(
             for index, input_path in enumerate(input_paths):
                 file_inputs.nth(index).set_input_files(str(input_path))
 
-            page.get_by_role("button", name="Refresh Slide Assets").click()
+            page.locator("#check-draft-button").click()
             page.wait_for_function(
-                "() => document.getElementById('status-message').textContent.includes('Manual slide assets refreshed.')",
+                "() => document.getElementById('draft-check-message').textContent.includes('Draft checker passed')",
+                timeout=30_000,
+            )
+            page.locator("#refresh-preview").click()
+            page.wait_for_function(
+                "() => document.getElementById('status-message').textContent.includes('Manual preview refreshed.')",
                 timeout=30_000,
             )
             capture_top_viewport_with_overlay(
                 page,
                 screenshot_paths["refresh_complete"],
-                locator=page.get_by_role("button", name="Refresh Slide Assets"),
-                label="Click Refresh Slide Assets",
+                locator=page.locator("#refresh-preview"),
+                label="Click Refresh Preview",
             )
             first_upload_row = page.locator(".slide-preview-row.has-upload").first
             first_upload_slot = page.locator(".slide-upload-slot").first
@@ -444,7 +451,7 @@ def run_browser_evidence(
 
             page.route("**/api/generate", delay_generate)
             with page.expect_download(timeout=60_000) as download_info:
-                page.get_by_role("button", name="Generate PPTX").click()
+                page.locator("#generate-button").click()
                 page.wait_for_function(
                     "() => document.getElementById('status-message').textContent.includes('Validating the payload and generating your Autoreport deck...')",
                     timeout=5_000,
@@ -452,7 +459,7 @@ def run_browser_evidence(
                 capture_top_viewport_with_overlay(
                     page,
                     screenshot_paths["generate_in_progress"],
-                    locator=page.get_by_role("button", name="Generate PPTX"),
+                    locator=page.locator("#generate-button"),
                     label="Click Generate PPTX",
                 )
             page.unroute("**/api/generate", delay_generate)
@@ -464,7 +471,7 @@ def run_browser_evidence(
             capture_top_viewport_with_overlay(
                 page,
                 screenshot_paths["generation_success"],
-                locator=page.get_by_role("button", name="Generate PPTX"),
+                locator=page.locator("#generate-button"),
                 label="Generate PPTX clicked here",
             )
 

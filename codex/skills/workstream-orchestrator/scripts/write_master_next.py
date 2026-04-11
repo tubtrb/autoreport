@@ -5,11 +5,16 @@ import json
 import sys
 from pathlib import Path
 
-from workstream_runtime import discover_workstreams
+from workstream_runtime import discover_workstreams, infer_active_base_branch
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Write master-thread next-step instructions into discovered task worktree .codex files."
+    )
+    parser.add_argument(
+        "--base-branch",
+        default=infer_active_base_branch(),
+        help="Version-master branch whose child workstreams should be discovered. Defaults to the inferred active version-master branch.",
     )
     parser.add_argument(
         "--stdin-json",
@@ -42,7 +47,7 @@ def load_payload(args: argparse.Namespace) -> dict[str, str]:
     if not isinstance(payload, dict):
         raise SystemExit("Instruction payload must be a JSON object.")
 
-    workstreams = {item.key: item for item in discover_workstreams()}
+    workstreams = {item.key: item for item in discover_workstreams(base_branch=args.base_branch)}
     normalized: dict[str, str] = {}
     for key, value in payload.items():
         if key not in workstreams:
@@ -53,17 +58,17 @@ def load_payload(args: argparse.Namespace) -> dict[str, str]:
     return normalized
 
 
-def list_targets(filename: str) -> list[dict[str, str]]:
+def list_targets(filename: str, base_branch: str) -> list[dict[str, str]]:
     targets: list[dict[str, str]] = []
-    for workstream in discover_workstreams():
+    for workstream in discover_workstreams(base_branch=base_branch):
         target = workstream.path / ".codex" / filename
         targets.append({"key": workstream.key, "branch": workstream.branch, "path": str(target)})
     return targets
 
 
-def write_payload(payload: dict[str, str], filename: str) -> list[dict[str, object]]:
+def write_payload(payload: dict[str, str], filename: str, base_branch: str) -> list[dict[str, object]]:
     writes: list[dict[str, object]] = []
-    workstreams = {item.key: item for item in discover_workstreams()}
+    workstreams = {item.key: item for item in discover_workstreams(base_branch=base_branch)}
     for key, text in payload.items():
         worktree = workstreams[key].path
         if not worktree.exists():
@@ -86,12 +91,12 @@ def write_payload(payload: dict[str, str], filename: str) -> list[dict[str, obje
 def main() -> int:
     args = parse_args()
     if args.list:
-        json.dump(list_targets(args.filename), sys.stdout, indent=2)
+        json.dump(list_targets(args.filename, args.base_branch), sys.stdout, indent=2)
         sys.stdout.write("\n")
         return 0
 
     payload = load_payload(args)
-    result = {"writes": write_payload(payload, args.filename)}
+    result = {"base_branch": args.base_branch, "writes": write_payload(payload, args.filename, args.base_branch)}
     json.dump(result, sys.stdout, indent=2)
     sys.stdout.write("\n")
     return 0

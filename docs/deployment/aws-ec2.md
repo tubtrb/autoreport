@@ -3,6 +3,9 @@
 This document captures the minimum Ubuntu EC2 setup for hosting the
 Autoreport user-facing web app behind `nginx`.
 
+For a remote Codex handoff on an already-provisioned EC2 host, use
+`docs/deployment/remote-codex-handover.md`.
+
 ## What This Repo Provides
 
 - `deploy/aws-ec2/bootstrap.sh`: installs packages, creates the virtualenv,
@@ -13,7 +16,8 @@ Autoreport user-facing web app behind `nginx`.
 The default assumptions match the common first EC2 setup:
 
 - app user: `ubuntu`
-- repo path: `/home/ubuntu/autoreport`
+- app directory: the checked-out repo root, with the bootstrap default resolving
+  under the app user's home directory
 - app bind: `127.0.0.1:8000`
 - public entrypoint: `nginx` on port `80`
 
@@ -36,7 +40,7 @@ chmod +x deploy/aws-ec2/bootstrap.sh
 Optional overrides:
 
 ```bash
-APP_DIR=/home/ubuntu/autoreport \
+APP_DIR="$(pwd)" \
 APP_WORKERS=2 \
 SERVER_NAME=_ \
 ./deploy/aws-ec2/bootstrap.sh

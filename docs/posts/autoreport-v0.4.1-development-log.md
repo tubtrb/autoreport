@@ -1,50 +1,30 @@
 ## Autoreport v0.4.1 개발 일지
 
-기준 날짜: `2026-04-05`
+Version: `v0.4.1`
+Release date: `2026-04-05`
+Status: `draft`
 
-이번 `v0.4.1`은 `v0.5`로 넘어가기보다 `v0.4` 선 안에서 한 번 더 다듬는 쪽을 선택한 릴리즈였습니다. 이미 `codex/v0.4-master` 위에는 manual template, screenshot-first public flow, browser evidence, guide handoff 같은 변화가 충분히 쌓여 있었지만, 그렇다고 해서 곧바로 새로운 메이저한 제품 표면을 열었다고 말하기에는 아직 이른 상태였습니다. 그래서 이번에는 선을 더 크게 벌리기보다, 지금 실제로 보여 주고 검증한 `v0.4` 흐름을 `0.4.1`이라는 이름으로 묶는 편이 더 정확하다고 봤습니다.
+이번 `v0.4.1`은 새 기능을 크게 늘리는 릴리즈라기보다, 공개 흐름을 더 분명하게 묶는 릴리즈였습니다. 공개 독자와 hosted demo 사용자에게 필요한 것은 많은 경로가 아니라 한 번에 이해되는 한 줄의 사용 흐름이었고, 이번 버전은 그 기준에 맞춰 제품 표면을 다시 정리한 묶음이었습니다.
 
-이번 판단에서 중요했던 점은 기능 개수보다 release surface의 성격이었습니다. public 웹은 이제 built-in manual procedure starter를 중심으로 돌아가고, 필요한 스크린샷을 각 slide preview 옆에서 맞춰 넣는 흐름이 핵심이 됐습니다. CLI와 debug 앱은 여전히 더 넓은 contract inspection과 image-backed authoring을 맡고 있지만, public homepage는 그보다 더 좁고 설명 가능한 경로만 보여 주는 쪽이 맞았습니다. 이 상태는 `v0.5`처럼 새로운 제품선을 선언하기보다, `v0.4.x` 안에서 계속 정제해 나갈 성격에 더 가깝습니다.
+## 왜 공개 흐름을 바꿨는가
 
-## 이번 버전에서 묶은 것
+이전까지는 Autoreport를 설명할 때 보여 줄 수 있는 경로가 많았습니다. 하지만 공개 사이트 문서와 hosted demo는 결국 "지금 당장 브라우저에서 무엇을 하면 되는가"를 가장 짧게 설명해야 하는 자리입니다. 이 점에서 공개 문서와 제품 표면은 같은 언어를 써야 했고, 이번 버전은 그 기준을 맞추는 작업이었습니다.
 
-- built-in `autoreport_manual` 템플릿을 public 웹 starter, CLI, template flow 전반에서 같은 기준으로 다듬었습니다.
-- public 홈페이지가 `Refresh Slide Assets`, aligned upload panel, slide preview를 묶은 screenshot-first manual flow를 기본 동선으로 갖도록 정리했습니다.
-- public 웹은 built-in manual upload flow만 허용하고, 그보다 넓은 image-backed draft는 계속 debug 앱과 CLI에 남겨 두는 경계를 다시 분명하게 했습니다.
-- `python -m autoreport.web.serve public|debug`와 `run-public.cmd`, `run-debug.cmd`를 통해 로컬 launch 경로도 더 명확하게 정리했습니다.
-- Playwright evidence runner와 guide-image promotion 흐름을 release-facing 검증 루프에 올렸고, Gemini/ChatGPT/Claude insert 이미지는 shared static asset으로 handoff에 같이 실리도록 묶었습니다.
+이번에 중요했던 판단은 "더 많은 기능을 보여 주는 것"보다 "공개 흐름을 더 또렷하게 보여 주는 것"이었습니다. hosted demo는 built-in manual starter에서 시작하고, 사용자는 `Refresh Slide Assets`로 업로드 줄과 slide preview를 맞춘 다음, 필요한 스크린샷을 채우고 `Generate PPTX`를 누르면 됩니다. 공개 릴리즈 문서도 바로 이 흐름을 중심으로 읽혀야 했습니다.
 
-## 왜 0.5가 아니라 0.4.1인가
+## 이번 릴리즈에서 공개 표면이 어떻게 달라졌는가
 
-이번에 올라온 변화는 분명 `v0.3.1`보다 큽니다. manual template이 실제 public story의 중심으로 올라왔고, 홈페이지 흐름도 text-only starter 설명에서 screenshot-first manual demo로 바뀌었습니다. 하지만 여기서 바로 `v0.5`를 선언하면, 마치 또 다른 넓은 제품 경계가 이미 확정된 것처럼 보이게 됩니다.
+- hosted demo는 built-in manual procedure starter를 중심으로 시작합니다.
+- screenshot upload는 각 slide preview 옆의 맞는 줄에서 처리됩니다.
+- deck 생성이 끝나면 브라우저에서 `autoreport_demo.pptx` 다운로드가 바로 시작됩니다.
+- 공개 문서는 이제 이 visible flow와 그 제한을 중심으로 설명됩니다.
 
-지금은 그 단계보다 한 칸 전입니다. `v0.4` 안에서 public manual flow, guide wording, browser evidence, release handoff를 계속 조정해야 할 여지가 남아 있습니다. 그래서 이번 버전 번호는 "더 큰 선으로 넘어간다"는 의미보다 "지금 검증된 `v0.4` 표면을 한 번 안정적으로 묶는다"는 의미에 더 가깝습니다.
+## 왜 `v0.5`가 아니라 `v0.4.1`인가
 
-## 현재 상태
+이번 변화는 공개 흐름을 다시 설계한 성격이 있지만, 그렇다고 새로운 넓은 제품 경계를 선언한 단계는 아니었습니다. 지금 필요한 것은 더 많은 약속이 아니라 이미 보이고 있는 hosted demo 흐름을 더 안정적으로 설명하고 반복 가능하게 만드는 일이었습니다. 그래서 이번 버전은 `v0.5`로 선을 넓히기보다, 공개 표면을 `v0.4.1`로 한 번 정리해 묶는 쪽이 더 정확했습니다.
 
-이제 `v0.4.1` 기준 상태는 다음처럼 이해하면 됩니다.
+## 공개 릴리즈에 주는 의미
 
-- semantic version은 `0.4.1`입니다.
-- public 웹은 built-in manual procedure starter를 중심으로 유지합니다.
-- screenshot upload와 slide preview는 public manual flow 안에서 함께 동작합니다.
-- broader image-backed draft, contract inspection, compiled payload 확인은 계속 debug 앱과 CLI가 맡습니다.
-- release-facing guide, release note, development log, handoff source는 `docs/posts/` 기준으로 같이 움직입니다.
+이제 guide는 hosted demo 사용 흐름만 설명할 수 있고, release note는 실제로 눈에 보이는 변화와 제한만 전달할 수 있으며, devlog는 왜 공개 흐름을 그렇게 좁혀 잡았는지 설명할 수 있게 됐습니다. 브라우저에서도 이 흐름과 다운로드를 다시 확인했기 때문에, 이번 묶음은 공개 독자에게 보여 줄 서사를 한층 더 분명하게 만들었습니다.
 
-## 실제 검증 기준
-
-이번 릴리즈 prep은 아래 검증 기준으로 확인했습니다.
-
-```bash
-.\venv\Scripts\python.exe -m unittest tests.test_cli tests.test_validator tests.test_generator tests.test_web_app tests.test_web_debug_app tests.test_web_serve tests.test_autorelease_handoff tests.test_public_web_playwright
-.\venv\Scripts\python.exe tests\e2e\run_public_web_playwright.py --version 0.4.1 --promote-guide-image
-```
-
-이 검증은 manual built-in contract와 generation path가 계속 맞는지, public 홈페이지가 aligned upload/preview manual flow를 유지하는지, debug 앱과 handoff가 새 release-facing 기준과 계속 맞는지, 그리고 실제 브라우저에서 `autoreport_demo.pptx` download가 다시 관찰되는지를 함께 확인하는 용도입니다.
-
-## 다음 단계
-
-- `v0.4.1` source post와 evidence를 기준으로 `autorelease` handoff를 마무리하기
-- public sample deck 같은 외부 배포 자산은 별도 release asset으로 정리하기
-- `v0.5`로 바로 넘어가기보다 `v0.4.x` 안에서 manual flow와 문서/evidence 루프를 더 단단하게 다듬기
-
-이번 `v0.4.1`은 새로운 제품선을 과장해서 선언하는 버전이 아니라, 이미 구현하고 검증한 `v0.4` manual flow를 태그 가능한 수준으로 다시 묶는 버전이었습니다. 덕분에 이제 다음 개선도 같은 `v0.4` 선 안에서 더 차분하게 이어 갈 수 있게 됐습니다.
+이번 `v0.4.1`은 기능 수를 자랑하는 릴리즈보다, 공개 사이트와 hosted demo가 같은 문장으로 설명될 수 있게 만든 릴리즈에 가깝습니다. 그 점에서 이번 개발 일지는 새 기능 목록보다 공개 흐름을 왜 이렇게 다시 정리했는지를 기록하는 편이 더 맞았습니다.

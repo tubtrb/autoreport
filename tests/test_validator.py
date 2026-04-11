@@ -126,7 +126,7 @@ def build_manual_report_content() -> dict[str, object]:
                 "slots": {
                     "doc_title": "Autoreport PowerPoint User Guide",
                     "doc_subtitle": "Screenshot-first user guide",
-                "doc_version": "v0.4.1",
+                "doc_version": "v0.4.2",
                     "author_or_owner": "Autoreport Team",
                 },
             },
@@ -301,7 +301,7 @@ class ValidatorTestCase(unittest.TestCase):
         )
 
         self.assertEqual(hints, [])
-        self.assertEqual(payload.title_slide.slot_values["doc_version"], "v0.4.1")
+        self.assertEqual(payload.title_slide.slot_values["doc_version"], "v0.4.2")
         self.assertEqual(
             payload.contents.slot_values["contents_group_label"],
             "Procedure Overview",

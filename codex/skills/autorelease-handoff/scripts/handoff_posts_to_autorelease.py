@@ -222,7 +222,7 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
             slug=devlog_slug,
             title=f"Autoreport v{version} 개발 일지",
             summary=(
-                f"Autoreport v{version} 작업 기록으로, 구현 메모와 릴리즈 준비 흐름을 담았습니다."
+                f"Release-facing rationale for why the public Autoreport flow changed in v{version}."
             ),
             tags=("development-log", "autoreport", f"v{version}"),
             transform_body=transform_devlog_body,
@@ -236,7 +236,7 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
             slug=guide_slug,
             title="User Guide",
             summary=(
-                "Current guide to the contract-first Autoreport workflow across the CLI, starter-manual web app, and updates pages."
+                "Hosted demo guide for editing the manual starter, adding or removing supported slides, checking the draft, refreshing the preview, and downloading the deck."
             ),
             tags=("user-guide", "autoreport", "contract-first", f"v{version}"),
             transform_body=transform_guide_body,
@@ -256,7 +256,7 @@ def build_specs(args: argparse.Namespace) -> list[PostSpec]:
             slug=release_slug,
             title=f"Autoreport v{version} Release Notes",
             summary=(
-                f"Release summary for Autoreport v{version}, including current capabilities and verification notes."
+                f"Public release notes for Autoreport v{version}, covering user-visible changes and current limitations."
             ),
             tags=("release", "autoreport", f"v{version}"),
             transform_body=transform_release_notes_body,
@@ -298,20 +298,13 @@ def render_live_service_section(info: PublicServiceInfo) -> str:
     lines = [
         "## Live service",
         "",
-        f"As of `{info.as_of}`, the public release pages and the hosted demo app are available at:",
+        f"As of `{info.as_of}`, the public site and hosted demo are available at:",
         "",
-        f"- Release-facing site home: `{info.release_home}`",
-        f"- Release-facing user guide: `{info.release_guide}`",
-        f"- Release-facing updates hub: `{info.release_updates}`",
-        f"- Hosted demo app: `{info.hosted_demo_primary}`",
+        f"- Home: `{info.release_home}`",
+        f"- Guide: `{info.release_guide}`",
+        f"- Updates: `{info.release_updates}`",
+        f"- Hosted demo: `{info.hosted_demo_primary}`",
     ]
-    if info.hosted_demo_alternate:
-        lines.append(f"- Alternate EC2 hostname: `{info.hosted_demo_alternate}`")
-    if info.hosted_demo_healthcheck:
-        healthcheck_line = f"- Hosted demo health check: `{info.hosted_demo_healthcheck}`"
-        if info.hosted_demo_healthcheck_expected:
-            healthcheck_line += f" returns `{info.hosted_demo_healthcheck_expected}`"
-        lines.append(healthcheck_line)
     return "\n".join(lines)
 
 
@@ -321,14 +314,28 @@ def upsert_live_service_section(
     *,
     insert_before_heading: str,
 ) -> str:
+    return upsert_live_service_section_candidates(
+        body,
+        info,
+        insert_before_headings=(insert_before_heading,),
+    )
+
+
+def upsert_live_service_section_candidates(
+    body: str,
+    info: PublicServiceInfo,
+    *,
+    insert_before_headings: tuple[str, ...],
+) -> str:
     normalized = LIVE_SERVICE_SECTION_PATTERN.sub("", body).strip()
     section = render_live_service_section(info)
-    if insert_before_heading in normalized:
-        return normalized.replace(
-            insert_before_heading,
-            section + "\n\n" + insert_before_heading,
-            1,
-        )
+    for heading in insert_before_headings:
+        if heading in normalized:
+            return normalized.replace(
+                heading,
+                section + "\n\n" + heading,
+                1,
+            )
     return normalized + "\n\n" + section
 
 
@@ -345,25 +352,25 @@ def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) ->
     )
     body = re.sub(
         r"(?m)^This guide reflects .*?active branch\.",
-        f"This guide reflects the Autoreport implementation at `{args.source_ref}`.",
+        f"This guide reflects the public Autoreport experience for v{args.version}.",
         body,
         count=1,
     )
     body = re.sub(
         r"\bOn the current branch,",
-        "In this handoff build,",
+        "In the hosted demo,",
         body,
         count=1,
     )
     body = re.sub(
-        r"(?m)^The current branch was verified with (.+?)\.$",
-        rf"The `{args.source_ref}` build was verified with \1.",
+        r"(?m)^The current branch was verified with .+?\.$",
+        "The hosted demo flow and the download were checked in the browser.",
         body,
         count=1,
     )
     body = body.replace(
         "## Verification on the current branch",
-        "## Verification for this handoff build",
+        "## Browser check",
     )
     body = body.replace(
         "REPLACE_WITH_PUBLIC_IMAGE_URL",
@@ -374,10 +381,10 @@ def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) ->
         "",
         body,
     )
-    body = upsert_live_service_section(
+    body = upsert_live_service_section_candidates(
         body,
         args.public_service_info,
-        insert_before_heading="## What is Autoreport?",
+        insert_before_headings=("## Hosted demo flow", "## What is Autoreport?"),
     )
     return body
 
@@ -399,19 +406,14 @@ def transform_release_notes_body(
     )
     body = body.replace(
         "## Verification on the current branch",
-        "## Verification for this release",
+        "## Browser check",
     )
     current_branch_sentence = (
         "This release note is based on the current workspace state rather than a tagged public deployment."
     )
-    if args.source_ref.startswith("v"):
-        replacement = (
-            f"This release note reflects the `{args.source_ref}` tag and the verification run used for release signoff."
-        )
-    else:
-        replacement = (
-            f"This release note reflects the `{args.source_ref}` branch and its verification run."
-        )
+    replacement = (
+        f"This release note reflects the public Autoreport v{args.version} release surface."
+    )
     body = body.replace(current_branch_sentence, replacement)
     body = upsert_live_service_section(
         body,
@@ -422,10 +424,19 @@ def transform_release_notes_body(
 
 
 def transform_homepage_body(body: str, args: argparse.Namespace) -> str:
-    return upsert_live_service_section(
+    body = upsert_live_service_section(
         body,
         args.public_service_info,
         insert_before_heading="## Product overview",
+    )
+    return re.sub(
+        r"At this stage the public product story is aligned to the current `v[^`]+` release content, so readers can move between overview, guide, and updates without stepping into an older narrative\.",
+        (
+            f"At this stage the public product story is aligned to the current `v{args.version}` "
+            "release content, so readers can move between overview, guide, and updates without "
+            "stepping into an older narrative."
+        ),
+        body,
     )
 
 

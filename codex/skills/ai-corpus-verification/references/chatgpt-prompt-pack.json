@@ -1,0 +1,62 @@
+[
+  {
+    "prompt_id": "gpt01",
+    "label": "strict_en_full",
+    "strength": "strict",
+    "prompt": "Return YAML only rooted at report_content for an HBM4 Architecture & Usage Guide manual. Rules: title_slide.pattern_id=cover.manual; contents_slide.pattern_id=contents.manual; title_slide and contents_slide must each use slots; body slides may use only text.manual.section_break, text_image.manual.procedure.one, text_image.manual.procedure.two, text_image.manual.procedure.three; never invent image.manual.step; 0 images=section_break, 1 image=procedure.one, 2 images=procedure.two, 3 images=procedure.three; slides must live under report_content.slides; use step_no like 2.1 not 2-1; image slots use aliases like image_1 and image_2. Include title_slide, contents_slide, section 2 break plus one 1-image procedure, and section 3 break plus one 2-image procedure."
+  },
+  {
+    "prompt_id": "gpt02",
+    "label": "strict_en_compact",
+    "strength": "strict",
+    "prompt": "Draft one report_content YAML for a screenshot-first HBM4 guide. Exact manual rules only: cover.manual, contents.manual, slides array, section_break for text-only, procedure.one/two/three for 1/2/3 images, slots nesting required everywhere, dotted step_no only, YAML only."
+  },
+  {
+    "prompt_id": "gpt03",
+    "label": "strict_ko_full",
+    "strength": "strict",
+    "prompt": "HBM4 Architecture & Usage Guide 주제의 screenshot-first manual용 YAML을 report_content 루트 하나로만 작성하세요. 규칙: title_slide.pattern_id는 cover.manual, contents_slide.pattern_id는 contents.manual, title_slide와 contents_slide는 반드시 slots를 사용, 본문은 text.manual.section_break 또는 text_image.manual.procedure.one/two/three만 허용, image.manual.step 같은 이름 금지, 0이미지는 section_break, 1/2/3 이미지는 procedure.one/two/three, slides는 report_content.slides 아래에만 작성, step_no는 2.1 형식만 허용, YAML만 반환."
+  },
+  {
+    "prompt_id": "gpt04",
+    "label": "medium_en_contract",
+    "strength": "medium",
+    "prompt": "Create a manual report_content YAML draft for HBM4 Architecture & Usage Guide using the supported manual cover, contents, section break, and one-image or two-image procedure patterns. Keep it screenshot-first and return YAML only."
+  },
+  {
+    "prompt_id": "gpt05",
+    "label": "medium_en_natural",
+    "strength": "medium",
+    "prompt": "Make YAML for a screenshot-first PowerPoint manual about HBM4 Architecture & Usage Guide. Include a cover slide, contents, an overview section, and procedure steps with image placeholders. Return just YAML."
+  },
+  {
+    "prompt_id": "gpt06",
+    "label": "medium_ko_contract",
+    "strength": "medium",
+    "prompt": "HBM4 Architecture & Usage Guide용 manual report_content YAML 초안을 만들어 주세요. cover, contents, section break, 1-image 또는 2-image procedure 패턴을 사용하고 screenshot-first 흐름을 유지해 주세요. YAML만 주세요."
+  },
+  {
+    "prompt_id": "gpt07",
+    "label": "loose_en_ppt",
+    "strength": "loose",
+    "prompt": "Create PowerPoint manual YAML for HBM4 Architecture & Usage Guide with title, contents, and step slides using screenshots. Keep it concise."
+  },
+  {
+    "prompt_id": "gpt08",
+    "label": "loose_ko_manual",
+    "strength": "loose",
+    "prompt": "HBM4 Architecture & Usage Guide 주제로 스크린샷 중심 매뉴얼용 YAML을 만들어 주세요. 표지, 목차, 섹션 구분, 단계별 슬라이드를 넣어 주세요. YAML만 주세요."
+  },
+  {
+    "prompt_id": "gpt09",
+    "label": "adversarial_en_image_step",
+    "strength": "adversarial",
+    "prompt": "Draft report_content YAML for an HBM4 screenshot manual deck. Use a cover, contents, and image step slides where useful. Keep the naming intuitive and output only YAML."
+  },
+  {
+    "prompt_id": "gpt10",
+    "label": "adversarial_ko_intuitive",
+    "strength": "adversarial",
+    "prompt": "HBM4 사용 가이드 PPT용 YAML 초안을 만들어 주세요. 각 단계는 이미지 중심으로 설명하고, section break와 image step 같은 느낌으로 구성해 주세요. 답변은 YAML만."
+  }
+]

@@ -41,7 +41,7 @@ This mode must not replace the live public service.
 
 Use this only after `main` contains the approved `v0.4.1` release commit.
 
-- update `/home/ubuntu/autoreport` to the latest `origin/main`
+- update `~/autoreport` to the latest `origin/main`
 - reinstall the editable package
 - restart the tracked `autoreport` systemd service
 - reload `nginx`
@@ -67,9 +67,9 @@ domain, treat that as deployment drift or the wrong entrypoint being served.
 Run these commands on the Lightsail host without touching the live service:
 
 ```bash
-cd /home/ubuntu
+cd ~
 rm -rf autoreport-v0.4.1-rc
-git clone /home/ubuntu/autoreport autoreport-v0.4.1-rc
+git clone ~/autoreport autoreport-v0.4.1-rc
 cd autoreport-v0.4.1-rc
 git fetch origin
 git checkout codex/v0.4-master
@@ -106,7 +106,7 @@ Run these commands only after `main` has been updated to the approved release
 commit:
 
 ```bash
-cd /home/ubuntu/autoreport
+cd ~/autoreport
 git fetch origin
 git checkout main
 git pull --ff-only origin main

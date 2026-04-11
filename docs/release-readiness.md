@@ -10,7 +10,7 @@ the codebase and is backed by the current narrow checks.
 - CLI payload scaffolding with `scaffold-payload`
 - CLI authoring/report-content compilation with `compile-payload`
 - CLI PPTX generation with `generate`
-- Web demo homepage rendering, screenshot-first manual starter, slide-asset refresh, paired upload panels, healthcheck, and PPTX download
+- Web demo homepage rendering, screenshot-first manual starter, `Check Draft`, `Refresh Preview`, supported add/remove controls, paired upload panels, healthcheck, and PPTX download
 - Public web rejection of broader image-backed drafts outside the built-in manual upload path
 
 ## Narrow Verification Commands
@@ -29,14 +29,14 @@ optional e2e dependency and run the dedicated Playwright runner:
 
 ```powershell
 .\venv\Scripts\python.exe -m pip install -e .[e2e]
-.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version 0.4.1
-.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version 0.4.1 --promote-guide-image
+.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version 0.4.2
+.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version 0.4.2 --promote-guide-image
 ```
 
-The runner writes raw screenshots under `output/playwright/v0.4.1/`,
-downloads under `.playwright-cli/downloads/v0.4.1/`, a summary JSON under
+The runner writes raw screenshots under `output/playwright/v0.4.2/`,
+downloads under `.playwright-cli/downloads/v0.4.2/`, a summary JSON under
 `tests/_tmp/`, and the promoted guide image to
-`docs/posts/guide-image-v0.4.1/image.png` when requested.
+`docs/posts/guide-image-v0.4.2/image.png` when requested.
 
 The release-prep CLI flow can also be smoke-tested directly with a minimal
 runnable payload fixture:
@@ -86,7 +86,7 @@ the image-backed path.
 
 - The CLI can inspect the built-in editorial or manual template, or a user-supplied `.pptx` template.
 - The CLI can compile and generate both editorial and manual built-in examples through the same deterministic runtime path.
-- The public web demo exposes the built-in manual procedure starter with paired screenshot upload and preview rows.
+- The public web demo exposes the built-in manual procedure starter, `Check Draft`, `Refresh Preview`, supported manual slide add/delete controls, and paired screenshot upload plus preview rows.
 - The public web demo supports the built-in manual upload flow and still rejects broader image-backed drafts outside that public path.
 - Image-backed drafts remain available through the CLI and the separate debug web app.
 - Public release evidence for the current manual flow is expected to come from the dedicated Playwright runner.
@@ -95,6 +95,8 @@ the image-backed path.
 ## Remaining Gaps Before Final Release Wrap-Up
 
 - Public web upload of arbitrary external PowerPoint templates is not part of the current demo surface.
+- Mobile or phone support is not separately signed off for `v0.4.2`.
+- The public site narrative may still be on `v0.4.1` until the `v0.4.2` candidate handoff is published.
 - Final WordPress publish still happens from the private `autorelease` repository after handoff validation.
 - Some deeper internal architecture notes still keep legacy weekly-era wording outside the release-facing docs touched here.
 

@@ -38,8 +38,7 @@ sed \
   -e "s|__APP_HOST__|${APP_HOST}|g" \
   -e "s|__APP_PORT__|${APP_PORT}|g" \
   -e "s|__APP_WORKERS__|${APP_WORKERS}|g" \
-  "${REPO_ROOT}/deploy/aws-ec2/autoreport.service" \
-  | sudo tee /etc/systemd/system/autoreport.service >/dev/null
+  "${REPO_ROOT}/deploy/aws-ec2/autoreport.service" | sudo tee /etc/systemd/system/autoreport.service >/dev/null
 
 echo "Rendering nginx site..."
 sed \
@@ -47,8 +46,7 @@ sed \
   -e "s|__APP_HOST__|${APP_HOST}|g" \
   -e "s|__APP_PORT__|${APP_PORT}|g" \
   -e "s|__CLIENT_MAX_BODY_SIZE__|${CLIENT_MAX_BODY_SIZE}|g" \
-  "${REPO_ROOT}/deploy/aws-ec2/nginx-autoreport.conf" \
-  | sudo tee /etc/nginx/sites-available/autoreport >/dev/null
+  "${REPO_ROOT}/deploy/aws-ec2/nginx-autoreport.conf" | sudo tee /etc/nginx/sites-available/autoreport >/dev/null
 
 sudo ln -sf /etc/nginx/sites-available/autoreport /etc/nginx/sites-enabled/autoreport
 if [[ -f /etc/nginx/sites-enabled/default ]]; then
@@ -59,7 +57,12 @@ echo "Reloading services..."
 sudo systemctl daemon-reload
 sudo systemctl enable --now autoreport
 sudo nginx -t
-sudo systemctl reload nginx
+sudo systemctl enable nginx >/dev/null
+if sudo systemctl is-active --quiet nginx; then
+  sudo systemctl reload nginx
+else
+  sudo systemctl start nginx
+fi
 
 echo
 echo "Autoreport deployment bootstrap completed."

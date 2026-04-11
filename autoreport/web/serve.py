@@ -3,14 +3,55 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import signal
+import threading
 
 import uvicorn
+from uvicorn.main import STARTUP_FAILURE
+from uvicorn.server import HANDLED_SIGNALS
+from uvicorn.supervisors import ChangeReload
 
 
 SURFACE_TARGETS = {
     "public": "autoreport.web.app:app",
     "debug": "autoreport.web.debug_app:app",
 }
+
+
+class QuietServer(uvicorn.Server):
+    """Suppress Python 3.14 signal re-raise tracebacks on clean shutdown."""
+
+    @contextlib.contextmanager
+    def capture_signals(self):
+        if threading.current_thread() is not threading.main_thread():
+            yield
+            return
+        original_handlers = {
+            sig: signal.signal(sig, self.handle_exit) for sig in HANDLED_SIGNALS
+        }
+        try:
+            yield
+        finally:
+            for sig, handler in original_handlers.items():
+                signal.signal(sig, handler)
+
+
+def run_server(*, target: str, host: str, port: int, reload: bool) -> None:
+    config = uvicorn.Config(
+        target,
+        host=host,
+        port=port,
+        reload=reload,
+    )
+    server = QuietServer(config=config)
+    if config.should_reload:
+        sock = config.bind_socket()
+        ChangeReload(config, target=server.run, sockets=[sock]).run()
+    else:
+        server.run()
+    if not server.started and not config.should_reload:
+        raise SystemExit(STARTUP_FAILURE)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -51,8 +92,8 @@ def main(argv: list[str] | None = None) -> int:
         port = 8000 if args.surface == "public" else 8010
 
     try:
-        uvicorn.run(
-            target,
+        run_server(
+            target=target,
             host=args.host,
             port=port,
             reload=args.reload,

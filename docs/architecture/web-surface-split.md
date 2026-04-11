@@ -24,7 +24,8 @@ The debugging flow is:
 6. inspect failures or representative samples from broader robustness runs without pushing that bulk workflow into the public app
 
 Trying to serve both flows in one screen made the product surface too noisy and
-encouraged manual slide-building controls that are not the intended user path.
+encouraged full manual slide-building controls that are not the intended user
+path.
 
 ## Surface responsibilities
 
@@ -40,19 +41,22 @@ Intent:
 - default to one editable starter example
 - keep slide count dynamic and derived from the draft itself
 - keep contract inspection and compiled runtime inspection out of the default user surface
+- keep YAML as the primary editing surface even when assistive gallery controls are added
 
 Allowed UI:
 
 - one large input area
 - one or two primary actions
 - one built-in manual starter summary
+- one lightweight add/remove manual slide control set that edits the YAML draft in place
+- one lightweight manual draft checker that catches invalid pattern rules before generation
 - paired screenshot upload and customer-facing slide preview rows for the manual starter
 - a clear handoff to the debug app or CLI when deeper inspection or custom template/image control is needed
 
 Avoid in the user app:
 
 - multi-pane debug dashboards
-- manual slide-builder controls
+- full manual slide-builder controls
 - many helper buttons for constructing individual slides
 - developer-only inspection clutter
 
@@ -78,6 +82,7 @@ Allowed UI:
 - extra upload inspection controls
 - summary views for corpus or template validation runs
 - targeted rerun controls for selected failing or representative cases
+- separate debug-focused screens when the workspace and the proof workflow would otherwise crowd each other; for example, a compile workspace on `/` and a manual YAML repair proof screen on `/proof`
 
 Keep out of the debug app when the work is high-volume by nature:
 
@@ -105,6 +110,8 @@ guardrails:
 
 - the public homepage now leads directly with the built-in manual starter
 - the built-in manual starter allows ordered image-backed drafts on the manual template
+- the public homepage may offer lightweight add/remove manual slide controls that update the draft YAML in place
+- the public homepage may offer a lightweight manual draft checker that validates the supported manual pattern rules before generation
 - deeper inspection panes still stay in the debug app
 
 ## Input contract posture

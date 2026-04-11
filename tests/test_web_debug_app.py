@@ -55,11 +55,27 @@ class WebDebugAppTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Autoreport Debug Demo", response.text)
+        self.assertIn("Debug Workspace", response.text)
+        self.assertIn("Repair Proof", response.text)
         self.assertIn("Debug Controls", response.text)
         self.assertIn("Normalized Authoring Payload", response.text)
         self.assertIn("Compiled Report Payload", response.text)
         self.assertIn("Load Starter Authoring", response.text)
         self.assertIn("Load AI Draft Prompt", response.text)
+
+    def test_debug_proof_page_renders_separate_proof_surface(self) -> None:
+        response = self.client.get("/proof")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Autoreport Repair Proof", response.text)
+        self.assertIn("Debug Workspace", response.text)
+        self.assertIn("Repair Proof", response.text)
+        self.assertIn("Proof Runbook", response.text)
+        self.assertIn("Saved Corpus Recheck", response.text)
+        self.assertIn("Live Server Smoke", response.text)
+        self.assertIn("Stronger Live Proof", response.text)
+        self.assertIn("run_server_proof.ps1", response.text)
+        self.assertIn("recheck_manual_corpus.py", response.text)
 
     def test_debug_compile_route_is_wired(self) -> None:
         response = self.client.post(

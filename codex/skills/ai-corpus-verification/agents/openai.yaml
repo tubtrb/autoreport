@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Corpus Verification"
+  short_description: "Collect AI samples and compare checker failures."
+  default_prompt: "Collect real external-AI manual YAML samples, rerun the checker, and summarize the dominant failure patterns for autoreport."

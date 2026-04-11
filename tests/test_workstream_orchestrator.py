@@ -17,6 +17,14 @@ import cleanup_retired_worktrees  # noqa: E402
 import collect_worker_reports  # noqa: E402
 import sync_policy_worktrees  # noqa: E402
 import workstream_runtime  # noqa: E402
+import write_master_next  # noqa: E402
+
+TEST_BASE_BRANCH = "codex/v9.9.9-master"
+TEST_BRANCH_PREFIX = workstream_runtime.workstream_branch_prefix(TEST_BASE_BRANCH)
+TEST_WORKTREE_PREFIX = workstream_runtime.cleanup_directory_prefix(TEST_BASE_BRANCH)
+TEST_WEB_BRANCH = f"{TEST_BRANCH_PREFIX}web-authoring-ux"
+TEST_GENERATION_BRANCH = f"{TEST_BRANCH_PREFIX}generation-preview"
+TEST_RELEASE_BRANCH = f"{TEST_BRANCH_PREFIX}release-prep"
 
 TEST_BASE_BRANCH = "codex/v9.9.9-master"
 TEST_BRANCH_PREFIX = workstream_runtime.workstream_branch_prefix(TEST_BASE_BRANCH)
@@ -428,6 +436,33 @@ class SyncPolicyWorktreesTests(unittest.TestCase):
         with mock.patch.object(sync_policy_worktrees, "branch_has_remote", return_value=True):
             result = sync_policy_worktrees.push_branch(workstream, dry_run=True)
         self.assertEqual("git push --force-with-lease", result["command"])
+
+
+class WriteMasterNextTests(unittest.TestCase):
+    def test_list_targets_passes_base_branch_to_discovery(self) -> None:
+        workstream = workstream_runtime.Workstream(
+            key="generation-preview",
+            branch=TEST_GENERATION_BRANCH,
+            path=Path("C:/fake/worktree"),
+            test_modules=("tests.test_generator",),
+        )
+        with mock.patch.object(
+            write_master_next,
+            "discover_workstreams",
+            return_value=[workstream],
+        ) as discover:
+            targets = write_master_next.list_targets("master-next.txt", TEST_BASE_BRANCH)
+        discover.assert_called_once_with(base_branch=TEST_BASE_BRANCH)
+        self.assertEqual(
+            [
+                {
+                    "key": "generation-preview",
+                    "branch": TEST_GENERATION_BRANCH,
+                    "path": str(Path("C:/fake/worktree") / ".codex" / "master-next.txt"),
+                }
+            ],
+            targets,
+        )
 
 
 if __name__ == "__main__":

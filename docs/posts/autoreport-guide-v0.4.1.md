@@ -1,157 +1,58 @@
 # User Guide
 
-Current version: `v0.4.1`
+Version: `v0.4.1`
+Release date: `2026-04-05`
+Status: `draft`
 
-This guide reflects the current implementation of Autoreport on the active branch. Autoreport is a template-contract-first PPTX generation engine: it inspects a PowerPoint template, exposes a fillable contract, accepts `report_content` or `authoring_payload`, compiles a runtime `report_payload`, and generates an editable PowerPoint deck. The same core path powers the CLI, the public web demo, and the separate debug app.
+This guide is for the hosted Autoreport demo. It covers the public browser flow: open the built-in manual starter, refresh the slide assets, upload the matching screenshots, generate the deck, and confirm the downloaded PowerPoint result.
 
 For version-specific changes, see the release notes.
 
 ## Live service
 
-As of `2026-04-05`, the public release pages and the hosted demo app are available at:
+As of `2026-04-05`, the public site and hosted demo are available at:
 
-- Release-facing site home: `http://auto-report.org/`
-- Release-facing user guide: `http://auto-report.org/guide/`
-- Release-facing updates hub: `http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`
-- Hosted demo app: `http://3.36.96.47/`
-- Alternate EC2 hostname: `http://ec2-3-36-96-47.ap-northeast-2.compute.amazonaws.com/`
-- Hosted demo health check: `http://3.36.96.47/healthz` returns `{"status":"ok"}`
+- Home: `http://auto-report.org/`
+- Guide: `http://auto-report.org/guide/`
+- Updates: `http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`
+- Hosted demo: `http://3.36.96.47/`
 
-## What is Autoreport?
+## Hosted demo flow
 
-Autoreport is a deterministic PowerPoint generation tool for teams that want repeatable deck output without rebuilding layouts by hand. Instead of letting slide structure drift from run to run, you start from a template contract, fill the supported draft surface, and generate a `.pptx` through one validated runtime path.
+1. Open the hosted demo. The page starts with `Manual Procedure Starter` and the built-in manual example.
+2. Select `Refresh Slide Assets`. The page creates upload rows beside the matching PowerPoint slide previews.
+3. Upload one screenshot for each required image slot. Keep each screenshot aligned with the preview row it belongs to.
+4. Review the preview rows and select `Generate PPTX`.
+5. Wait for the success state: `Generation complete. Your Autoreport deck download should begin shortly.`
 
-## What the current version can do
+### 1. Starter deck
 
-- Inspect the built-in editorial or manual template, or a user-owned `.pptx` template through the CLI
-- Export a machine-readable `template_contract`
-- Scaffold a starter `authoring_payload` from that contract
-- Accept `report_content`, `authoring_payload`, or a compiled `report_payload`
-- Compile authoring inputs into a runtime payload for debugging
-- Generate an editable `.pptx` deterministically through Python and `python-pptx`
-- Start from the built-in manual procedure starter in the public web demo
-- Refresh aligned screenshot upload panels beside the matching slide previews
-- Upload screenshots for each image-bearing manual slide in the hosted public flow
-- Download `autoreport_demo.pptx` directly after successful generation
-- Keep broader image-backed drafts and upload-based inspection in the separate debug app or the CLI
+The public page opens directly with the built-in manual starter so the user can begin from a fixed, visible procedure flow.
 
-## Public pages and routes
+![Manual starter loaded](guide-image-v0.4.1/01-manual-starter-loaded.png)
 
-When this guide is handed off through `autorelease`, the publishing flow is organized around three stable reader routes:
+### 2. Screenshot upload and preview alignment
 
-- `Home`: `http://auto-report.org/`
-- `User Guide`: `http://auto-report.org/guide/`
-- `Updates`: `http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`
+After `Refresh Slide Assets`, the hosted demo shows the upload rows beside the matching slide previews. This is the public upload step for the manual flow.
 
-The guide route is updated in place, while release notes and development logs are grouped under the Updates page. These release-facing WordPress pages are separate from the currently hosted demo app.
+![Slide assets refreshed](guide-image-v0.4.1/02-refresh-slide-assets-complete.png)
 
-## Basic usage
+Upload each screenshot into the row that belongs to the visible preview and keep the order unchanged.
 
-Autoreport currently supports Python `3.10+`.
+![Upload row filled](guide-image-v0.4.1/03-upload-row-filled.png)
 
-### CLI
+### 3. Generate and download
 
-Use the CLI when you want to inspect a contract, scaffold a payload, compile the runtime payload, or generate a deck from disk-backed files.
+When the required screenshots are in place, select `Generate PPTX` and wait for the browser download.
 
-```bash
-autoreport inspect-template --built-in autoreport_manual --output output/template_contract.yaml
-autoreport scaffold-payload output/template_contract.yaml --output output/authoring_payload.yaml
-autoreport compile-payload output/authoring_payload.yaml --built-in autoreport_manual --output output/report_payload.yaml
-autoreport generate output/authoring_payload.yaml --built-in autoreport_manual --output output/autoreport_demo.pptx
-```
+![Generation success](guide-image-v0.4.1/05-generate-success.png)
 
-When you want the editorial template instead of the built-in manual procedure deck, replace `autoreport_manual` with `autoreport_editorial`.
+## Expected result
 
-### Homepage / web demo
+- The browser download starts as `autoreport_demo.pptx`
+- The downloaded deck follows the manual procedure slide order from the hosted starter
+- Uploaded screenshots stay aligned with the matching image slots from the public flow
 
-Use the web demo when you want the built-in manual procedure starter in the browser.
+## Browser check
 
-```bash
-python -m autoreport.web.serve public --host 0.0.0.0 --port 8000
-```
-
-On Windows from the repo root, the shortest local command is:
-
-```powershell
-.\run-public.cmd
-```
-
-After starting the server, open the homepage. The main editor already includes the AI prompt comments plus the built-in manual procedure starter. The public page keeps the screenshot-first manual flow visible: use `Refresh Slide Assets` to build the paired preview rows, upload one screenshot for each listed image slot, and then generate the deck. The built-in flow keeps each upload panel aligned with the exact PowerPoint slide preview that needs that screenshot.
-
-On the current branch, the success state changes to `Generation complete. Your Autoreport deck download should begin shortly.` and the file is downloaded as `autoreport_demo.pptx`.
-
-### Drafting with another AI
-
-If you want another AI to draft the `report_content` block first, copy the full starter YAML with the comment lines still attached and paste that block into the provider of your choice. The same starter brief is already documented here with stable insert examples for Gemini, ChatGPT, and Claude.
-
-Gemini insert example:
-
-![Gemini starter brief](../shared-assets/user-guide-ai-insert/gemini-insert.png)
-
-ChatGPT insert example:
-
-![ChatGPT starter brief](../shared-assets/user-guide-ai-insert/chatgpt-insert.png)
-
-Claude insert example:
-
-![Claude starter brief](../shared-assets/user-guide-ai-insert/claude-insert.png)
-
-These screenshots document the insert step only. They are fixed guide assets rather than release-verification captures, so the guide can keep reusing the same provider examples across versions.
-
-### Debug app
-
-Use the debug app when you need contract inspection, normalization details, compiled runtime output, or broader image-backed drafts without cluttering the user-facing page.
-
-```bash
-python -m autoreport.web.serve debug --host 0.0.0.0 --port 8010
-```
-
-On Windows from the repo root, you can also use:
-
-```powershell
-.\run-debug.cmd
-```
-
-## Sample generated PPTX and browser capture
-
-The public sample deck is not attached yet, but the current output contract is stable:
-
-- Local output filename: `autoreport_demo.pptx`
-- Public sample output: hosted download link coming soon
-- Fastest check: generate from the homepage or CLI and open the resulting `.pptx` locally
-
-Before publishing this guide, upload the working screenshot to WordPress Media and replace the placeholder URL below.
-
-![Autoreport web demo](REPLACE_WITH_PUBLIC_IMAGE_URL)
-
-<!-- Local working screenshot asset: docs/posts/guide-image-v0.4.1/image.png -->
-
-## Verification on the current branch
-
-The current branch was verified with the public-web, debug-web, handoff-facing, and browser-evidence checks.
-
-- `.\venv\Scripts\python.exe -m unittest tests.test_cli tests.test_validator tests.test_generator tests.test_web_app tests.test_web_debug_app tests.test_web_serve tests.test_autorelease_handoff tests.test_public_web_playwright` passed
-- `.\\venv\\Scripts\\python.exe tests\\e2e\\run_public_web_playwright.py --version 0.4.1 --promote-guide-image` is the repeatable browser evidence command for the current manual public flow
-- Microsoft Edge and Chrome both observed `healthz` success and an `autoreport_demo.pptx` download on `2026-04-05`
-- The public homepage opens with the built-in manual procedure starter, aligned upload panels, and PowerPoint slide previews
-- The browser-facing manual flow accepts the six screenshot uploads from the built-in starter and downloads `autoreport_demo.pptx`
-- The debug app keeps compiled payload inspection and broader image-backed drafts available
-
-## Supported input structure
-
-The current product accepts three public input surfaces:
-
-- `report_content`: AI-facing draft content keyed by `pattern_id` and slot names
-- `authoring_payload`: normalized public authoring contract
-- `report_payload`: compiled runtime generation payload
-
-For template inspection, the exported `template_contract` remains the source of truth for allowed `pattern_id` values, slot names, and image capacity. The hosted public web demo keeps the image-backed path limited to the built-in manual starter with upload refs, while broader image-backed authoring stays in the debug app and CLI.
-
-## Current limitations
-
-- Arbitrary PowerPoint template upload is still a CLI-only path
-- The public web demo does not expose debug panes, arbitrary template upload, or the broader debug-only image authoring workflow
-- Generation remains deterministic and local; there is no server-side LLM call in the runtime path
-- Final WordPress publication still happens from the private `autorelease` repository after handoff validation
-
-Autoreport `v0.4.1` keeps the product on the `v0.4` manual-procedure line instead of widening the surface into a new `v0.5` contract story before the current public workflow has been hardened further.
+The hosted demo flow and the `autoreport_demo.pptx` download were checked in the browser on `2026-04-05`.

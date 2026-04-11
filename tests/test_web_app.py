@@ -15,6 +15,8 @@ import warnings
 from fastapi.testclient import TestClient
 from pptx import Presentation
 
+from autoreport.loader import parse_yaml_text
+from autoreport.template_flow import serialize_document
 from autoreport.web.app import (
     MANUAL_PROCEDURE_EXAMPLE_YAML,
     MEDIA_TYPE_PPTX,
@@ -118,6 +120,67 @@ report_content:
           Generate editable PowerPoint decks from structured inputs.
 """.strip()
 
+INVALID_MANUAL_PATTERN_REPORT_CONTENT_YAML = """
+report_content:
+  title_slide:
+    pattern_id: cover.manual
+    slots:
+      doc_title: HBM4 Architecture & Usage Guide
+      doc_subtitle: Screenshot-first guide for HBM4 validation
+      doc_version: v1.0.0
+      author_or_owner: Memory Architecture Team
+  slides:
+    - pattern_id: text.manual.section_break
+      slots:
+        section_no: "2."
+        section_title: HBM4 Overview
+        section_subtitle: Basic concept and key improvements over HBM3.
+    - pattern_id: image.manual.step
+      slots:
+        step_no: "2-1"
+        step_title: Identify HBM4 Structure
+        command_or_action: Review HBM4 stack diagram
+        summary: Understand TSV-based 3D stacking and wide I/O interface.
+        image_1: image_1
+        caption_1: HBM4 vertical stack structure
+        detail_body: |
+          HBM4 uses a 3D-stacked DRAM architecture with TSVs.
+""".strip()
+
+BROKEN_MANUAL_INDENTATION_REPORT_CONTENT_YAML = """
+report_content:
+title_slide:
+pattern_id: cover.manual
+slots:
+doc_title: Autoreport PowerPoint User Guide
+doc_subtitle: |
+Screenshot-first guide for the public web manual mode
+doc_version: v0.4.2
+author_or_owner: Autoreport Team
+contents_slide:
+pattern_id: contents.manual
+slots:
+contents_title: Contents
+contents_group_label: Procedure Overview
+slides:
+- pattern_id: text.manual.section_break
+slots:
+section_no: "1."
+section_title: Review The Manual Starter
+section_subtitle: Start with the built-in manual procedure starter before editing content.
+- pattern_id: text_image.manual.procedure.one
+slots:
+step_no: "1.1"
+step_title: Review The Starter Example
+command_or_action: "Action: open the starter example and confirm the selected template."
+summary: Use one screenshot to show the starting editor state.
+detail_body: |
+Review the starter YAML, note the built-in template mode, and confirm
+the page is ready before moving to the next step.
+image_1: image_1
+caption_1: Starter example loaded in the editor
+""".strip()
+
 TRUNCATED_CLAUDE_REPORT_CONTENT_YAML = """
 report_content:
   title_slide:
@@ -166,6 +229,19 @@ def build_long_manual_procedure_example_yaml() -> str:
     )
 
 
+def build_single_slide_manual_procedure_example_yaml() -> str:
+    payload = parse_yaml_text(MANUAL_PROCEDURE_EXAMPLE_YAML)
+    payload["report_content"]["slides"] = payload["report_content"]["slides"][:1]
+    return serialize_document(payload, fmt="yaml").strip()
+
+
+def build_mutated_manual_report_content_yaml(mutate) -> str:
+    payload = parse_yaml_text(MANUAL_PROCEDURE_EXAMPLE_YAML)
+    report_content = payload["report_content"]
+    mutate(report_content)
+    return serialize_document(payload, fmt="yaml").strip()
+
+
 class WebAppTestCase(unittest.TestCase):
     """Verify the public demo page and its public-only API contract."""
 
@@ -180,17 +256,45 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Starter Deck YAML", response.text)
         self.assertIn("Status", response.text)
         self.assertIn("Reset Starter Example", response.text)
-        self.assertIn("Refresh Slide Assets", response.text)
+        self.assertIn("Refresh Preview", response.text)
         self.assertIn("Generate PPTX", response.text)
+        self.assertIn("Add Slide", response.text)
+        self.assertIn("Check Draft", response.text)
+        self.assertIn("Delete", response.text)
+        self.assertIn("Slide Style Gallery", response.text)
+        self.assertIn("Draft Checker", response.text)
+        self.assertIn("style-family-chip", response.text)
+        self.assertIn("style-preset-card", response.text)
+        self.assertIn("slide-delete-button", response.text)
+        self.assertIn(
+            '["contents_slide", "content_slide"].includes(preview.source_kind)',
+            response.text,
+        )
+        self.assertNotIn(
+            '["title_slide", "contents_slide", "content_slide"].includes(preview.source_kind)',
+            response.text,
+        )
+        self.assertIn("Text", response.text)
+        self.assertIn("1 Image", response.text)
+        self.assertIn("2 Images", response.text)
+        self.assertIn("3 Images", response.text)
+        self.assertIn("Section Break", response.text)
+        self.assertIn("Style 1", response.text)
+        self.assertIn("Style 2", response.text)
+        self.assertIn("Style 3", response.text)
         self.assertIn("report_content", response.text)
         self.assertIn("Manual Procedure Starter", response.text)
         self.assertIn("screenshot-first manual flow", response.text)
-        self.assertIn("Keep this public flow focused on", response.text)
+        self.assertIn("Edit the YAML first, then use the style", response.text)
+        self.assertIn("Never invent new pattern_id names such as image.manual.step.", response.text)
+        self.assertIn("Use step numbers like 2.1, 2.2, 3.1. Do not write 2-1 or 3-1.", response.text)
         self.assertIn("PowerPoint Slide Preview", response.text)
         self.assertIn("matching upload panel on the", response.text)
         self.assertIn("list-style: none;", response.text)
         self.assertIn("font-size: 0.82rem;", response.text)
-        self.assertIn("Built-In Starter", response.text)
+        self.assertIn("starter-pill", response.text)
+        self.assertIn('data-family-filter="all"', response.text)
+        self.assertIn('data-family-id="one-image"', response.text)
         self.assertNotIn("Image Order", response.text)
         self.assertNotIn("Screenshot Uploads", response.text)
         self.assertNotIn("Choose or paste screenshots for this slide", response.text)
@@ -210,6 +314,12 @@ class WebAppTestCase(unittest.TestCase):
         self.assertNotIn("Copy AI Package", response.text)
         self.assertNotIn("Optional: AI Prompt Package", response.text)
         self.assertNotIn("Reset To AI Draft Prompt", response.text)
+        self.assertNotIn("Refresh Slide Assets", response.text)
+        self.assertNotIn("Add Slide Style", response.text)
+        self.assertNotIn("Manual Screenshot Workflow", response.text)
+        self.assertNotIn("Manual Flow Summary", response.text)
+        self.assertNotIn("Selected Slide Style", response.text)
+        self.assertNotIn("Built-In Starter", response.text)
 
     def test_demo_page_defaults_to_prompted_manual_starter(self) -> None:
         response = self.client.get("/")
@@ -223,11 +333,441 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("report_content draft below", response.text)
         self.assertIn("Goal: draft a screenshot-first procedure manual", response.text)
 
+    def test_demo_page_includes_small_screen_layout_guards(self) -> None:
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("@media (max-width: 640px)", response.text)
+        self.assertIn("main { padding: 20px 12px 40px; }", response.text)
+        self.assertIn("min-height: 44px;", response.text)
+        self.assertIn("overflow-x: auto;", response.text)
+        self.assertIn("scrollbar-width: thin;", response.text)
+        self.assertIn("justify-content: flex-start;", response.text)
+
+    def test_style_presets_route_returns_manual_catalog(self) -> None:
+        response = self.client.get("/api/style-presets?built_in=autoreport_manual")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["built_in"], "autoreport_manual")
+        self.assertEqual(
+            payload["families"],
+            [
+                {"family_id": "text", "label": "Text", "order": 10, "count": 1},
+                {"family_id": "one-image", "label": "1 Image", "order": 20, "count": 1},
+                {"family_id": "two-images", "label": "2 Images", "order": 30, "count": 1},
+                {"family_id": "three-images", "label": "3 Images", "order": 40, "count": 1},
+            ],
+        )
+        self.assertEqual(len(payload["presets"]), 4)
+        self.assertEqual(payload["presets"][0]["preset_id"], "manual.section-break")
+        self.assertEqual(payload["presets"][0]["pattern_id"], "text.manual.section_break")
+        self.assertEqual(payload["presets"][1]["preset_id"], "manual.procedure.one")
+        self.assertEqual(payload["presets"][1]["image_count"], 1)
+        self.assertEqual(payload["presets"][2]["family_id"], "two-images")
+        self.assertEqual(payload["presets"][3]["family_id"], "three-images")
+        self.assertIn("thumbnail", payload["presets"][0])
+        self.assertIn("default_slot_values", payload["presets"][0])
+        self.assertIn("tags", payload["presets"][0])
+        self.assertNotIn("4 Images", [family["label"] for family in payload["families"]])
+
     def test_healthcheck_returns_ok(self) -> None:
         response = self.client.get("/healthz")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_manual_draft_check_endpoint_passes_prompted_manual_starter(self) -> None:
+        response = self.client.post(
+            "/api/manual-draft-check",
+            data={
+                "payload_yaml": PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML,
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["errors"], [])
+        self.assertEqual(payload["warnings"], [])
+        self.assertEqual(payload["summary"]["body_slide_count"], 4)
+        self.assertEqual(payload["summary"]["section_break_count"], 1)
+        self.assertEqual(payload["summary"]["procedure_slide_count"], 3)
+
+    def test_manual_draft_check_endpoint_repairs_common_manual_indentation_drift(self) -> None:
+        response = self.client.post(
+            "/api/manual-draft-check",
+            data={
+                "payload_yaml": BROKEN_MANUAL_INDENTATION_REPORT_CONTENT_YAML,
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["errors"], [])
+        self.assertIn(
+            "Auto-corrected common manual YAML indentation drift before checking.",
+            payload["warnings"],
+        )
+        self.assertIn(
+            "The draft was re-indented automatically. Review the repaired YAML in the editor before generating.",
+            payload["hints"],
+        )
+        self.assertTrue(payload["payload_yaml"].startswith("report_content:\n  title_slide:"))
+        repaired = parse_yaml_text(payload["payload_yaml"])
+        self.assertEqual(
+            repaired["report_content"]["title_slide"]["slots"]["doc_title"],
+            "Autoreport PowerPoint User Guide",
+        )
+        self.assertEqual(len(repaired["report_content"]["slides"]), 2)
+        self.assertEqual(payload["summary"]["body_slide_count"], 2)
+        self.assertEqual(payload["summary"]["procedure_slide_count"], 1)
+
+    def test_manual_draft_check_endpoint_flags_invalid_manual_pattern_and_step_number(self) -> None:
+        response = self.client.post(
+            "/api/manual-draft-check",
+            data={
+                "payload_yaml": INVALID_MANUAL_PATTERN_REPORT_CONTENT_YAML,
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertFalse(payload["ok"])
+        self.assertEqual(
+            payload["message"],
+            "Draft checker found 1 blocking issue(s).",
+        )
+        self.assertTrue(
+            any(
+                "Field 'slides[1].pattern_id' uses unsupported manual pattern 'image.manual.step'."
+                in error
+                and "text_image.manual.procedure.one" in error
+                for error in payload["errors"]
+            )
+        )
+        self.assertIn(
+            "Field 'slides[1].slots.step_no' uses '2-1'. Prefer dotted numbering such as '2.1'.",
+            payload["warnings"],
+        )
+        self.assertIn(
+            "Allowed body pattern_id values: text.manual.section_break, text_image.manual.procedure.one, text_image.manual.procedure.two, text_image.manual.procedure.three.",
+            payload["hints"],
+        )
+
+    def test_manual_draft_check_endpoint_catches_common_ai_confusions(self) -> None:
+        def remove_body_pattern_id(report_content: dict[str, object]) -> None:
+            slides = report_content["slides"]
+            slides[1].pop("pattern_id", None)
+
+        def mismatch_pattern_to_two_images(report_content: dict[str, object]) -> None:
+            slides = report_content["slides"]
+            slides[1]["slots"]["image_2"] = "image_2"
+
+        def add_image_to_section_break(report_content: dict[str, object]) -> None:
+            slides = report_content["slides"]
+            slides[0]["slots"]["image_1"] = "image_1"
+
+        def remove_all_images_from_procedure(report_content: dict[str, object]) -> None:
+            slides = report_content["slides"]
+            slides[1]["slots"].pop("image_1", None)
+
+        def change_title_pattern_id(report_content: dict[str, object]) -> None:
+            report_content["title_slide"]["pattern_id"] = "cover.editorial"
+
+        def change_contents_pattern_id(report_content: dict[str, object]) -> None:
+            report_content["contents_slide"]["pattern_id"] = "contents.editorial"
+
+        cases = [
+            (
+                "missing body pattern id",
+                build_mutated_manual_report_content_yaml(remove_body_pattern_id),
+                [
+                    "Field 'slides[1].pattern_id' is required for manual body slides.",
+                    "text_image.manual.procedure.one",
+                ],
+            ),
+            (
+                "one-image pattern used with two images",
+                build_mutated_manual_report_content_yaml(
+                    mismatch_pattern_to_two_images
+                ),
+                [
+                    "Field 'slides[1].pattern_id' is 'text_image.manual.procedure.one', but this slide defines 2 image_* slot(s), so it should use 'text_image.manual.procedure.two'."
+                ],
+            ),
+            (
+                "section break carries image slot",
+                build_mutated_manual_report_content_yaml(add_image_to_section_break),
+                [
+                    "Field 'slides[0].pattern_id' is 'text.manual.section_break', so the slide must not define image_* slots."
+                ],
+            ),
+            (
+                "procedure slide has no image slots",
+                build_mutated_manual_report_content_yaml(
+                    remove_all_images_from_procedure
+                ),
+                [
+                    "Field 'slides[1].pattern_id' is 'text_image.manual.procedure.one', but this slide defines 0 image_* slot(s), so it should use 'text.manual.section_break'."
+                ],
+            ),
+            (
+                "title slide pattern drifts from cover.manual",
+                build_mutated_manual_report_content_yaml(change_title_pattern_id),
+                [
+                    "Field 'title_slide.pattern_id' must be exactly 'cover.manual'."
+                ],
+            ),
+            (
+                "contents slide pattern drifts from contents.manual",
+                build_mutated_manual_report_content_yaml(change_contents_pattern_id),
+                [
+                    "Field 'contents_slide.pattern_id' must be exactly 'contents.manual' when a contents slide is present."
+                ],
+            ),
+        ]
+
+        for case_name, payload_yaml, expected_errors in cases:
+            with self.subTest(case_name):
+                response = self.client.post(
+                    "/api/manual-draft-check",
+                    data={
+                        "payload_yaml": payload_yaml,
+                        "built_in": "autoreport_manual",
+                    },
+                )
+
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertFalse(payload["ok"])
+                self.assertEqual(
+                    payload["message"],
+                    f"Draft checker found {len(payload['errors'])} blocking issue(s).",
+                )
+                for expected_error in expected_errors:
+                    self.assertTrue(
+                        any(expected_error in error for error in payload["errors"]),
+                        payload,
+                    )
+
+    def test_manual_draft_check_endpoint_warns_for_section_number_without_period(self) -> None:
+        def remove_section_number_period(report_content: dict[str, object]) -> None:
+            slides = report_content["slides"]
+            slides[0]["slots"]["section_no"] = "1"
+
+        response = self.client.post(
+            "/api/manual-draft-check",
+            data={
+                "payload_yaml": build_mutated_manual_report_content_yaml(
+                    remove_section_number_period
+                ),
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["errors"], [])
+        self.assertEqual(
+            payload["message"],
+            "Draft checker passed with warnings. Review the numbering and rule hints before generating.",
+        )
+        self.assertIn(
+            "Field 'slides[0].slots.section_no' should usually end with a trailing period, such as '2.'.",
+            payload["warnings"],
+        )
+
+    def test_manual_slide_style_endpoint_appends_section_break(self) -> None:
+        response = self.client.post(
+            "/api/manual-slide-style",
+            data={
+                "payload_yaml": PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML,
+                "preset_id": "manual.section-break",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(
+            payload["payload_yaml"].startswith("# Paste this brief into another AI")
+        )
+        updated = parse_yaml_text(payload["payload_yaml"])
+        slides = updated["report_content"]["slides"]
+        self.assertEqual(slides[-1]["pattern_id"], "text.manual.section_break")
+        self.assertEqual(slides[-1]["slots"]["section_no"], "2.")
+        self.assertEqual(payload["added_slide"]["preset_id"], "manual.section-break")
+        self.assertEqual(slides[-1]["slots"]["section_title"], "New Section Title")
+        self.assertEqual(
+            payload["added_slide"]["slide_title"],
+            "2. New Section Title",
+        )
+
+    def test_manual_slide_style_endpoint_appends_three_image_procedure_with_next_refs(self) -> None:
+        response = self.client.post(
+            "/api/manual-slide-style",
+            data={
+                "payload_yaml": PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML,
+                "preset_id": "manual.procedure.three",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        updated = parse_yaml_text(payload["payload_yaml"])
+        last_slide = updated["report_content"]["slides"][-1]
+        self.assertEqual(last_slide["pattern_id"], "text_image.manual.procedure.three")
+        self.assertEqual(last_slide["slots"]["step_no"], "1.4")
+        self.assertEqual(last_slide["slots"]["image_1"], "image_7")
+        self.assertEqual(last_slide["slots"]["image_2"], "image_8")
+        self.assertEqual(last_slide["slots"]["image_3"], "image_9")
+        self.assertEqual(payload["added_slide"]["preset_id"], "manual.procedure.three")
+
+        compile_response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": payload["payload_yaml"],
+                "image_manifest": "[]",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(compile_response.status_code, 200)
+        compile_payload = compile_response.json()
+        self.assertEqual(
+            compile_payload["slide_previews"][-1]["pattern_id"],
+            "text_image.manual.procedure.three",
+        )
+        self.assertEqual(
+            compile_payload["required_images"][-3:],
+            [
+                {
+                    "slide_no": 5,
+                    "slide_title": "1.4 New Procedure Step",
+                    "alias": "image_1",
+                    "ref": "image_7",
+                },
+                {
+                    "slide_no": 5,
+                    "slide_title": "1.4 New Procedure Step",
+                    "alias": "image_2",
+                    "ref": "image_8",
+                },
+                {
+                    "slide_no": 5,
+                    "slide_title": "1.4 New Procedure Step",
+                    "alias": "image_3",
+                    "ref": "image_9",
+                },
+            ],
+        )
+
+    def test_manual_slide_style_endpoint_rejects_non_manual_template(self) -> None:
+        response = self.client.post(
+            "/api/manual-slide-style",
+            data={
+                "payload_yaml": VALID_REPORT_CONTENT_YAML,
+                "preset_id": "manual.section-break",
+                "built_in": "autoreport_editorial",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error_type"], "validation_error")
+        self.assertEqual(response.json()["message"], "Slide insertion failed.")
+        self.assertIn(
+            "Manual slide styles can only be added when the built-in manual starter is active.",
+            response.json()["errors"],
+        )
+
+    def test_manual_slide_delete_endpoint_removes_contents_slide(self) -> None:
+        response = self.client.post(
+            "/api/manual-slide-delete",
+            data={
+                "payload_yaml": PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML,
+                "source_kind": "contents_slide",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        updated = parse_yaml_text(payload["payload_yaml"])
+        self.assertNotIn("contents_slide", updated["report_content"])
+        self.assertEqual(payload["deleted_slide"]["source_kind"], "contents_slide")
+        self.assertEqual(payload["deleted_slide"]["slide_title"], "Contents")
+
+        compile_response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": payload["payload_yaml"],
+                "image_manifest": "[]",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(compile_response.status_code, 200)
+        compile_payload = compile_response.json()
+        self.assertEqual(
+            [preview["slide_title"] for preview in compile_payload["slide_previews"][:2]],
+            [
+                "Autoreport PowerPoint User Guide",
+                "1. Review The Manual Starter",
+            ],
+        )
+        self.assertEqual(compile_payload["slide_previews"][1]["source_kind"], "content_slide")
+
+    def test_manual_slide_delete_endpoint_removes_requested_content_slide(self) -> None:
+        response = self.client.post(
+            "/api/manual-slide-delete",
+            data={
+                "payload_yaml": PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML,
+                "source_kind": "content_slide",
+                "source_slide_index": "2",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        updated = parse_yaml_text(payload["payload_yaml"])
+        slides = updated["report_content"]["slides"]
+        self.assertEqual(len(slides), 3)
+        self.assertEqual(payload["deleted_slide"]["source_slide_index"], 2)
+        self.assertEqual(
+            payload["deleted_slide"]["slide_title"],
+            "1.1 Review The Starter Example",
+        )
+        self.assertNotIn(
+            "Review The Starter Example",
+            [slide["slots"].get("step_title") for slide in slides],
+        )
+
+    def test_manual_slide_delete_endpoint_rejects_last_content_slide(self) -> None:
+        response = self.client.post(
+            "/api/manual-slide-delete",
+            data={
+                "payload_yaml": build_single_slide_manual_procedure_example_yaml(),
+                "source_kind": "content_slide",
+                "source_slide_index": "1",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error_type"], "validation_error")
+        self.assertEqual(response.json()["message"], "Slide deletion failed.")
+        self.assertIn(
+            "The manual draft must keep at least 1 content slide.",
+            response.json()["errors"],
+        )
 
     def test_compile_endpoint_returns_compiled_runtime_payload(self) -> None:
         response = self.client.post(
@@ -288,6 +828,45 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["payload_kind"], "content")
         self.assertIn("authoring_payload:", response.json()["normalized_authoring_yaml"])
+
+    def test_compile_endpoint_repairs_common_manual_indentation_drift(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": BROKEN_MANUAL_INDENTATION_REPORT_CONTENT_YAML,
+                "image_manifest": "[]",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["payload_kind"], "content")
+        self.assertTrue(payload["payload_yaml"].startswith("report_content:\n  title_slide:"))
+        self.assertIn(
+            "The draft was re-indented automatically. Review the repaired YAML in the editor before generating.",
+            payload["hints"],
+        )
+        self.assertEqual(
+            payload["required_images"],
+            [
+                {
+                    "slide_no": 2,
+                    "slide_title": "1.1 Review The Starter Example",
+                    "alias": "image_1",
+                    "ref": "image_1",
+                }
+            ],
+        )
+        self.assertEqual(
+            [preview["slide_title"] for preview in payload["slide_previews"]],
+            [
+                "Autoreport PowerPoint User Guide",
+                "Contents",
+                "1. Review The Manual Starter",
+                "1.1 Review The Starter Example",
+            ],
+        )
 
     def test_compile_endpoint_returns_manual_required_image_order(self) -> None:
         response = self.client.post(
@@ -373,6 +952,43 @@ class WebAppTestCase(unittest.TestCase):
                 }
             ],
         )
+        self.assertEqual(
+            [
+                {
+                    "source_kind": preview["source_kind"],
+                    "source_slide_index": preview["source_slide_index"],
+                    "source_can_delete": preview["source_can_delete"],
+                    "source_is_primary_preview": preview["source_is_primary_preview"],
+                }
+                for preview in response.json()["slide_previews"][:4]
+            ],
+            [
+                {
+                    "source_kind": "title_slide",
+                    "source_slide_index": None,
+                    "source_can_delete": False,
+                    "source_is_primary_preview": True,
+                },
+                {
+                    "source_kind": "contents_slide",
+                    "source_slide_index": None,
+                    "source_can_delete": True,
+                    "source_is_primary_preview": True,
+                },
+                {
+                    "source_kind": "content_slide",
+                    "source_slide_index": 1,
+                    "source_can_delete": True,
+                    "source_is_primary_preview": True,
+                },
+                {
+                    "source_kind": "content_slide",
+                    "source_slide_index": 2,
+                    "source_can_delete": True,
+                    "source_is_primary_preview": True,
+                },
+            ],
+        )
 
     def test_compile_endpoint_slide_previews_follow_runtime_continuation(self) -> None:
         response = self.client.post(
@@ -404,6 +1020,22 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(len(continued_previews[0]["image_blocks"]), 1)
         self.assertTrue(
             all(preview["image_blocks"] == [] for preview in continued_previews[1:])
+        )
+        self.assertEqual(continued_previews[0]["source_kind"], "content_slide")
+        self.assertEqual(continued_previews[0]["source_slide_index"], 2)
+        self.assertTrue(continued_previews[0]["source_can_delete"])
+        self.assertTrue(continued_previews[0]["source_is_primary_preview"])
+        self.assertTrue(
+            all(preview["source_slide_index"] == 2 for preview in continued_previews[1:])
+        )
+        self.assertTrue(
+            all(not preview["source_can_delete"] for preview in continued_previews[1:])
+        )
+        self.assertTrue(
+            all(
+                not preview["source_is_primary_preview"]
+                for preview in continued_previews[1:]
+            )
         )
         self.assertIn("decorations", continued_previews[0])
         self.assertIn("font_size_pt", continued_previews[0]["text_blocks"][0])

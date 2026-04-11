@@ -8,11 +8,12 @@ skill at `codex/skills/remote-deployment-handover/SKILL.md`.
 
 ## Current Repository State
 
-- branch to use: `main`
-- release backup tag: `v0.3.0`
+- stable deploy branch: `main`
+- pre-release candidate branch: `codex/v0.4.2-master`
+- last release tag on the stable line: `v0.4.1`
 - current public app entrypoint: `autoreport.web.app:app`
 - current debug app entrypoint: `autoreport.web.debug_app:app`
-- as of March 29, 2026, `main` already includes `235a415` (`web: hide image flow on public demo`)
+- as of April 11, 2026, the public health endpoint responds at `http://3.36.96.47/healthz`
 
 The repository already includes reusable deployment assets:
 
@@ -40,6 +41,7 @@ Expected homepage signals:
 - the page includes `Edit the starter deck and generate an Autoreport PPTX.`
 - the page includes `Starter Deck YAML`
 - the page includes `Manual Procedure Starter`
+- the page includes `Draft Checker`
 - the page includes `Refresh Slide Assets`
 
 If those manual-starter signals are missing from the public URL, treat that as a
@@ -86,6 +88,7 @@ curl http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1:8000/ | grep -n "Edit the starter deck and generate an Autoreport PPTX."
 curl -s http://127.0.0.1:8000/ | grep -n "Starter Deck YAML"
 curl -s http://127.0.0.1:8000/ | grep -n "Manual Procedure Starter"
+curl -s http://127.0.0.1:8000/ | grep -n "Draft Checker"
 curl -s http://127.0.0.1:8000/ | grep -n "Refresh Slide Assets"
 ```
 
@@ -107,6 +110,7 @@ ps -ef | grep uvicorn
 curl http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1/ | grep -n "Starter Deck YAML"
 curl -s http://127.0.0.1/ | grep -n "Manual Procedure Starter"
+curl -s http://127.0.0.1/ | grep -n "Draft Checker"
 curl -s http://127.0.0.1/ | grep -n "Refresh Slide Assets"
 journalctl -u autoreport -n 100 --no-pager
 ```
@@ -124,6 +128,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart autoreport
 sudo systemctl reload nginx
 curl -s http://127.0.0.1/ | grep -n "Manual Procedure Starter"
+curl -s http://127.0.0.1/ | grep -n "Draft Checker"
 ```
 
 7. If the host is container-based instead of `systemd`, rebuild and replace the running image.
@@ -187,4 +192,5 @@ The remote Codex task is complete when:
 - `curl http://127.0.0.1/` returns the Autoreport homepage through `nginx`
 - the homepage includes `Starter Deck YAML`
 - the homepage includes `Manual Procedure Starter`
+- the homepage includes `Draft Checker`
 - no machine-specific secrets were written into the public repository

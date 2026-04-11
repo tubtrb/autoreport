@@ -127,7 +127,7 @@ def write_manual_report_content(path: Path, *, image_paths: list[Path]) -> None:
                 "slots": {
                     "doc_title": "Autoreport PowerPoint User Guide",
                     "doc_subtitle": "CLI manual compile smoke",
-                "doc_version": "v0.4.1",
+                "doc_version": "v0.4.2",
                     "author_or_owner": "Autoreport Team",
                 },
             },

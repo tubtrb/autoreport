@@ -40,6 +40,7 @@ class HandoffRewriteTestCase(unittest.TestCase):
 
     def make_args(self) -> argparse.Namespace:
         return argparse.Namespace(
+            version="0.3.0",
             source_ref="codex/v0.3-master",
             public_service_info=PublicServiceInfo(
                 as_of="2026-03-29",
@@ -88,29 +89,39 @@ class HandoffRewriteTestCase(unittest.TestCase):
         rewritten = transform_guide_body(body, self.make_spec(), self.make_args())
 
         self.assertIn(
-            "This guide reflects the Autoreport implementation at `codex/v0.3-master`. Extra context stays here.",
+            "This guide reflects the public Autoreport experience for v0.3.0. Extra context stays here.",
             rewritten,
         )
         self.assertIn(
-            "In this handoff build, the success state changes to `Generation complete.`",
+            "In the hosted demo, the success state changes to `Generation complete.`",
             rewritten,
         )
         self.assertIn("![Demo](../assets/guide/image.png)", rewritten)
-        self.assertIn("## Verification for this handoff build", rewritten)
+        self.assertIn("## Browser check", rewritten)
         self.assertIn(
-            "The `codex/v0.3-master` build was verified with the contract-facing CLI and web test suites.",
+            "The hosted demo flow and the download were checked in the browser.",
             rewritten,
         )
         self.assertIn("## Live service", rewritten)
-        self.assertIn("Release-facing site home: `http://auto-report.org/`", rewritten)
-        self.assertIn("Hosted demo app: `http://3.36.96.47/`", rewritten)
+        self.assertIn("Home: `http://auto-report.org/`", rewritten)
+        self.assertIn("Hosted demo: `http://3.36.96.47/`", rewritten)
+        self.assertNotIn("codex/v0.3-master", rewritten)
+        self.assertNotIn("The current branch was verified", rewritten)
+        self.assertNotIn("healthz", rewritten)
 
     def test_transform_guide_body_rewrites_placeholder_image_and_drops_local_comment(self) -> None:
         body = "\n".join(
             [
                 "# User Guide",
                 "",
-                "This guide reflects the current implementation of Autoreport on the active branch.",
+                "Version: `v0.3.1`",
+                "",
+                "Status: `draft`",
+                "",
+                "## Hosted demo flow",
+                "",
+                "Guide body.",
+                "",
                 "",
                 "![Autoreport web demo](REPLACE_WITH_PUBLIC_IMAGE_URL)",
                 "",
@@ -123,6 +134,10 @@ class HandoffRewriteTestCase(unittest.TestCase):
         self.assertIn(
             "![Autoreport web demo](../assets/guide/image.png)",
             rewritten,
+        )
+        self.assertLess(
+            rewritten.index("## Live service"),
+            rewritten.index("## Hosted demo flow"),
         )
         self.assertNotIn("REPLACE_WITH_PUBLIC_IMAGE_URL", rewritten)
         self.assertNotIn("Local working screenshot asset", rewritten)
@@ -164,14 +179,15 @@ class HandoffRewriteTestCase(unittest.TestCase):
         self.assertIn("This release now exposes the refreshed flow.", rewritten)
         self.assertIn("## Live service", rewritten)
         self.assertIn(
-            "Release-facing user guide: `http://auto-report.org/guide/`",
+            "Guide: `http://auto-report.org/guide/`",
             rewritten,
         )
-        self.assertIn("## Verification for this release", rewritten)
+        self.assertIn("## Browser check", rewritten)
         self.assertIn(
-            "This release note reflects the `codex/v0.3-master` branch and its verification run.",
+            "This release note reflects the public Autoreport v0.3.0 release surface.",
             rewritten,
         )
+        self.assertNotIn("codex/v0.3-master", rewritten)
 
     def test_transform_homepage_body_normalizes_live_service_section(self) -> None:
         body = "\n".join(
@@ -187,14 +203,21 @@ class HandoffRewriteTestCase(unittest.TestCase):
                 "## Product overview",
                 "",
                 "- Overview bullet",
+                "",
+                "At this stage the public product story is aligned to the current `v0.4.1` release content, so readers can move between overview, guide, and updates without stepping into an older narrative.",
             ]
         )
 
         rewritten = transform_homepage_body(body, self.make_args())
 
         self.assertIn("## Live service", rewritten)
-        self.assertIn("Hosted demo health check: `http://3.36.96.47/healthz`", rewritten)
+        self.assertIn("Hosted demo: `http://3.36.96.47/`", rewritten)
         self.assertNotIn("Old live service text.", rewritten)
+        self.assertNotIn("healthz", rewritten)
+        self.assertIn(
+            "At this stage the public product story is aligned to the current `v0.3.0` release content, so readers can move between overview, guide, and updates without stepping into an older narrative.",
+            rewritten,
+        )
         self.assertLess(
             rewritten.index("## Live service"),
             rewritten.index("## Product overview"),
@@ -294,17 +317,19 @@ class HandoffRewriteTestCase(unittest.TestCase):
 
             args = argparse.Namespace(
                 autorelease_root=Path(autorelease_dir),
+                version="0.3.0",
                 public_service_info=self.make_args().public_service_info,
             )
 
             written_path = sync_homepage_live_service(args)
             rewritten = written_path.read_text(encoding="utf-8")
 
-            self.assertEqual(written_path, homepage_path)
-            self.assertIn("title: Home", rewritten)
-            self.assertIn("## Live service", rewritten)
-            self.assertIn("Hosted demo app: `http://3.36.96.47/`", rewritten)
-            self.assertIn("## Product overview", rewritten)
+        self.assertEqual(written_path, homepage_path)
+        self.assertIn("title: Home", rewritten)
+        self.assertIn("## Live service", rewritten)
+        self.assertIn("Hosted demo: `http://3.36.96.47/`", rewritten)
+        self.assertIn("## Product overview", rewritten)
+        self.assertNotIn("healthz", rewritten)
 
 
 if __name__ == "__main__":
