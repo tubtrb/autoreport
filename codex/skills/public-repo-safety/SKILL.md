@@ -54,7 +54,7 @@ internal-only screenshots, or other accidental disclosures.
 ## Current Repo Defaults
 
 - `output/`, `.playwright-cli/`, `tests/_tmp/`, and `.codex/` are ignored by default in this repo.
-- Versioned post Markdown under `docs/posts/*.md` and reusable assets under `docs/shared-assets/` are repo-bound by default.
+- Versioned post Markdown under `docs/posts/*.md`, stable standalone page source under `docs/pages/*.md`, and reusable assets under `docs/shared-assets/` are repo-bound by default.
 - Versioned screenshot capture folders under `docs/posts/*-image-v*/` are local-only by default until an asset is intentionally promoted into a tracked path.
 - Ignored browser artifacts can still contain unsafe captures, so review them before promoting any image into a tracked location.
 - Browser-generated full-page captures are usually safer for public docs than OS-level active-window screenshots.

@@ -63,6 +63,21 @@ class WebDebugAppTestCase(unittest.TestCase):
         self.assertIn("Load Starter Authoring", response.text)
         self.assertIn("Load AI Draft Prompt", response.text)
 
+    def test_debug_page_embeds_full_ai_draft_prompt(self) -> None:
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "# Complete the starter YAML below as the final answer.",
+            response.text,
+        )
+        self.assertIn(
+            "Goal: draft a screenshot-first procedure manual for Autoreport using the manual template.",
+            response.text,
+        )
+        self.assertIn("Review The Starter Example", response.text)
+        self.assertIn("Generate The PowerPoint", response.text)
+
     def test_debug_proof_page_renders_separate_proof_surface(self) -> None:
         response = self.client.get("/proof")
 
@@ -74,8 +89,10 @@ class WebDebugAppTestCase(unittest.TestCase):
         self.assertIn("Saved Corpus Recheck", response.text)
         self.assertIn("Live Server Smoke", response.text)
         self.assertIn("Stronger Live Proof", response.text)
+        self.assertIn("run_manual_ai_regression.ps1", response.text)
         self.assertIn("run_server_proof.ps1", response.text)
         self.assertIn("recheck_manual_corpus.py", response.text)
+        self.assertIn("record_visual_review.py", response.text)
 
     def test_debug_compile_route_is_wired(self) -> None:
         response = self.client.post(

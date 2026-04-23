@@ -30,8 +30,17 @@ from autoreport.template_flow import (
     materialize_report_payload,
     serialize_document,
 )
+from autoreport.templates.manual_procedure_variants import (
+    MANUAL_PROCEDURE_PATTERN_IDS_BY_IMAGE_COUNT,
+)
 from autoreport.templates.weekly_report import build_report_fill_plan
 from autoreport.validator import ValidationError
+from autoreport.web.manual_ai_yaml import (
+    ManualAiYamlCoercionResult,
+    append_manual_ai_coercion_feedback,
+    manual_ai_coercion_hints,
+    parse_public_payload_yaml,
+)
 from autoreport.web.style_presets import (
     MANUAL_PUBLIC_TEMPLATE_NAME as STYLE_PRESET_MANUAL_TEMPLATE_NAME,
     append_style_preset_to_payload_yaml,
@@ -69,10 +78,13 @@ _MANUAL_ALLOWED_BODY_PATTERNS = (
         0,
         "Use for text-only divider slides with no image_* slots.",
     ),
-    (
-        "text_image.manual.procedure.one",
-        1,
-        "Use when the slide has exactly 1 image_* slot.",
+    *tuple(
+        (
+            pattern_id,
+            1,
+            "Use when the slide has exactly 1 image_* slot.",
+        )
+        for pattern_id in MANUAL_PROCEDURE_PATTERN_IDS_BY_IMAGE_COUNT[1]
     ),
     (
         "text_image.manual.procedure.two",
@@ -88,99 +100,33 @@ _MANUAL_ALLOWED_BODY_PATTERNS = (
 _MANUAL_ALLOWED_BODY_PATTERN_IDS = tuple(
     pattern_id for pattern_id, _, _ in _MANUAL_ALLOWED_BODY_PATTERNS
 )
-_MANUAL_ALLOWED_PATTERN_BY_IMAGE_COUNT = {
-    image_count: pattern_id
-    for pattern_id, image_count, _ in _MANUAL_ALLOWED_BODY_PATTERNS
+_MANUAL_ALLOWED_PATTERN_IDS_BY_IMAGE_COUNT = {
+    image_count: tuple(
+        pattern_id
+        for pattern_id, pattern_image_count, _ in _MANUAL_ALLOWED_BODY_PATTERNS
+        if pattern_image_count == image_count
+    )
+    for image_count in (0, 1, 2, 3)
 }
 _MANUAL_DASH_STEP_NO_RE = re.compile(r"^\d+-\d+$")
-_MANUAL_AI_KEY_RE = re.compile(
-    r"^(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*:(?:\s*(?P<value>.*))?$"
-)
-_MANUAL_AI_SLIDE_PATTERN_RE = re.compile(r"^-\s*pattern_id\s*:\s*.+$")
-_MANUAL_AI_BLOCK_SCALAR_RE = re.compile(r":\s*[>|][+-]?\s*$")
-_MANUAL_AI_IMAGE_ALIAS_RE = re.compile(r"^(?:image|caption)_[1-9]\d*$")
-_MANUAL_AI_ROOT_CHILD_KEYS = {"title_slide", "contents_slide", "slides"}
-_MANUAL_AI_TITLE_SLOT_KEYS = {
-    "doc_title",
-    "doc_subtitle",
-    "doc_version",
-    "author_or_owner",
-}
-_MANUAL_AI_CONTENTS_SLOT_KEYS = {
-    "contents_title",
-    "contents_group_label",
-}
-_MANUAL_AI_SLIDE_SLOT_KEYS = {
-    "section_no",
-    "section_title",
-    "section_subtitle",
-    "step_no",
-    "step_title",
-    "command_or_action",
-    "summary",
-    "detail_body",
-}
-_MANUAL_AI_AUTO_REPAIR_WARNING = (
-    "Auto-corrected common manual YAML indentation drift before checking."
-)
-_MANUAL_AI_AUTO_REPAIR_HINT = (
-    "The draft was re-indented automatically. Review the repaired YAML in the editor before generating."
-)
-MANUAL_DRAFT_PROMPT_YAML = """
-# Paste this brief into another AI and ask it to fill the report_content draft below.
+MANUAL_DRAFT_PROMPT_HEADER = """
+# Complete the starter YAML below as the final answer. The answer body must be the YAML itself.
 # Goal: draft a screenshot-first procedure manual for Autoreport using the manual template.
 # Hard rules:
 # - Return exactly one YAML document rooted at report_content.
-# - Do not write prose before or after the YAML.
-# - Keep title_slide.pattern_id exactly as cover.manual.
-# - Keep contents_slide.pattern_id exactly as contents.manual when a contents slide is present.
-# - Only use these body pattern_id values:
-#   - text.manual.section_break
-#   - text_image.manual.procedure.one
-#   - text_image.manual.procedure.two
-#   - text_image.manual.procedure.three
-# - Never invent new pattern_id names such as image.manual.step.
-# - Use text.manual.section_break only for text-only divider slides with no image_* slots.
-# - Use text_image.manual.procedure.one only when exactly 1 image_* slot is present.
-# - Use text_image.manual.procedure.two only when exactly 2 image_* slots are present.
-# - Use text_image.manual.procedure.three only when exactly 3 image_* slots are present.
-# - Keep image slot values as upload refs in the listed order (for example image_1, image_2, image_3).
-# - Use step numbers like 2.1, 2.2, 3.1. Do not write 2-1 or 3-1.
-# - Fill short manual fields such as step_no, step_title, command_or_action, and summary directly.
-# - Put long procedure text into detail_body.
-# - Add caption_1..caption_3 only when the image needs a short caption.
-report_content:
-  title_slide:
-    pattern_id: cover.manual
-    slots:
-      doc_title: Replace with the guide title
-      doc_subtitle: |
-        Replace with a concise guide subtitle
-      doc_version: v0.4.2
-      author_or_owner: Autoreport Team
-  contents_slide:
-    pattern_id: contents.manual
-    slots:
-      contents_title: Contents
-      contents_group_label: Procedure Overview
-  slides:
-    - pattern_id: text.manual.section_break
-      slots:
-        section_no: "1."
-        section_title: First section title
-        section_subtitle: Short section setup note
-    - pattern_id: text_image.manual.procedure.one
-      slots:
-        step_no: "1.1"
-        step_title: First procedure title
-        command_or_action: "Command or action for this step"
-        summary: Short outcome summary for the step
-        detail_body: |
-          Explain the detailed procedure here.
-        image_1: image_1
-        caption_1: First screenshot caption
+# - Start the response with report_content: on the first line of YAML output.
+# - Return YAML only. Do not add prose, summaries, explanations, extra comment lines, or code fences.
+# - Return the starter YAML itself as the answer body. Do not describe it, summarize it, or quote only one excerpt from it.
+# - The safest valid response is to copy the full starter YAML unchanged.
+# - Copy the starter YAML structure exactly. Edit slot values only when necessary.
+# - If the starter draft is already structurally valid, return it unchanged except for slot edits you intentionally make.
+# - Keep every existing key, slide, pattern_id, image_* ref, caption_*, and ordering from the starter YAML.
+# - Preserve the existing YAML indentation style and quoting style whenever possible.
+# - Do not answer with only one slide, only one field, or only one excerpt from detail_body.
+# - Keep the exact body slide count and body slide pattern order from the starter draft.
+# - Do not invent new slides, new pattern_id values, or new image refs.
 """.strip()
-MANUAL_PROCEDURE_EXAMPLE_YAML = f"""
+MANUAL_PROCEDURE_EXAMPLE_YAML = """
 report_content:
   title_slide:
     pattern_id: cover.manual
@@ -210,6 +156,7 @@ report_content:
         detail_body: |
           Review the starter YAML, note the built-in template mode, and confirm
           the page is ready before moving to the next step.
+          Capture the ready state in the screenshot.
         image_1: image_1
         caption_1: Starter example loaded in the editor
     - pattern_id: text_image.manual.procedure.two
@@ -219,8 +166,8 @@ report_content:
         command_or_action: "Action: edit the YAML title, sections, and example copy."
         summary: Use the ordered screenshots to compare the starter draft before and after the edits.
         detail_body: |
-          Update the guide title and slide text, then compare the edited YAML
-          against the original starter so the customer can see what changed.
+          Update the guide title and compare the edited YAML against the starter.
+          Show the before and after state clearly in the screenshots.
         image_1: image_2
         image_2: image_3
         caption_1: Starter YAML before editing
@@ -232,8 +179,7 @@ report_content:
         command_or_action: "Action: refresh the slide order and generate the PowerPoint deck."
         summary: Use three screenshots to document preview, generation, and download.
         detail_body: |
-          Refresh the manual slide order, confirm the PowerPoint preview, and
-          generate the deck so the download step is visible end to end.
+          Confirm the preview, generation, and download states in order.
         image_1: image_4
         image_2: image_5
         image_3: image_6
@@ -241,10 +187,19 @@ report_content:
         caption_2: Generation in progress
         caption_3: PowerPoint download complete
 """.strip()
-MANUAL_DRAFT_PROMPT_HEADER = MANUAL_DRAFT_PROMPT_YAML.partition("\nreport_content:")[0].strip()
-PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML = (
-    f"{MANUAL_DRAFT_PROMPT_HEADER}\n{MANUAL_PROCEDURE_EXAMPLE_YAML}"
+MANUAL_DRAFT_PROMPT_FOOTER = """
+# End of starter YAML.
+# Return the full starter YAML above as one complete answer.
+# Do not stop after one field, one slide, or one detail_body excerpt.
+# Reply with the complete YAML only.
+""".strip()
+# Full AI prompt text used by the debug app and corpus pack exporter.
+MANUAL_DRAFT_PROMPT_YAML = (
+    f"{MANUAL_DRAFT_PROMPT_HEADER}\n"
+    f"{MANUAL_PROCEDURE_EXAMPLE_YAML}\n"
+    f"{MANUAL_DRAFT_PROMPT_FOOTER}"
 ).strip()
+PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML = MANUAL_DRAFT_PROMPT_YAML
 app = FastAPI(
     title="Autoreport Demo",
     docs_url=None,
@@ -460,15 +415,6 @@ def _render_demo_html() -> str:
       .status-errors, .status-hints { margin: 12px 0 0; padding-left: 18px; line-height: 1.6; }
       .status-errors { color: #b91c1c; }
       .status-hints { color: var(--accent); }
-      .slide-upload-slot input[type=file] {
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 8px 10px;
-        background: #fff;
-        color: var(--text);
-        font: inherit;
-      }
       .slide-preview-box[hidden], .style-gallery[hidden] { display: none; }
       .style-gallery {
         display: grid;
@@ -623,19 +569,11 @@ def _render_demo_html() -> str:
         display: grid;
         gap: 12px;
       }
-      .slide-preview-row.has-upload {
-        grid-template-columns: minmax(220px, 0.54fr) minmax(0, 1fr);
-        align-items: start;
-      }
-      .slide-upload-card,
       .slide-card {
         border: 1px solid var(--border);
         border-radius: 14px;
         padding: 10px;
         background: #fff;
-      }
-      .slide-upload-card {
-        background: linear-gradient(180deg, rgba(11,106,88,0.04), #ffffff);
       }
       .slide-card-head {
         display: grid;
@@ -678,68 +616,6 @@ def _render_demo_html() -> str:
       .slide-delete-button:disabled {
         cursor: wait;
       }
-      .slide-upload-panel {
-        display: grid;
-        gap: 8px;
-      }
-      .slide-upload-slot {
-        display: grid;
-        gap: 6px;
-        padding: 8px;
-        border: 1px dashed rgba(91,104,122,0.35);
-        border-radius: 14px;
-        background: #fff;
-        outline: none;
-      }
-      .slide-upload-slot.is-active,
-      .slide-upload-slot:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(11,106,88,0.12);
-      }
-      .slide-upload-slot-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-      .slide-upload-slot-title {
-        font-weight: 700;
-        color: var(--text);
-      }
-      .slide-upload-slot-state {
-        color: var(--muted);
-        font-size: 0.78rem;
-      }
-      .slide-upload-slot-copy {
-        display: none;
-      }
-      .slide-upload-actions {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px;
-        align-items: center;
-      }
-      .slide-upload-actions input[type=file] {
-        min-width: 0;
-        font-size: 0.82rem;
-      }
-      .slide-upload-clear {
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 7px 10px;
-        background: #fff;
-        color: var(--text);
-        font-size: 0.82rem;
-        line-height: 1.2;
-        font-weight: 700;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-      .slide-upload-file-name {
-        color: var(--accent);
-        font-size: 0.78rem;
-        word-break: break-word;
-      }
       .slide-canvas {
         position: relative;
         aspect-ratio: 4 / 3;
@@ -775,7 +651,6 @@ def _render_demo_html() -> str:
         .rail { position: static; }
       }
       @media (max-width: 1080px) {
-        .slide-preview-row.has-upload { grid-template-columns: 1fr; }
         .style-preset-grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 980px) {
@@ -807,16 +682,13 @@ def _render_demo_html() -> str:
         .panel-head-top,
         .style-gallery-head,
         .preview-status-head,
-        .slide-card-head,
-        .slide-upload-slot-head,
-        .slide-upload-actions {
+        .slide-card-head {
           grid-template-columns: 1fr;
           align-items: stretch;
         }
         .panel-head-top,
         .style-gallery-head,
-        .preview-status-head,
-        .slide-upload-slot-head {
+        .preview-status-head {
           display: grid;
         }
         .starter-pill {
@@ -839,9 +711,6 @@ def _render_demo_html() -> str:
         }
         .slide-card-actions {
           justify-content: flex-start;
-        }
-        .slide-upload-clear {
-          width: 100%;
         }
       }
     </style>
@@ -922,9 +791,9 @@ __STYLE_PRESET_CARDS_HTML__
               </div>
               <h2>PowerPoint Slide Preview</h2>
               <p class="panel-copy">
-                Slides that need screenshots show a matching upload panel on the
-                left so the controls stay aligned with the composed preview on
-                the right.
+                Slides that need screenshots can be handled directly inside the
+                preview. Click any image box to upload or replace a screenshot
+                there.
               </p>
               <ul id="slide-preview-list" class="slide-preview-list"></ul>
             </div>
@@ -1127,6 +996,19 @@ __STYLE_PRESET_CARDS_HTML__
         syncUploadedImageUrls();
       }
 
+      function handleSelectedUpload(preview, ref, file, successHint = null) {
+        if (!ref || !file) {
+          return;
+        }
+        setSelectedFile(ref, file);
+        renderSlidePreviews();
+        setStatus(
+          `Updated ${buildSlideSummary(preview)}.`,
+          [],
+          [successHint || `${ref} now uses ${file.name}.`]
+        );
+      }
+
       function resetUploads() {
         requiredImages = [];
         slidePreviews = [];
@@ -1151,14 +1033,8 @@ __STYLE_PRESET_CARDS_HTML__
         }
 
         for (const preview of slidePreviews) {
-          const imageBlocks = (preview.image_blocks || []).filter((block) => block.ref);
           const row = document.createElement("li");
-          row.className = imageBlocks.length
-            ? "slide-preview-row has-upload"
-            : "slide-preview-row";
-          if (imageBlocks.length) {
-            row.appendChild(buildAlignedUploadCard(preview, imageBlocks));
-          }
+          row.className = "slide-preview-row";
           row.appendChild(buildPreviewCard(preview));
           slidePreviewList.appendChild(row);
         }
@@ -1174,14 +1050,6 @@ __STYLE_PRESET_CARDS_HTML__
         canvas.appendChild(buildSlidePreviewSvg(preview));
 
         card.appendChild(canvas);
-        return card;
-      }
-
-      function buildAlignedUploadCard(preview, imageBlocks) {
-        const card = document.createElement("section");
-        card.className = "slide-upload-card";
-        card.appendChild(buildSlideCardHead(preview, { showMeta: false, showDelete: false }));
-        card.appendChild(buildSlideUploadPanel(preview, imageBlocks));
         return card;
       }
 
@@ -1253,127 +1121,6 @@ __STYLE_PRESET_CARDS_HTML__
         });
       }
 
-      function buildSlideUploadPanel(preview, imageBlocks) {
-        const panel = document.createElement("div");
-        panel.className = "slide-upload-panel";
-
-        for (const block of imageBlocks) {
-          panel.appendChild(buildSlideUploadSlot(preview, block));
-        }
-
-        return panel;
-      }
-
-      function buildSlideUploadSlot(preview, block) {
-        const slotCard = document.createElement("div");
-        slotCard.className = "slide-upload-slot";
-        if (activePasteRef === block.ref) {
-          slotCard.classList.add("is-active");
-        }
-        slotCard.tabIndex = 0;
-
-        slotCard.addEventListener("click", () => {
-          activePasteRef = block.ref || null;
-          slotCard.focus();
-        });
-        slotCard.addEventListener("focus", () => {
-          activePasteRef = block.ref || null;
-        });
-        slotCard.addEventListener("blur", () => {
-          if (activePasteRef === block.ref) {
-            activePasteRef = null;
-          }
-        });
-        slotCard.addEventListener("paste", (event) => {
-          const pastedFile = extractClipboardImageFile(event.clipboardData, block.ref);
-          if (!pastedFile) {
-            return;
-          }
-          event.preventDefault();
-          setSelectedFile(block.ref, pastedFile);
-          renderSlidePreviews();
-          setStatus(
-            `Updated ${preview.slide_title}.`,
-            [],
-            [`${block.ref} was replaced from the clipboard.`]
-          );
-        });
-
-        const head = document.createElement("div");
-        head.className = "slide-upload-slot-head";
-
-        const title = document.createElement("div");
-        title.className = "slide-upload-slot-title";
-        title.textContent = block.label || block.ref || "Image Slot";
-
-        const state = document.createElement("div");
-        state.className = "slide-upload-slot-state";
-        state.textContent = selectedFilesByRef.has(block.ref) ? "Ready" : "Waiting";
-
-        head.appendChild(title);
-        head.appendChild(state);
-        slotCard.appendChild(head);
-
-        const slotCopy = document.createElement("p");
-        slotCopy.className = "slide-upload-slot-copy";
-        slotCopy.textContent = `Ref ${block.ref}. Click this panel and paste a screenshot, or choose a file below.`;
-        slotCard.appendChild(slotCopy);
-
-        const actions = document.createElement("div");
-        actions.className = "slide-upload-actions";
-
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".png,.jpg,.jpeg";
-        input.addEventListener("click", (event) => {
-          event.stopPropagation();
-          activePasteRef = block.ref || null;
-        });
-        input.addEventListener("change", () => {
-          const file = (input.files || [])[0];
-          if (!file) {
-            return;
-          }
-          setSelectedFile(block.ref, file);
-          renderSlidePreviews();
-          setStatus(
-            `Updated ${preview.slide_title}.`,
-            [],
-            [`${block.ref} now uses ${file.name}.`]
-          );
-        });
-        actions.appendChild(input);
-
-        const clearButton = document.createElement("button");
-        clearButton.type = "button";
-        clearButton.className = "slide-upload-clear";
-        clearButton.textContent = "Clear";
-        clearButton.disabled = !selectedFilesByRef.has(block.ref);
-        clearButton.addEventListener("click", (event) => {
-          event.stopPropagation();
-          setSelectedFile(block.ref, null);
-          renderSlidePreviews();
-          setStatus(
-            `Cleared ${block.ref}.`,
-            [],
-            ["Choose another screenshot or paste from the clipboard when you are ready."]
-          );
-        });
-        actions.appendChild(clearButton);
-
-        slotCard.appendChild(actions);
-
-        const fileName = document.createElement("div");
-        fileName.className = "slide-upload-file-name";
-        const selected = selectedFilesByRef.get(block.ref);
-        fileName.textContent = selected
-          ? selected.name
-          : "No screenshot selected yet.";
-        slotCard.appendChild(fileName);
-
-        return slotCard;
-      }
-
       function extractClipboardImageFile(clipboardData, ref) {
         if (!clipboardData || !clipboardData.items) {
           return null;
@@ -1413,7 +1160,7 @@ __STYLE_PRESET_CARDS_HTML__
           svg.appendChild(buildSlideDecorationNode(decoration));
         }
         for (const block of preview.image_blocks || []) {
-          svg.appendChild(buildSlideImageNode(block));
+          svg.appendChild(buildSlideImageNode(preview, block));
         }
         for (const block of preview.text_blocks || []) {
           svg.appendChild(buildSlideTextNode(block));
@@ -1468,12 +1215,24 @@ __STYLE_PRESET_CARDS_HTML__
         return node;
       }
 
-      function buildSlideImageNode(block) {
+      function buildSlideImageNode(preview, block) {
         const node = document.createElementNS(SVG_NS, "foreignObject");
         node.setAttribute("x", String(toPreviewX(block.x_pct)));
         node.setAttribute("y", String(toPreviewY(block.y_pct)));
         node.setAttribute("width", String(toPreviewWidth(block.w_pct)));
         node.setAttribute("height", String(toPreviewHeight(block.h_pct)));
+
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".png,.jpg,.jpeg";
+        input.style.display = "none";
+        input.addEventListener("change", () => {
+          const file = (input.files || [])[0];
+          if (!file) {
+            return;
+          }
+          handleSelectedUpload(preview, block.ref, file);
+        });
 
         const shell = document.createElement("div");
         shell.setAttribute("xmlns", XHTML_NS);
@@ -1482,6 +1241,7 @@ __STYLE_PRESET_CARDS_HTML__
         shell.style.boxSizing = "border-box";
         shell.style.borderRadius = "12pt";
         shell.style.overflow = "hidden";
+        shell.style.position = "relative";
         const uploadedUrl = block.ref ? uploadedImageUrls.get(block.ref) : null;
         const hasUploadedImage = Boolean(uploadedUrl);
         shell.style.border = hasUploadedImage
@@ -1493,6 +1253,44 @@ __STYLE_PRESET_CARDS_HTML__
         shell.style.display = "flex";
         shell.style.alignItems = "center";
         shell.style.justifyContent = "center";
+        if (block.ref) {
+          shell.style.cursor = "pointer";
+          shell.tabIndex = 0;
+          shell.setAttribute("role", "button");
+          shell.setAttribute(
+            "aria-label",
+            hasUploadedImage
+              ? `${block.ref} uploaded. Click to replace the screenshot.`
+              : `${block.ref}. Click to upload a screenshot.`
+          );
+          shell.addEventListener("click", (event) => {
+            event.preventDefault();
+            activePasteRef = block.ref || null;
+            input.click();
+          });
+          shell.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") {
+              return;
+            }
+            event.preventDefault();
+            activePasteRef = block.ref || null;
+            input.click();
+          });
+          shell.addEventListener("paste", (event) => {
+            const pastedFile = extractClipboardImageFile(event.clipboardData, block.ref);
+            if (!pastedFile) {
+              return;
+            }
+            event.preventDefault();
+            handleSelectedUpload(
+              preview,
+              block.ref,
+              pastedFile,
+              `${block.ref} was replaced from the clipboard.`
+            );
+          });
+        }
+        shell.appendChild(input);
 
         if (uploadedUrl) {
           const image = document.createElement("img");
@@ -1505,18 +1303,85 @@ __STYLE_PRESET_CARDS_HTML__
           image.style.display = "block";
           image.style.background = "#ffffff";
           shell.appendChild(image);
+
+          const replacePill = document.createElement("div");
+          replacePill.setAttribute("xmlns", XHTML_NS);
+          replacePill.style.position = "absolute";
+          replacePill.style.right = "8pt";
+          replacePill.style.bottom = "8pt";
+          replacePill.style.padding = "4pt 8pt";
+          replacePill.style.borderRadius = "999px";
+          replacePill.style.background = "rgba(15, 23, 42, 0.78)";
+          replacePill.style.color = "#ffffff";
+          replacePill.style.fontSize = "8.5pt";
+          replacePill.style.fontWeight = "700";
+          replacePill.style.pointerEvents = "none";
+          replacePill.textContent = "Click to replace";
+          shell.appendChild(replacePill);
+
+          const clearButton = document.createElement("button");
+          clearButton.setAttribute("xmlns", XHTML_NS);
+          clearButton.type = "button";
+          clearButton.style.position = "absolute";
+          clearButton.style.top = "8pt";
+          clearButton.style.right = "8pt";
+          clearButton.style.padding = "4pt 8pt";
+          clearButton.style.border = "1px solid rgba(148, 163, 184, 0.42)";
+          clearButton.style.borderRadius = "999px";
+          clearButton.style.background = "rgba(255, 255, 255, 0.92)";
+          clearButton.style.color = "#0f172a";
+          clearButton.style.fontSize = "8.5pt";
+          clearButton.style.fontWeight = "700";
+          clearButton.style.cursor = "pointer";
+          clearButton.textContent = "Clear";
+          clearButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setSelectedFile(block.ref, null);
+            renderSlidePreviews();
+            setStatus(
+              `Cleared ${block.ref}.`,
+              [],
+              ["Click the image box again when you want to upload a replacement screenshot."]
+            );
+          });
+          shell.appendChild(clearButton);
         } else {
           const placeholder = document.createElement("div");
           placeholder.setAttribute("xmlns", XHTML_NS);
-          placeholder.style.padding = "10pt";
+          placeholder.style.display = "grid";
+          placeholder.style.gap = "8pt";
+          placeholder.style.justifyItems = "center";
+          placeholder.style.padding = "12pt 10pt";
           placeholder.style.textAlign = "center";
           placeholder.style.color = "#64748b";
           placeholder.style.fontSize = "10pt";
           placeholder.style.lineHeight = "1.3";
           placeholder.style.whiteSpace = "pre-wrap";
-          placeholder.textContent = block.ref
-            ? `${block.ref}\nUpload to preview this slot.`
-            : `${block.label}\nUpload to preview this slot.`;
+
+          const refLabel = document.createElement("div");
+          refLabel.setAttribute("xmlns", XHTML_NS);
+          refLabel.style.fontWeight = "700";
+          refLabel.style.color = "#475569";
+          refLabel.textContent = block.ref || block.label || "Image Slot";
+          placeholder.appendChild(refLabel);
+
+          const uploadCta = document.createElement("div");
+          uploadCta.setAttribute("xmlns", XHTML_NS);
+          uploadCta.style.padding = "6pt 10pt";
+          uploadCta.style.borderRadius = "999px";
+          uploadCta.style.background = "rgba(11, 106, 88, 0.12)";
+          uploadCta.style.color = "#0b6a58";
+          uploadCta.style.fontSize = "8.5pt";
+          uploadCta.style.fontWeight = "700";
+          uploadCta.textContent = "Click to upload";
+          placeholder.appendChild(uploadCta);
+
+          const uploadHint = document.createElement("div");
+          uploadHint.setAttribute("xmlns", XHTML_NS);
+          uploadHint.textContent = "Paste also works after you click this image box.";
+          placeholder.appendChild(uploadHint);
+
           shell.appendChild(placeholder);
         }
 
@@ -1727,8 +1592,9 @@ __STYLE_PRESET_CARDS_HTML__
         }
         if (requiredImages.length) {
           successHints.push(
-            `Add ${requiredImages.length} screenshot file(s) in the aligned upload panels.`,
-            "Only slides with image slots show upload controls, and each panel stays beside its matching preview.",
+            `Add ${requiredImages.length} screenshot file(s) by clicking the image boxes in the preview.`,
+            "Only slides with image slots show upload controls now, and each image box handles its own upload state.",
+            "Click an uploaded image again to replace it, or use the small Clear button in the image box to remove it.",
           );
         } else {
           successHints.push("No image-backed slides are required for the current manual draft.");
@@ -1817,6 +1683,8 @@ __STYLE_PRESET_CARDS_HTML__
             "The AI prompt comments are back at the top of the manual starter YAML.",
             "Use Check Draft to catch unsupported manual pattern_id values before generating.",
             "Choose a gallery preset and use Add Slide to append more manual steps.",
+            "Click any image box in the preview rail to upload or replace a screenshot directly there.",
+            "Use the small Clear button inside an uploaded image box when you want to remove that screenshot.",
             "Use Delete on the right preview rail to remove a contents slide or manual step from the current draft.",
             "Reset, Add Slide, and Delete refresh the preview rail automatically, and the right-side link refreshes after manual YAML edits.",
           ]
@@ -2027,7 +1895,10 @@ def _manual_checker_pattern_suggestion(
     *,
     image_alias_count: int,
 ) -> str | None:
-    return _MANUAL_ALLOWED_PATTERN_BY_IMAGE_COUNT.get(image_alias_count)
+    pattern_ids = _MANUAL_ALLOWED_PATTERN_IDS_BY_IMAGE_COUNT.get(image_alias_count)
+    if not pattern_ids:
+        return None
+    return pattern_ids[0]
 
 
 def _manual_checker_rule_hints() -> list[str]:
@@ -2035,201 +1906,10 @@ def _manual_checker_rule_hints() -> list[str]:
         "Allowed body pattern_id values: "
         + ", ".join(_MANUAL_ALLOWED_BODY_PATTERN_IDS)
         + ".",
-        "Use text.manual.section_break for 0 images and "
-        "text_image.manual.procedure.one/two/three for 1/2/3 images.",
+        "Use text.manual.section_break for 0 images, any 1-image gallery preset for 1 image, "
+        "text_image.manual.procedure.two for 2 images, and text_image.manual.procedure.three for 3 images.",
         "Use step numbers like 2.1 instead of 2-1 in procedure slides.",
     ]
-
-
-def _manual_ai_known_slot_key(key: str, *, context: str | None) -> bool:
-    if context == "title_slide":
-        return key in _MANUAL_AI_TITLE_SLOT_KEYS
-    if context == "contents_slide":
-        return key in _MANUAL_AI_CONTENTS_SLOT_KEYS
-    if context == "slide":
-        return key in _MANUAL_AI_SLIDE_SLOT_KEYS or bool(
-            _MANUAL_AI_IMAGE_ALIAS_RE.fullmatch(key)
-        )
-    return False
-
-
-def _manual_ai_block_terminator(stripped_line: str, *, context: str | None) -> bool:
-    if stripped_line == "report_content:":
-        return True
-    key_match = _MANUAL_AI_KEY_RE.match(stripped_line)
-    if key_match is not None:
-        key = key_match.group("key")
-        if key in _MANUAL_AI_ROOT_CHILD_KEYS or key in {"pattern_id", "slots"}:
-            return True
-        return _manual_ai_known_slot_key(key, context=context)
-    return bool(_MANUAL_AI_SLIDE_PATTERN_RE.match(stripped_line))
-
-
-def _repair_manual_ai_yaml_indentation(
-    payload_yaml: str,
-    *,
-    built_in: str,
-) -> str | None:
-    if not _is_manual_public_template(built_in):
-        return None
-
-    stripped = payload_yaml.strip()
-    root_match = re.search(r"(?m)^\s*report_content:\s*$", stripped)
-    if root_match is None:
-        return None
-
-    prefix = stripped[: root_match.start()]
-    preserved_prefix_lines = [
-        line.rstrip()
-        for line in prefix.splitlines()
-        if not line.strip() or line.lstrip().startswith("#")
-    ]
-    candidate_lines = stripped[root_match.start() :].splitlines()
-    repaired_lines: list[str] = []
-    section: str | None = None
-    slot_context: str | None = None
-    block_scalar_indent: int | None = None
-    line_index = 0
-
-    while line_index < len(candidate_lines):
-        raw_line = candidate_lines[line_index].rstrip()
-        stripped_line = raw_line.strip()
-
-        if not stripped_line:
-            repaired_lines.append(
-                "" if block_scalar_indent is None else " " * block_scalar_indent
-            )
-            line_index += 1
-            continue
-
-        if stripped_line.startswith("```"):
-            line_index += 1
-            continue
-
-        if block_scalar_indent is not None:
-            if _manual_ai_block_terminator(stripped_line, context=slot_context):
-                block_scalar_indent = None
-                continue
-            repaired_lines.append((" " * block_scalar_indent) + stripped_line)
-            line_index += 1
-            continue
-
-        if stripped_line == "report_content:":
-            repaired_lines.append("report_content:")
-            section = None
-            slot_context = None
-            line_index += 1
-            continue
-
-        key_match = _MANUAL_AI_KEY_RE.match(stripped_line)
-        if key_match is not None:
-            key = key_match.group("key")
-            if key in _MANUAL_AI_ROOT_CHILD_KEYS:
-                repaired_lines.append(f"  {key}:")
-                section = key
-                slot_context = None
-                line_index += 1
-                continue
-
-            if section in {"title_slide", "contents_slide"}:
-                if key == "pattern_id":
-                    repaired_lines.append(f"    {stripped_line}")
-                    line_index += 1
-                    continue
-                if key == "slots":
-                    repaired_lines.append("    slots:")
-                    slot_context = section
-                    line_index += 1
-                    continue
-                if _manual_ai_known_slot_key(key, context=slot_context):
-                    repaired_lines.append(f"      {stripped_line}")
-                    if _MANUAL_AI_BLOCK_SCALAR_RE.search(stripped_line):
-                        block_scalar_indent = 8
-                    line_index += 1
-                    continue
-                line_index += 1
-                continue
-
-            if section == "slides":
-                if key == "slots":
-                    repaired_lines.append("      slots:")
-                    slot_context = "slide"
-                    line_index += 1
-                    continue
-                if key == "pattern_id":
-                    repaired_lines.append(f"    - {stripped_line}")
-                    slot_context = "slide"
-                    line_index += 1
-                    continue
-                if _manual_ai_known_slot_key(key, context=slot_context):
-                    repaired_lines.append(f"        {stripped_line}")
-                    if _MANUAL_AI_BLOCK_SCALAR_RE.search(stripped_line):
-                        block_scalar_indent = 10
-                    line_index += 1
-                    continue
-                line_index += 1
-                continue
-
-            line_index += 1
-            continue
-
-        if section == "slides" and _MANUAL_AI_SLIDE_PATTERN_RE.match(stripped_line):
-            repaired_lines.append(f"    {stripped_line}")
-            slot_context = "slide"
-            line_index += 1
-            continue
-
-        line_index += 1
-
-    repaired_yaml = "\n".join(
-        [*preserved_prefix_lines, *repaired_lines] if preserved_prefix_lines else repaired_lines
-    ).strip()
-    return repaired_yaml or None
-
-
-def _parse_public_payload_yaml(
-    payload_yaml: str,
-    *,
-    built_in: str,
-) -> tuple[object, str | None]:
-    try:
-        return parse_yaml_text(payload_yaml), None
-    except yaml.YAMLError as original_exc:
-        repaired_yaml = _repair_manual_ai_yaml_indentation(
-            payload_yaml,
-            built_in=built_in,
-        )
-        if repaired_yaml is None:
-            raise
-        try:
-            return parse_yaml_text(repaired_yaml), repaired_yaml
-        except yaml.YAMLError:
-            raise original_exc
-
-
-def _append_manual_auto_repair_feedback(
-    response_payload: dict[str, object],
-    *,
-    repaired_payload_yaml: str,
-) -> dict[str, object]:
-    updated_payload = dict(response_payload)
-    warnings = list(updated_payload.get("warnings", []))
-    if _MANUAL_AI_AUTO_REPAIR_WARNING not in warnings:
-        warnings.append(_MANUAL_AI_AUTO_REPAIR_WARNING)
-    hints = list(updated_payload.get("hints", []))
-    if _MANUAL_AI_AUTO_REPAIR_HINT not in hints:
-        hints.append(_MANUAL_AI_AUTO_REPAIR_HINT)
-    summary = dict(updated_payload.get("summary", {}) or {})
-    summary["warning_count"] = len(warnings)
-    updated_payload["warnings"] = warnings
-    updated_payload["hints"] = hints
-    updated_payload["summary"] = summary
-    updated_payload["payload_yaml"] = repaired_payload_yaml
-    if not updated_payload.get("errors"):
-        updated_payload["message"] = (
-            "Draft checker passed with warnings. Review the repaired indentation and rule hints before generating."
-        )
-    return updated_payload
 
 
 def _build_manual_draft_check(
@@ -2397,17 +2077,17 @@ def _build_manual_draft_check(
             continue
 
         procedure_slide_count += 1
-        expected_pattern_id = _MANUAL_ALLOWED_PATTERN_BY_IMAGE_COUNT.get(
+        expected_pattern_ids = _MANUAL_ALLOWED_PATTERN_IDS_BY_IMAGE_COUNT.get(
             image_alias_count
         )
-        if expected_pattern_id is None:
+        if expected_pattern_ids is None:
             errors.append(
                 f"Field '{prefix}.pattern_id' is '{pattern_id}', but the manual template supports only 1, 2, or 3 image_* slots on procedure slides."
             )
             continue
-        if pattern_id != expected_pattern_id:
+        if pattern_id not in expected_pattern_ids:
             errors.append(
-                f"Field '{prefix}.pattern_id' is '{pattern_id}', but this slide defines {image_alias_count} image_* slot(s), so it should use '{expected_pattern_id}'."
+                f"Field '{prefix}.pattern_id' is '{pattern_id}', but this slide defines {image_alias_count} image_* slot(s), so it should use '{expected_pattern_ids[0]}'."
             )
 
     summary = {
@@ -2758,7 +2438,7 @@ async def manual_draft_check(request: Request) -> JSONResponse:
         if not isinstance(payload_yaml, str):
             raise ValidationError(["Field 'payload_yaml' is required."])
 
-        raw_data, repaired_payload_yaml = _parse_public_payload_yaml(
+        raw_data, coercion_result = parse_public_payload_yaml(
             payload_yaml,
             built_in=built_in,
         )
@@ -2766,10 +2446,10 @@ async def manual_draft_check(request: Request) -> JSONResponse:
             raw_data,
             built_in=built_in,
         )
-        if repaired_payload_yaml is not None:
-            response_payload = _append_manual_auto_repair_feedback(
+        if coercion_result is not None:
+            response_payload = append_manual_ai_coercion_feedback(
                 response_payload,
-                repaired_payload_yaml=repaired_payload_yaml,
+                coercion=coercion_result,
             )
     except yaml.YAMLError as exc:
         _log_result(
@@ -2986,15 +2666,15 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
             image_refs,
             temp_dir_path,
             built_in,
-            repaired_payload_yaml,
+            coercion_result,
         ) = await _parse_request_payload(request, keep_temp_dir=True)
         contract = _resolve_built_in_contract(built_in)
         available_image_refs = image_refs
         payload_kind = detect_payload_kind(raw_data)
         normalized_authoring_yaml: str | None = None
         hints: list[str] = []
-        if repaired_payload_yaml is not None:
-            hints.append(_MANUAL_AI_AUTO_REPAIR_HINT)
+        if coercion_result is not None:
+            hints.extend(manual_ai_coercion_hints(coercion_result.actions))
         normalized_authoring = None
 
         if payload_kind in {"authoring", "content"}:
@@ -3095,7 +2775,9 @@ async def compile_demo_payload(request: Request) -> JSONResponse:
     response_payload = {
         "payload_kind": payload_kind,
         "normalized_authoring_yaml": normalized_authoring_yaml,
-        "payload_yaml": repaired_payload_yaml,
+        "payload_yaml": (
+            coercion_result.normalized_yaml if coercion_result is not None else None
+        ),
         "compiled_yaml": serialize_document(compiled_payload.to_dict(), fmt="yaml").strip(),
         "slide_count": len(compiled_payload.slides),
         "required_images": (
@@ -3128,7 +2810,7 @@ async def generate_demo_report(request: Request) -> FileResponse | JSONResponse:
             image_refs,
             temp_dir_path,
             built_in,
-            _repaired_payload_yaml,
+            _coercion_result,
         ) = await _parse_request_payload(request, keep_temp_dir=True)
         contract = _resolve_built_in_contract(built_in)
         available_image_refs = image_refs
@@ -3233,7 +2915,13 @@ async def _parse_request_payload(
     request: Request,
     *,
     keep_temp_dir: bool = False,
-) -> tuple[dict[str, object], dict[str, Path], Path | None, str, str | None]:
+) -> tuple[
+    dict[str, object],
+    dict[str, Path],
+    Path | None,
+    str,
+    ManualAiYamlCoercionResult | None,
+]:
     form = await request.form()
     uploads = _collect_form_uploads(form)
     payload_yaml = form.get("payload_yaml")
@@ -3267,17 +2955,17 @@ async def _parse_request_payload(
             image_manifest=image_manifest,
             temp_dir_path=temp_dir_path,
         )
-        raw_data, repaired_payload_yaml = _parse_public_payload_yaml(
+        raw_data, coercion_result = parse_public_payload_yaml(
             payload_yaml,
             built_in=built_in,
         )
 
         if keep_temp_dir:
-            return raw_data, image_refs, temp_dir_path, built_in, repaired_payload_yaml
+            return raw_data, image_refs, temp_dir_path, built_in, coercion_result
 
         _cleanup_temp_dir(temp_dir_path)
         temp_dir_path = None
-        return raw_data, image_refs, None, built_in, repaired_payload_yaml
+        return raw_data, image_refs, None, built_in, coercion_result
     except Exception:
         if temp_dir_path is not None:
             _cleanup_temp_dir(temp_dir_path)

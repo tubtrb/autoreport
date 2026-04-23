@@ -14,6 +14,10 @@ flowchart TD
     WORKSTREAMS["Template workstreams"]
     ERRORS["Error and validation map"]
     TESTMAP["Feature to test map"]
+    VERIF1["Verif Test: slide patterns"]
+    VERIF2["Verif Test: prompt and YAML generation"]
+    VERIF3["Verif Test: batch run and logging"]
+    VERIF4["Verif Test: result and review gate"]
     CONTRACT["Legacy weekly report contract"]
 
     README --> OVERVIEW
@@ -24,6 +28,10 @@ flowchart TD
     README --> WORKSTREAMS
     README --> ERRORS
     README --> TESTMAP
+    README --> VERIF1
+    README --> VERIF2
+    README --> VERIF3
+    README --> VERIF4
     README --> CONTRACT
 ```
 
@@ -43,6 +51,10 @@ touching.
 - `template-workstreams.md`: branch plan and done criteria for versioned parallel template-engine work
 - `error-and-validation-map.md`: shared failure boundaries and surface-specific responses
 - `feature-test-map.md`: feature ownership mapped to current unittest modules
+- `verif_test/01_slide_patterns.md`: canonical public-manual slide suite definitions
+- `verif_test/02_prompt_yaml_generation.md`: canonical prompt/starter generation rules for manual AI regression
+- `verif_test/03_ai_batch_run_logging.md`: canonical batch-run sequence, artifact layout, and failure taxonomy
+- `verif_test/04_result_review_gate.md`: canonical PASS/FAIL/REVIEW gate and fixed representative review policy
 - `weekly-report-contract.md`: legacy migration note for the older weekly-only shape that still appears in some internal modules and docs
 
 ## Inspection points

@@ -15,7 +15,6 @@ $promptPack = Join-Path $repoRoot "codex\\skills\\ai-corpus-verification\\refere
 
 Push-Location $repoRoot
 try {
-    & $python -m unittest tests.test_web_app tests.test_web_serve
     & $python $exportScript
 
     $healthzUrl = $CheckerUrl -replace "/api/manual-draft-check$", "/healthz"
@@ -25,7 +24,7 @@ try {
     }
 
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-    $smokeDir = "output/playwright/manual-yaml-repair-proof-smoke-$timestamp"
+    $smokeDir = "output/verif_test/manual-yaml-repair-proof-smoke-$timestamp"
     & $python $collectScript `
         --session $Session `
         --count $SmokeCount `
@@ -37,7 +36,7 @@ try {
     Write-Output "__SMOKE_DIR__=$smokeDir"
 
     if ($CorpusCount -gt 0) {
-        $corpusDir = "output/playwright/manual-yaml-repair-proof-corpus-$CorpusCount-$timestamp"
+        $corpusDir = "output/verif_test/manual-yaml-repair-proof-corpus-$CorpusCount-$timestamp"
         & $python $collectScript `
             --session $Session `
             --count $CorpusCount `

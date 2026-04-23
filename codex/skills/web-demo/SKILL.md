@@ -19,6 +19,9 @@ the FastAPI routes, the embedded HTML/JavaScript, and the tests that lock web be
   - `../../../docs/architecture/template-aware-autofill-engine.md`
   - `../../../docs/architecture/web-surface-split.md`
   - `../../../docs/architecture/template-workstreams.md`
+- If the task affects the public manual AI prompt/check/generate flow, also read:
+  - `../../../docs/architecture/verif_test/03_ai_batch_run_logging.md`
+  - `../../../docs/architecture/verif_test/04_result_review_gate.md`
 - Read `../../../autoreport/web/app.py`.
 - Read `../../../autoreport/web/debug_app.py` when the task touches debug workflows or when the product/debug surface split matters.
 - Read `../../../tests/test_web_app.py`.
@@ -40,7 +43,7 @@ the FastAPI routes, the embedded HTML/JavaScript, and the tests that lock web be
 - Keep YAML parsing, validation, and PowerPoint generation delegated to shared core modules.
 - Do not duplicate schema rules inside the web layer.
 - The debug app may expose more developer controls, but it should not fork the compile/generate execution path away from the user app.
-- When the public manual flow repairs common AI indentation drift, keep that repair in the shared pre-parse path so `/api/manual-draft-check`, `/api/compile`, and `/api/generate` all exercise the same recovery logic.
+- When the public manual flow recovers common AI YAML drift, keep that narrow extraction and repair path in the shared pre-parse layer so `/api/manual-draft-check`, `/api/compile`, and `/api/generate` all exercise the same recovery logic.
 
 3. Keep web error payloads consistent.
 - Preserve the current JSON shape with `error_type`, `message`, and optional `errors`.
@@ -99,6 +102,7 @@ Current design expectations:
 - error payloads for template-driven validation should stay consistent with the existing web error shape
 - if contract download or skeleton generation is added, it should be covered by web tests in the same change
 - if the manual flow claims to recover real AI YAML drift, pair the web tests with saved-corpus recheck and at least one fresh HTTP smoke against the restarted local server
+- for repeated external-AI regression runs, use `run_manual_ai_regression.ps1` plus `docs/architecture/verif_test/*` as the canonical operator path rather than adding a second batch engine in the web layer
 
 ## Output Contract
 

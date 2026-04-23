@@ -2,7 +2,7 @@ param(
     [string]$Session = "extai-chatgpt-spot",
     [int[]]$Counts = @(20, 30, 40, 50, 100),
     [string]$PromptPack = "codex\skills\ai-corpus-verification\references\chatgpt-product-full-prompt-pack.json",
-    [string]$OutputRoot = "output\playwright",
+    [string]$OutputRoot = "output\verif_test",
     [string]$Collector = "codex\skills\ai-corpus-verification\scripts\collect_chatgpt_corpus.py",
     [string]$PromptExporter = "codex\skills\ai-corpus-verification\scripts\export_product_prompt_pack.py"
 )

@@ -109,9 +109,9 @@ If the user does not clearly specify the mode, ask one short question.
 - Use a stable, instructional tone.
 - Default to English for external readers.
 - Explain what the product is, what the current version can do, and how to run it.
-- Include a short `## Live service` section near the top using the tracked
-  public server info so readers can open the live site and hosted demo without
-  guessing at routes.
+- Start the guide with a short direct-link section near the top using the
+  tracked public server info so readers can open the hosted demo immediately
+  without scrolling through a separate `## Live service` block.
 - Keep the guide grounded in the current repo implementation.
 - Do not turn future roadmap ideas into present-tense guidance.
 - When possible, include or reference a real generated `.pptx` result so readers can see the expected output shape.

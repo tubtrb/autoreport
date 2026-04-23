@@ -27,6 +27,7 @@ and routes deeper work to one primary focused skill.
   - Template/generator/writer -> `../pptx-output/SKILL.md`
   - FastAPI/demo HTML/API -> `../web-demo/SKILL.md`
   - Manual YAML auto-repair, saved-corpus salvage reruns, or post-restart live proof for the manual `report_content` flow -> `../manual-yaml-repair-proof/SKILL.md`
+  - Long-running verification monitoring, heartbeat automation attached to the thread, or building a detailed fix plan in parallel with an active test run -> `../parallel-test-planning/SKILL.md`
   - Protected integration branches, branch choice before commit, or direct-commit guards for `codex/next` or `codex/master` -> `../branch-commit-guard/SKILL.md`
   - Shared repo-operation guidance, repo-local skills, tracked handover docs, or other operating-surface policy sync -> `../repo-ops-policy-sync/SKILL.md`
   - Remote deployment handover, EC2 drift checks, public-server mismatch, or entrypoint verification -> `../remote-deployment-handover/SKILL.md`
@@ -35,7 +36,7 @@ and routes deeper work to one primary focused skill.
   - README/release/package messaging -> `../release-docs/SKILL.md`
   - Release backup tags, squashed promotion from `codex/v<next>-master` into `codex/next`, merged-source-branch cleanup, or refreshing `codex/next` from `main` -> `../release-tagging/SKILL.md`
   - WordPress-style development logs, release notes, and user guides -> `../write-doc-markdown/SKILL.md`
-  - Handoff of versioned posts into the private `autorelease` repo -> `../autorelease-handoff/SKILL.md`
+  - Handoff of versioned posts or stable standalone public pages into the private `autorelease` repo -> `../autorelease-handoff/SKILL.md`
 - If a focused skill is missing, continue with this umbrella guidance and report the coverage gap.
 
 ## Workflow
@@ -72,7 +73,7 @@ and routes deeper work to one primary focused skill.
 - Treat the repo-local skills and `AGENTS.md` as part of the same upkeep set: when behavior or workflow changes, refresh the relevant skill text in the same task instead of leaving bootstrap guidance behind the code.
 - If a change affects what a future agent should preload, verify, or consider authoritative, update that guidance before calling the task complete.
 - Any task that could make files public should run `public-repo-safety` before signoff.
-- If versioned posts under `docs/posts/` are part of the task and the branch is being wrapped up, run `autorelease-handoff` before calling the work finished.
+- If versioned posts under `docs/posts/` or stable standalone public pages under `docs/pages/` are part of the task and the branch is being wrapped up, run `autorelease-handoff` before calling the work finished.
 
 5. Verify narrowly before broadening.
 - Run the smallest relevant unittest target first.

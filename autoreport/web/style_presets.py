@@ -8,6 +8,7 @@ from typing import Any
 
 from autoreport.loader import parse_yaml_text
 from autoreport.template_flow import detect_payload_kind, serialize_document
+from autoreport.templates.manual_procedure_variants import MANUAL_PROCEDURE_VARIANTS
 from autoreport.validator import ValidationError
 
 
@@ -92,36 +93,7 @@ _MANUAL_STYLE_PRESETS = (
             "section_subtitle": "Short section setup note.",
         },
     },
-    {
-        "preset_id": "manual.procedure.one",
-        "label": "Style 1",
-        "family_id": "one-image",
-        "pattern_id": "text_image.manual.procedure.one",
-        "image_count": 1,
-        "description": "Pair one screenshot with a focused procedure step.",
-        "tags": ["1 Image", "Procedure"],
-        "visibility": _PUBLIC_VISIBILITY,
-        "order": 20,
-        "thumbnail": {
-            "background": "#f7fafc",
-            "blocks": [
-                {"type": "rect", "role": "accent", "x": 8, "y": 12, "w": 4, "h": 76, "radius": 8},
-                {"type": "rect", "role": "text", "x": 18, "y": 18, "w": 36, "h": 9, "radius": 6},
-                {"type": "rect", "role": "text", "x": 18, "y": 34, "w": 30, "h": 7, "radius": 5},
-                {"type": "rect", "role": "text", "x": 18, "y": 48, "w": 26, "h": 7, "radius": 5},
-                {"type": "rect", "role": "image", "x": 58, "y": 18, "w": 24, "h": 56, "radius": 10},
-            ],
-        },
-        "default_slot_values": {
-            "step_no": "{{next_step_no}}",
-            "step_title": "New Procedure Step",
-            "command_or_action": "Action: describe the command or action for this step.",
-            "summary": "Short outcome summary for the step.",
-            "detail_body": "Explain the detailed procedure here.",
-            "image_1": "{{next_image_ref_1}}",
-            "caption_1": "{{ordinal_caption_1}}",
-        },
-    },
+    *MANUAL_PROCEDURE_VARIANTS,
     {
         "preset_id": "manual.procedure.two",
         "label": "Style 2",

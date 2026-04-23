@@ -18,6 +18,10 @@ That product surface is broad enough to benefit from parallel work, but the
 parallelism must stay aligned around one shared integration branch and one
 shared contract model.
 
+Detailed public-manual AI regression policy now lives under
+`docs/architecture/verif_test/`. This workstream note keeps only the branch and
+ownership split, not the active batch-verification runbook.
+
 ## Branch strategy
 
 - Integration base branch: `codex/v<version>-master`
@@ -188,6 +192,9 @@ report_payload:
   - narrow tests depend on the touched runtime surface
   - run at least `tests.test_cli` and `tests.test_web_app` when public usage or
     wording depends on observed behavior
+  - if the touched wording or behavior includes the public manual AI flow, use
+    `docs/architecture/verif_test/04_result_review_gate.md` as the canonical
+    unittest and review gate map instead of duplicating that procedure here
 
 ## Merge order
 

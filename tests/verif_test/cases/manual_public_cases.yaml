@@ -1,0 +1,85 @@
+version: 1
+suites:
+  smoke:
+    - 01_one_image_canary
+    - 01_two_image_canary
+    - 01_three_image_canary
+  regression:
+    - 01_one_image_canary
+    - 01_two_image_canary
+    - 01_three_image_canary
+    - 05_balanced_canary
+    - 05_dense_text_canary
+  full:
+    - 01_one_image_canary
+    - 01_two_image_canary
+    - 01_three_image_canary
+    - 05_balanced_canary
+    - 05_dense_text_canary
+    - 10_full_family_canary
+cases:
+  01_one_image_canary:
+    label: One Image Canary
+    body_slide_count: 1
+    pattern_order:
+      - text_image.manual.procedure.one
+    text_density: concise
+    image_ref_count: 1
+    expected_review_required: true
+  01_two_image_canary:
+    label: Two Image Canary
+    body_slide_count: 1
+    pattern_order:
+      - text_image.manual.procedure.two
+    text_density: concise
+    image_ref_count: 2
+    expected_review_required: false
+  01_three_image_canary:
+    label: Three Image Canary
+    body_slide_count: 1
+    pattern_order:
+      - text_image.manual.procedure.three
+    text_density: concise
+    image_ref_count: 3
+    expected_review_required: false
+  05_balanced_canary:
+    label: Five Slide Balanced Canary
+    body_slide_count: 5
+    pattern_order:
+      - text.manual.section_break
+      - text_image.manual.procedure.image_left_text_right
+      - text_image.manual.procedure.text_top_image_left
+      - text_image.manual.procedure.two
+      - text_image.manual.procedure.three
+    text_density: balanced
+    image_ref_count: 7
+    expected_review_required: true
+  05_dense_text_canary:
+    label: Five Slide Dense Text Canary
+    body_slide_count: 5
+    pattern_order:
+      - text.manual.section_break
+      - text_image.manual.procedure.text_top_image_right
+      - text_image.manual.procedure.image_left_tall_text_right
+      - text_image.manual.procedure.text_left_tall_image_right
+      - text_image.manual.procedure.image_top_text_bottom
+    text_density: dense
+    image_ref_count: 4
+    expected_review_required: false
+  10_full_family_canary:
+    label: Ten Slide Full Family Canary
+    body_slide_count: 10
+    pattern_order:
+      - text.manual.section_break
+      - text_image.manual.procedure.one
+      - text_image.manual.procedure.image_left_text_right
+      - text_image.manual.procedure.text_top_image_left
+      - text_image.manual.procedure.text_top_image_right
+      - text_image.manual.procedure.image_left_tall_text_right
+      - text_image.manual.procedure.text_left_tall_image_right
+      - text_image.manual.procedure.text_top_image_bottom
+      - text_image.manual.procedure.image_top_text_bottom
+      - text_image.manual.procedure.three
+    text_density: balanced
+    image_ref_count: 11
+    expected_review_required: true

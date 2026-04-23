@@ -26,12 +26,18 @@ class HandoffError(Exception):
 LIVE_SERVICE_SECTION_PATTERN = re.compile(
     r"(?ms)^## Live service\r?\n.*?(?=^## |\Z)"
 )
+GUIDE_LINKS_SECTION_PATTERN = re.compile(
+    r"(?ms)^## Open the hosted demo(?: now)?\r?\n.*?(?=^## |\Z)"
+)
 FRONT_MATTER_BODY_PATTERN = re.compile(
     r"^(---\s*\r?\n.*?\r?\n---\s*\r?\n?)(.*)$",
     re.DOTALL,
 )
 GUIDE_SHARED_AI_INSERT_SOURCE_PREFIX = "../shared-assets/user-guide-ai-insert/"
 GUIDE_SHARED_AI_INSERT_TARGET_SUBDIR = "ai-insert"
+STANDALONE_PAGE_SOURCE_DIRNAME = "pages"
+STANDALONE_PAGE_TARGET_DIRNAME = "pages"
+STANDALONE_PAGE_RESERVED_FILENAMES = {"main.md"}
 
 
 @dataclass(frozen=True)
@@ -41,7 +47,6 @@ class PublicServiceInfo:
     release_guide: str
     release_updates: str
     hosted_demo_primary: str
-    hosted_demo_alternate: str | None = None
     hosted_demo_healthcheck: str | None = None
     hosted_demo_healthcheck_expected: str | None = None
 
@@ -186,10 +191,6 @@ def load_public_service_info(repo_root: Path) -> PublicServiceInfo:
         release_guide=required(release_site, "guide"),
         release_updates=required(release_site, "updates"),
         hosted_demo_primary=required(hosted_demo, "primary"),
-        hosted_demo_alternate=str(
-            hosted_demo.get("alternate_hostname", "")
-        ).strip()
-        or None,
         hosted_demo_healthcheck=str(hosted_demo.get("healthcheck", "")).strip() or None,
         hosted_demo_healthcheck_expected=str(
             hosted_demo.get("healthcheck_expected", "")
@@ -308,6 +309,19 @@ def render_live_service_section(info: PublicServiceInfo) -> str:
     return "\n".join(lines)
 
 
+def render_guide_links_section(info: PublicServiceInfo) -> str:
+    lines = [
+        "## Open the hosted demo now",
+        "",
+        "If you want to use Autoreport immediately, start here:",
+        "",
+        f"- [Open the hosted Autoreport demo]({info.hosted_demo_primary})",
+        f"- [Open the Updates page]({info.release_updates})",
+        f"- [Back to the overview]({info.release_home})",
+    ]
+    return "\n".join(lines)
+
+
 def upsert_live_service_section(
     body: str,
     info: PublicServiceInfo,
@@ -337,6 +351,20 @@ def upsert_live_service_section_candidates(
                 1,
             )
     return normalized + "\n\n" + section
+
+
+def upsert_guide_links_section(body: str, info: PublicServiceInfo) -> str:
+    normalized = LIVE_SERVICE_SECTION_PATTERN.sub("", body).strip()
+    normalized = GUIDE_LINKS_SECTION_PATTERN.sub("", normalized).strip()
+    section = render_guide_links_section(info)
+    for heading in ("## Hosted demo flow", "## What is Autoreport?"):
+        if heading in normalized:
+            return normalized.replace(
+                heading,
+                section + "\n\n" + heading,
+                1,
+            )
+    return section + "\n\n" + normalized
 
 
 def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) -> str:
@@ -381,11 +409,7 @@ def transform_guide_body(body: str, spec: PostSpec, args: argparse.Namespace) ->
         "",
         body,
     )
-    body = upsert_live_service_section_candidates(
-        body,
-        args.public_service_info,
-        insert_before_headings=("## Hosted demo flow", "## What is Autoreport?"),
-    )
+    body = upsert_guide_links_section(body, args.public_service_info)
     return body
 
 
@@ -538,6 +562,32 @@ def sync_homepage_live_service(args: argparse.Namespace) -> Path:
     return homepage_path
 
 
+def standalone_page_source_paths(repo_root: Path) -> list[Path]:
+    source_root = repo_root / "docs" / STANDALONE_PAGE_SOURCE_DIRNAME
+    if not source_root.exists():
+        return []
+    paths = sorted(path for path in source_root.glob("*.md") if path.is_file())
+    reserved = [path.name for path in paths if path.name in STANDALONE_PAGE_RESERVED_FILENAMES]
+    if reserved:
+        joined = ", ".join(sorted(reserved))
+        raise HandoffError(
+            "Reserved standalone page source filename(s) are not allowed under "
+            f"{source_root}: {joined}"
+        )
+    return paths
+
+
+def sync_standalone_pages(args: argparse.Namespace) -> list[Path]:
+    target_root = args.autorelease_root / "content" / STANDALONE_PAGE_TARGET_DIRNAME
+    written_paths: list[Path] = []
+    for source_path in standalone_page_source_paths(args.repo_root):
+        target_path = target_root / source_path.name
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+        written_paths.append(target_path)
+    return written_paths
+
+
 def validate_touched_posts(
     args: argparse.Namespace,
     specs: list[PostSpec],
@@ -580,8 +630,13 @@ def main() -> int:
         write_target_post(spec, args)
         sync_assets(spec)
 
+    standalone_page_paths = sync_standalone_pages(args)
     homepage_path = sync_homepage_live_service(args)
-    validate_touched_posts(args, specs, extra_paths=[homepage_path])
+    validate_touched_posts(
+        args,
+        specs,
+        extra_paths=[*standalone_page_paths, homepage_path],
+    )
 
     print(
         "HANDOFF_OK "
@@ -591,6 +646,8 @@ def main() -> int:
     )
     for spec in specs:
         print(spec.target_path)
+    for path in standalone_page_paths:
+        print(path)
     print(homepage_path)
     return 0
 

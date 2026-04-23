@@ -33,17 +33,22 @@ _DEBUG_CONTRACT_YAML = serialize_document(
 _DEBUG_RECHECK_COMMAND = (
     r".\venv\Scripts\python.exe "
     r"codex\skills\manual-yaml-repair-proof\scripts\recheck_manual_corpus.py "
-    r"--artifact-dir output\playwright\<artifact-folder>"
+    r"--artifact-dir output\verif_test\<artifact-folder>"
 )
 _DEBUG_SERVER_SMOKE_COMMAND = (
     r"powershell -File "
-    r"codex\skills\manual-yaml-repair-proof\scripts\run_server_proof.ps1 "
-    r"-Session extai-chatgpt-spot -SmokeCount 1"
+    r"run_manual_ai_regression.ps1 "
+    r"-Suite smoke -Session extai-chatgpt-spot -Mode http"
 )
 _DEBUG_SERVER_CORPUS_COMMAND = (
     r"powershell -File "
     r"codex\skills\manual-yaml-repair-proof\scripts\run_server_proof.ps1 "
     r"-Session extai-chatgpt-spot -SmokeCount 1 -CorpusCount 20"
+)
+_DEBUG_REVIEW_COMMAND = (
+    r".\venv\Scripts\python.exe "
+    r"tests\verif_test\record_visual_review.py "
+    r"--run-dir output\verif_test\<run-folder> --case-id 01_one_image_canary --decision pass --note ""visual ok"""
 )
 
 app = FastAPI(
@@ -441,17 +446,22 @@ def _render_debug_proof_html() -> str:
           <h2>Stronger Live Proof</h2>
           <p>Use this when one smoke is not enough and you want a fresh live corpus sample set.</p>
           <textarea class="command-box" readonly aria-label="Stronger live proof command">__SERVER_CORPUS_COMMAND__</textarea>
+          <h2 style="margin-top: 18px;">Record Review</h2>
+          <p>After the automated run goes green, record the fixed representative PPTX review here.</p>
+          <textarea class="command-box" readonly aria-label="Record visual review command">__REVIEW_COMMAND__</textarea>
           <h2 style="margin-top: 18px;">Expected Evidence</h2>
           <ul class="proof-list">
             <li>`recheck-summary.txt` from a saved real-provider artifact folder</li>
-            <li>`summary.txt` from the fresh smoke or corpus output folder</li>
+            <li>`summary.md` and `review-queue.md` from the fresh smoke or corpus output folder</li>
             <li>Warnings that show auto-repair was applied when the AI drift was indentation-only</li>
           </ul>
         </section>
       </div>
 """.replace("__RECHECK_COMMAND__", _DEBUG_RECHECK_COMMAND).replace(
         "__SERVER_SMOKE_COMMAND__", _DEBUG_SERVER_SMOKE_COMMAND
-    ).replace("__SERVER_CORPUS_COMMAND__", _DEBUG_SERVER_CORPUS_COMMAND)
+    ).replace("__SERVER_CORPUS_COMMAND__", _DEBUG_SERVER_CORPUS_COMMAND).replace(
+        "__REVIEW_COMMAND__", _DEBUG_REVIEW_COMMAND
+    )
     return _render_debug_shell(
         page_title="Autoreport Repair Proof",
         intro=(

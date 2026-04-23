@@ -36,6 +36,7 @@ from autoreport.templates.autofill import (
     fit_text_to_slot,
     sort_slots_in_reading_order,
 )
+from autoreport.templates.manual_procedure_variants import MANUAL_PROCEDURE_VARIANTS
 
 
 TEMPLATE_NAME = "weekly_report"
@@ -539,15 +540,18 @@ def _build_manual_procedure_patterns(
     *,
     layout_name: str,
 ) -> tuple[PatternProfile, ...]:
-    return (
+    one_image_patterns = tuple(
         _build_manual_procedure_pattern(
             presentation,
-            pattern_id="text_image.manual.procedure.one",
+            pattern_id=variant["pattern_id"],
             layout_name=layout_name,
-            body_region=(0.083, 0.372, 0.532, 0.330),
-            image_regions=((0.664, 0.214, 0.260, 0.408),),
-            caption_regions=((0.664, 0.654, 0.260, 0.066),),
-        ),
+            body_region=variant["body_region"],
+            image_regions=variant["image_regions"],
+            caption_regions=variant["caption_regions"],
+        )
+        for variant in MANUAL_PROCEDURE_VARIANTS
+    )
+    return one_image_patterns + (
         _build_manual_procedure_pattern(
             presentation,
             pattern_id="text_image.manual.procedure.two",

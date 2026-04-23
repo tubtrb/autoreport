@@ -153,4 +153,4 @@ generated files after download and does not retain payload contents by default.
 - The public web demo covers the built-in manual procedure starter on `autoreport_manual`, pasted `report_content` or `authoring_payload` YAML, paired screenshot upload/preview for manual mode, and immediate PPTX download.
 - The default public homepage now leads directly with the manual starter rather than an editorial-first starter selector.
 - Generation remains deterministic and local to Python plus `python-pptx`; there is no server-side LLM call in the generation path.
-- Release-note, guide, and devlog handoff is prepared locally through `docs/posts/` and then synced into the private `autorelease` repository.
+- Versioned release-note, guide, and devlog handoff is prepared locally through `docs/posts/`, while stable standalone public pages are sourced from `docs/pages/`, before syncing into the private `autorelease` repository.

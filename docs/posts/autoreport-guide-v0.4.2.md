@@ -8,20 +8,13 @@ This guide is for the hosted Autoreport demo. It covers the current public brows
 
 For version-specific changes, see the release notes.
 
-## Live service
+## Open the hosted demo now
 
-As of `2026-04-11`, the public site and hosted demo are available at:
+If you want to use Autoreport immediately, start here:
 
-- Home: `http://auto-report.org/`
-- Guide: `http://auto-report.org/guide/`
-- Updates: `http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/`
-- Hosted demo: `http://3.36.96.47/`
-
-## Open the hosted demo
-
-- Open the hosted demo directly when you want to start editing the deck immediately.
-- Keep the built-in manual starter in place unless you want to reset the flow.
-- Use the right preview rail to confirm which slides need screenshots and which slides can be removed.
+- [Open the hosted Autoreport demo](http://3.36.96.47/)
+- [Open the Updates page](http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/)
+- [Back to the overview](http://auto-report.org/)
 
 ## Hosted demo flow
 

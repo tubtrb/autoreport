@@ -30,9 +30,12 @@ PublicServiceInfo = HANDOFF_MODULE.PublicServiceInfo
 build_specs = HANDOFF_MODULE.build_specs
 sync_assets = HANDOFF_MODULE.sync_assets
 sync_homepage_live_service = HANDOFF_MODULE.sync_homepage_live_service
+sync_standalone_pages = HANDOFF_MODULE.sync_standalone_pages
 transform_homepage_body = HANDOFF_MODULE.transform_homepage_body
 transform_guide_body = HANDOFF_MODULE.transform_guide_body
 transform_release_notes_body = HANDOFF_MODULE.transform_release_notes_body
+load_public_service_info = HANDOFF_MODULE.load_public_service_info
+HandoffError = HANDOFF_MODULE.HandoffError
 
 
 class HandoffRewriteTestCase(unittest.TestCase):
@@ -48,7 +51,6 @@ class HandoffRewriteTestCase(unittest.TestCase):
                 release_guide="http://auto-report.org/guide/",
                 release_updates="http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/",
                 hosted_demo_primary="http://3.36.96.47/",
-                hosted_demo_alternate="http://ec2-3-36-96-47.ap-northeast-2.compute.amazonaws.com/",
                 hosted_demo_healthcheck="http://3.36.96.47/healthz",
                 hosted_demo_healthcheck_expected='{"status":"ok"}',
             ),
@@ -102,12 +104,19 @@ class HandoffRewriteTestCase(unittest.TestCase):
             "The hosted demo flow and the download were checked in the browser.",
             rewritten,
         )
-        self.assertIn("## Live service", rewritten)
-        self.assertIn("Home: `http://auto-report.org/`", rewritten)
-        self.assertIn("Hosted demo: `http://3.36.96.47/`", rewritten)
+        self.assertIn("## Open the hosted demo now", rewritten)
+        self.assertIn(
+            "[Open the hosted Autoreport demo](http://3.36.96.47/)",
+            rewritten,
+        )
+        self.assertIn(
+            "[Open the Updates page](http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/)",
+            rewritten,
+        )
         self.assertNotIn("codex/v0.3-master", rewritten)
         self.assertNotIn("The current branch was verified", rewritten)
         self.assertNotIn("healthz", rewritten)
+        self.assertNotIn("## Live service", rewritten)
 
     def test_transform_guide_body_rewrites_placeholder_image_and_drops_local_comment(self) -> None:
         body = "\n".join(
@@ -136,11 +145,12 @@ class HandoffRewriteTestCase(unittest.TestCase):
             rewritten,
         )
         self.assertLess(
-            rewritten.index("## Live service"),
+            rewritten.index("## Open the hosted demo now"),
             rewritten.index("## Hosted demo flow"),
         )
         self.assertNotIn("REPLACE_WITH_PUBLIC_IMAGE_URL", rewritten)
         self.assertNotIn("Local working screenshot asset", rewritten)
+        self.assertNotIn("## Live service", rewritten)
 
     def test_transform_guide_body_rewrites_shared_external_ai_insert_assets(self) -> None:
         body = "\n".join(
@@ -330,6 +340,86 @@ class HandoffRewriteTestCase(unittest.TestCase):
         self.assertIn("Hosted demo: `http://3.36.96.47/`", rewritten)
         self.assertIn("## Product overview", rewritten)
         self.assertNotIn("healthz", rewritten)
+
+    def test_sync_standalone_pages_copies_docs_pages_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as autorelease_dir:
+            repo_root = Path(repo_dir)
+            source_path = repo_root / "docs" / "pages" / "about.md"
+            source_path.parent.mkdir(parents=True)
+            source_text = "\n".join(
+                [
+                    "---",
+                    "content_type: page",
+                    "title: About",
+                    "slug: about",
+                    'summary: "About page"',
+                    "date: 2026-04-11",
+                    "status: publish",
+                    "---",
+                    "",
+                    "# About",
+                    "",
+                    "Body text.",
+                    "",
+                ]
+            )
+            source_path.write_text(source_text, encoding="utf-8")
+
+            args = argparse.Namespace(
+                repo_root=repo_root,
+                autorelease_root=Path(autorelease_dir),
+            )
+
+            written_paths = sync_standalone_pages(args)
+            copied_path = Path(autorelease_dir) / "content" / "pages" / "about.md"
+
+            self.assertEqual([copied_path], written_paths)
+            self.assertTrue(copied_path.exists())
+            self.assertEqual(source_text, copied_path.read_text(encoding="utf-8"))
+
+    def test_sync_standalone_pages_rejects_reserved_main_source(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as autorelease_dir:
+            repo_root = Path(repo_dir)
+            source_path = repo_root / "docs" / "pages" / "main.md"
+            source_path.parent.mkdir(parents=True)
+            source_path.write_text("# reserved\n", encoding="utf-8")
+
+            args = argparse.Namespace(
+                repo_root=repo_root,
+                autorelease_root=Path(autorelease_dir),
+            )
+
+            with self.assertRaises(HandoffError):
+                sync_standalone_pages(args)
+
+    def test_load_public_service_info_does_not_require_alternate_hostname(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir:
+            repo_root = Path(repo_dir)
+            info_path = repo_root / "docs" / "deployment" / "public-service-info.yaml"
+            info_path.parent.mkdir(parents=True)
+            info_path.write_text(
+                "\n".join(
+                    [
+                        "as_of: 2026-04-11",
+                        "release_site:",
+                        '  home: "http://auto-report.org/"',
+                        '  guide: "http://auto-report.org/guide/"',
+                        '  updates: "http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/"',
+                        "hosted_demo:",
+                        '  primary: "http://3.36.96.47/"',
+                        '  healthcheck: "http://3.36.96.47/healthz"',
+                        '  healthcheck_expected: "{\\"status\\":\\"ok\\"}"',
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            info = load_public_service_info(repo_root)
+
+        self.assertEqual("2026-04-11", info.as_of)
+        self.assertEqual("http://3.36.96.47/", info.hosted_demo_primary)
+        self.assertEqual("http://3.36.96.47/healthz", info.hosted_demo_healthcheck)
 
 
 if __name__ == "__main__":

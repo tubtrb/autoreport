@@ -10,6 +10,9 @@ from autoreport.template_flow import (
     get_built_in_contract,
     materialize_authoring_payload,
 )
+from autoreport.templates.manual_procedure_variants import (
+    MANUAL_ALLOWED_BODY_PATTERN_IDS,
+)
 from autoreport.validator import (
     ValidationError,
     validate_authoring_payload,
@@ -217,12 +220,7 @@ class ValidatorTestCase(unittest.TestCase):
         self.assertEqual(contract.contents_slide.pattern_id, "contents.manual")
         self.assertEqual(
             [pattern.pattern_id for pattern in contract.slide_patterns],
-            [
-                "text.manual.section_break",
-                "text_image.manual.procedure.one",
-                "text_image.manual.procedure.two",
-                "text_image.manual.procedure.three",
-            ],
+            list(MANUAL_ALLOWED_BODY_PATTERN_IDS),
         )
 
     def test_validate_payload_accepts_editorial_text_and_metrics_payload(self) -> None:

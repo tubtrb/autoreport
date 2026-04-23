@@ -32,13 +32,17 @@
 - Generation or writer changes: `.\venv\Scripts\python.exe -m unittest tests.test_autofill tests.test_generator tests.test_pptx_writer`
 - User web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_app`
 - Debug web app changes: `.\venv\Scripts\python.exe -m unittest tests.test_web_debug_app`
-- Manual YAML auto-repair, manual checker pre-parse recovery, or restarted-server proof claims: `.\venv\Scripts\python.exe -m unittest tests.test_web_app tests.test_web_serve`, then `powershell -File codex\skills\manual-yaml-repair-proof\scripts\run_server_proof.ps1 -Session extai-chatgpt-spot -SmokeCount 1`
+- Manual YAML auto-repair, manual checker pre-parse recovery, or restarted-server proof claims: `.\venv\Scripts\python.exe -m unittest tests.test_web_app tests.test_web_serve`, then have the user manually open the canonical ChatGPT profile in terminal-launched Chrome with the attach port, keep that Chrome window open through login/challenge plus one real conversation, then run `powershell -File .\run_manual_ai_regression.ps1 -Suite smoke -Session extai-chatgpt-spot -Mode http -SessionCheckOnly`, then `powershell -File codex\skills\manual-yaml-repair-proof\scripts\run_server_proof.ps1 -Session extai-chatgpt-spot -SmokeCount 1`
+- For `run_manual_ai_regression.ps1`, treat `-Session` as the canonical ChatGPT profile key for diagnostics and spot checks. The runner must not launch, close, or restart Chrome itself. It attaches only to the already-open manual Chrome session that reuses `.codex\playwright\profiles\extai-chatgpt-spot`, and `-SessionCheckOnly` validates that attached session.
+- For `run_manual_ai_release_gate.ps1`, use the low-trigger one-session 20-chat release-gate policy: manual terminal-open plus login first, one attach/readiness check, one transport attempt per case, fixed chunk cooldowns, no browser relaunch, and clear stop on challenge/login/auth guard trips.
+- Do not tell the user to do first-time login or challenge approval in an AI-opened browser. Instead, guide them to open regular Chrome manually from the terminal with the canonical profile plus the attach port, complete login/challenge there, open a real ChatGPT conversation, keep that Chrome window open, and only then run `-SessionCheckOnly` or the suite wrapper.
 - Cross-cutting changes: run the narrow focused tests first, then expand to the relevant combination above.
 
 ## Generated Artifacts
 - Do not commit generated output from `output/`.
 - Keep temporary test artifacts under `tests/_tmp/`.
 - Keep versioned post Markdown source under `docs/posts/*.md` tracked so guide, release-note, and devlog changes stay reviewable with the code they describe.
+- Keep stable standalone public page source under `docs/pages/*.md` tracked when `autoreport` owns appendix-style pages that publish into `autorelease/content/pages/`.
 - Keep reusable static public-doc assets under `docs/shared-assets/` when they should persist across releases.
 - Keep versioned screenshot capture folders under `docs/posts/*-image-v*/` local-only unless the asset is intentionally promoted into a tracked shared path.
 - Keep local bootstrap state under `.codex/`; repo-tracked shared guidance belongs in `codex/`.
@@ -59,6 +63,7 @@
 - FastAPI user app, debug app, shared web API routes, HTML surfaces, API error shape, web tests -> `web-demo`
 - External AI prompt-corpus sampling, repeated `/api/manual-draft-check` reruns, provider-by-provider spot tests, and debug-app corpus table design -> `ai-corpus-verification`
 - Manual YAML auto-repair, saved-corpus salvage reruns, and post-restart live server proof for the manual `report_content` flow -> `manual-yaml-repair-proof`
+- Long-running verification or release-gate monitoring, live run artifact review, thread heartbeat automation, and detailed fix planning in parallel with an active test run -> `parallel-test-planning`
 - Branch choice, protected integration branches, and commit/push guards for `codex/next` or `codex/master` -> `branch-commit-guard`
 - Shared repo-operation surfaces such as `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, and shared architecture/process guidance -> `repo-ops-policy-sync`
 - Remote EC2/public app handover, deployment drift checks, systemd/nginx or container refresh, and public-vs-debug entrypoint confirmation -> `remote-deployment-handover`
@@ -67,7 +72,7 @@
 - README, release notes, packaging metadata, public wording alignment -> `release-docs`
 - Release backup tags, squashed promotion from `codex/v<next>-master` into `codex/next`, merged-source-branch cleanup, and refreshing `codex/next` from `main` after release -> `release-tagging`
 - WordPress-style public Markdown posts for development logs, release notes, and user guides -> `write-doc-markdown`
-- Versioned post handoff from `docs/posts/` into the private `autorelease` publishing repo -> `autorelease-handoff`
+- Versioned post handoff from `docs/posts/` plus stable standalone page handoff from `docs/pages/` into the private `autorelease` publishing repo -> `autorelease-handoff`
 - If a task genuinely spans multiple surfaces, keep one primary skill and consult adjacent skills only where necessary.
 
 ## Bootstrap Rules
@@ -92,6 +97,9 @@
 - Treat repo-operation tasks on `AGENTS.md`, `codex/skills/`, tracked deployment handover docs, and shared architecture/process guidance as operational changes rather than draft-only docs work.
 - Unless the user explicitly asks to stop earlier or use a different branch flow, finish those repo-operation tasks by validating the changed guidance, running `public-repo-safety`, committing on `main`, pushing `origin/main`, and refreshing `codex/next` from that pushed `main`.
 - When public release-site URLs or hosted demo endpoints change, update `docs/deployment/public-service-info.yaml` in the same task and keep the writing/handoff skills aligned so the homepage, guide, and release-facing posts do not drift.
+- The standard `autoreport` handoff contract remains versioned `guide / devlog / release-note` content staged under `docs/posts/*.md`.
+- Stable appendix-style public pages that `autoreport` owns for the public site live under `docs/pages/*.md` and map one-to-one to `../autorelease/content/pages/*.md`.
+- When a matching source file exists under `docs/pages/*.md`, treat the corresponding `../autorelease/content/pages/*.md` file as handoff output rather than source of truth. Do not direct-edit the `autorelease` target page unless the same task also copies the change back into `docs/pages/*.md`. `../autorelease/content/pages/main.md` remains the homepage exception and is only normalized where the handoff tooling explicitly manages live-service copy.
 - Keep the user-facing web app and the developer-facing debug app as separate tracked surfaces.
 - The user app should stay optimized for the single "copy AI package -> paste draft -> generate" flow.
 - If a task needs extra panes, inspection widgets, manual helpers, or internal compile/normalize visibility, add or refine them in the debug app before cluttering the user app.
@@ -99,6 +107,7 @@
 - Treat the debug app primarily as a developer-facing validation workbench for contract inspection, normalization/compiled-payload analysis, upload debugging, and selected-case reruns.
 - If future work adds robustness checks across large prompt corpora or many template permutations, keep the high-volume execution in CLI or batch runners and let the debug app inspect summaries, failures, and representative reruns instead of becoming the bulk execution engine.
 - When the public manual flow claims to recover common AI YAML indentation drift, do not stop at unit tests alone. Recheck at least one saved real corpus with the current repair path and run at least one fresh HTTP smoke against the restarted local server using the production-faithful full prompt comments.
+- Do not keep manual `playwright-cli open` guidance for the ChatGPT regression or release-gate path. The canonical contract is user-launched regular Chrome with the canonical profile plus the attach port, and the runner only attaches to that existing browser for `-SessionCheckOnly` and case execution.
 - For tracked policy changes under `AGENTS.md`, `codex/skills/`, or shared architecture docs, do not treat the change as complete until it is committed on `main`, pushed, and `codex/next` has been refreshed from that pushed `main` when `next` is part of the active branch flow.
 - When old sibling directories from retired `codex/v<version>-*` worktrees remain under the workspace root, clean them through the tracked workstream-orchestrator cleanup flow instead of leaving manual filesystem cleanup to the user.
 - If retired worktree cleanup is blocked by a Windows directory lock on an otherwise empty `autoreport_v<version>-*` sibling, ask the user to restart the Codex desktop app first and then rerun the tracked cleanup flow before escalating to stronger manual cleanup steps.
@@ -112,4 +121,4 @@
 - If `public-repo-safety` finds a blocker in a tracked file or a non-ignored untracked file, stop the public-sharing flow until the finding is removed or intentionally resolved.
 - Do not promote ignored screenshots or local artifacts into tracked docs paths without reviewing them through `public-repo-safety`.
 - When a release backup tag is created in this repository, prefer an annotated `v<version>` tag on the merged `main` release commit, then delete the merged source branch and refresh `codex/next` from the updated `main` unless the user explicitly asks for a different branch flow.
-- If a task ends a branch, prepares a tag, or wraps up versioned public posts under `docs/posts/`, run `codex/skills/autorelease-handoff/SKILL.md` unless the user explicitly opts out of the private publishing handoff.
+- If a task ends a branch, prepares a tag, or wraps up versioned public posts under `docs/posts/` or stable standalone public pages under `docs/pages/`, run `codex/skills/autorelease-handoff/SKILL.md` unless the user explicitly opts out of the private publishing handoff.

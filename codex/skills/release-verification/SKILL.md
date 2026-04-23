@@ -17,6 +17,7 @@ artifacts, and feed those results into release notes or a user guide.
 - Read `../../../AGENTS.md`.
 - Read `../autoreport-dev/SKILL.md`.
 - Read `../../../README.md` and `../../../pyproject.toml`.
+- Read `../../../docs/release-readiness.md`.
 - Read `../public-repo-safety/SKILL.md` before declaring anything ready for public release.
 - Read `references/release-checklist.md`.
 - Read `references/browser-evidence.md` when browser screenshots or download proof are needed.
@@ -25,6 +26,7 @@ artifacts, and feed those results into release notes or a user guide.
   - `../web-demo/SKILL.md` for homepage and `/api/generate`
   - `../release-docs/SKILL.md` for repo-tracked release wording
   - `../write-doc-markdown/SKILL.md` when public posts should reflect fresh verification
+- If the release claim includes the public manual AI prompt/check/generate flow, also read `../../../docs/architecture/verif_test/04_result_review_gate.md`.
 - Read the matching tests before claiming a contract is verified.
 
 ## Workflow
@@ -37,7 +39,26 @@ artifacts, and feed those results into release notes or a user guide.
 - Use the repository virtualenv: `.\venv\Scripts\python.exe`.
 - Prefer the narrow unittest targets from `AGENTS.md` before broader combinations.
 - If the task is specifically about web release readiness, run `.\venv\Scripts\python.exe -m unittest tests.test_web_app` before browser automation.
+- If the task is specifically about the public manual AI flow, run the narrow web tests first and then use the canonical low-trigger release-gate runner:
+  First, if the profile is cold or challenge/login is expected, tell the user to seed the canonical profile manually from regular Chrome:
+  ```powershell
+  $chrome = "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe"
+  if (-not (Test-Path $chrome)) {
+    $chrome = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+  }
+  $profile = Join-Path (Get-Location) ".codex\playwright\profiles\extai-chatgpt-spot"
+  & $chrome --remote-debugging-port=9222 --user-data-dir="$profile" "https://chatgpt.com/"
+  ```
+  Then have them complete login/challenge, open one real conversation, optionally send one short message, and keep Chrome open.
+  `powershell -File .\run_manual_ai_release_gate.ps1 -Session extai-chatgpt-spot -Mode http -SessionCheckOnly`
+  `powershell -File .\run_manual_ai_release_gate.ps1 -Session extai-chatgpt-spot -Mode http`
+- Keep `run_manual_ai_regression.ps1` for diagnostics and spot checks, not the release signoff path.
 - For the current public-web evidence flow, prefer `.\venv\Scripts\python.exe tests/e2e/run_public_web_playwright.py --version <version>` after the narrow web tests. Install `-e .[e2e]` first when the optional Playwright extra is not available yet.
+
+For the public manual AI path, the ChatGPT browser session must be the
+user-opened regular Chrome session using
+`.codex\playwright\profiles\extai-chatgpt-spot` plus the attach port. Do not
+treat Whale or another regular browser window as equivalent regression state.
 
 3. Reproduce the user-facing flow in a real browser.
 - Prefer `playwright` for browser automation and screenshots.
@@ -53,6 +74,7 @@ artifacts, and feed those results into release notes or a user guide.
 
 4. Capture artifacts while the verification is fresh.
 - Save browser screenshots under `output/playwright/`.
+- Save public manual AI regression artifacts under `output/verif_test/`.
 - Save temporary logs under `tests/_tmp/`.
 - Record which browser was used, which URL was exercised, and whether the download event fired.
 - The dedicated public-web runner also writes downloads under `.playwright-cli/downloads/` and can promote the `msedge` success capture into `docs/posts/guide-image-v<version>/image.png` when the user wants a guide-ready local asset.
@@ -73,6 +95,7 @@ artifacts, and feed those results into release notes or a user guide.
 - The web demo contract is anchored by `autoreport/web/app.py` and `tests/test_web_app.py`.
 - The current success path returns a file download named `autoreport_demo.pptx`.
 - Generated artifacts in `output/` are not for commit by default.
+- The canonical public manual AI release gate is documented in `docs/architecture/verif_test/04_result_review_gate.md`.
 
 ## Output Contract
 

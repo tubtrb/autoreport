@@ -5,6 +5,5 @@ release_site:
   updates: "http://auto-report.org/%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8/"
 hosted_demo:
   primary: "http://3.36.96.47/"
-  alternate_hostname: "http://ec2-3-36-96-47.ap-northeast-2.compute.amazonaws.com/"
   healthcheck: "http://3.36.96.47/healthz"
   healthcheck_expected: "{\"status\":\"ok\"}"

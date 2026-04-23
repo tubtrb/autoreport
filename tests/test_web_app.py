@@ -17,12 +17,24 @@ from pptx import Presentation
 
 from autoreport.loader import parse_yaml_text
 from autoreport.template_flow import serialize_document
+from autoreport.templates.manual_procedure_variants import (
+    MANUAL_ALLOWED_BODY_PATTERN_IDS,
+    MANUAL_PROCEDURE_VARIANTS,
+)
+from autoreport.web.manual_ai_yaml import (
+    MANUAL_AI_EXTRACTION_HINT,
+    MANUAL_AI_EXTRACTION_WARNING,
+    MANUAL_AI_ROOT_WRAP_HINT,
+    MANUAL_AI_ROOT_WRAP_WARNING,
+)
 from autoreport.web.app import (
+    MANUAL_DRAFT_PROMPT_YAML,
     MANUAL_PROCEDURE_EXAMPLE_YAML,
     MEDIA_TYPE_PPTX,
     PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML,
     app,
 )
+from tests.verif_test.catalog import build_prepared_sample, load_case_catalog
 
 
 PNG_BYTES = base64.b64decode(
@@ -212,7 +224,8 @@ title: 沃섎㈇????? ?겸뫖猷롦?餓λ쵎猷??類ㅺ쉭
 
 _SHORT_MANUAL_DETAIL_BODY = """        detail_body: |
           Review the starter YAML, note the built-in template mode, and confirm
-          the page is ready before moving to the next step."""
+          the page is ready before moving to the next step.
+          Capture the ready state in the screenshot."""
 
 
 def build_long_manual_procedure_example_yaml() -> str:
@@ -240,6 +253,23 @@ def build_mutated_manual_report_content_yaml(mutate) -> str:
     report_content = payload["report_content"]
     mutate(report_content)
     return serialize_document(payload, fmt="yaml").strip()
+
+
+def build_rootless_manual_procedure_example_yaml() -> str:
+    lines = MANUAL_PROCEDURE_EXAMPLE_YAML.splitlines()
+    return "\n".join(
+        line[2:] if line.startswith("  ") else line for line in lines[1:]
+    ).strip()
+
+
+def build_prose_wrapped_manual_yaml(payload_yaml: str) -> str:
+    return (
+        "Here is the completed draft.\n\n"
+        "```yaml\n"
+        f"{payload_yaml}\n"
+        "```\n\n"
+        "This matches the requested schema."
+    )
 
 
 class WebAppTestCase(unittest.TestCase):
@@ -279,25 +309,66 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("2 Images", response.text)
         self.assertIn("3 Images", response.text)
         self.assertIn("Section Break", response.text)
-        self.assertIn("Style 1", response.text)
+        self.assertIn("Text Left, Image Right", response.text)
         self.assertIn("Style 2", response.text)
         self.assertIn("Style 3", response.text)
         self.assertIn("report_content", response.text)
         self.assertIn("Manual Procedure Starter", response.text)
         self.assertIn("screenshot-first manual flow", response.text)
         self.assertIn("Edit the YAML first, then use the style", response.text)
-        self.assertIn("Never invent new pattern_id names such as image.manual.step.", response.text)
-        self.assertIn("Use step numbers like 2.1, 2.2, 3.1. Do not write 2-1 or 3-1.", response.text)
+        self.assertIn(
+            "Start the response with report_content: on the first line of YAML output.",
+            response.text,
+        )
+        self.assertIn(
+            "Return YAML only. Do not add prose, summaries, explanations, extra comment lines, or code fences.",
+            response.text,
+        )
+        self.assertIn(
+            "Return the starter YAML itself as the answer body. Do not describe it, summarize it, or quote only one excerpt from it.",
+            response.text,
+        )
+        self.assertIn(
+            "The safest valid response is to copy the full starter YAML unchanged.",
+            response.text,
+        )
+        self.assertIn(
+            "Copy the starter YAML structure exactly. Edit slot values only when necessary.",
+            response.text,
+        )
+        self.assertIn(
+            "If the starter draft is already structurally valid, return it unchanged except for slot edits you intentionally make.",
+            response.text,
+        )
+        self.assertIn(
+            "Keep every existing key, slide, pattern_id, image_* ref, caption_*, and ordering from the starter YAML.",
+            response.text,
+        )
+        self.assertIn(
+            "Do not answer with only one slide, only one field, or only one excerpt from detail_body.",
+            response.text,
+        )
+        self.assertIn(
+            "Do not invent new slides, new pattern_id values, or new image refs.",
+            response.text,
+        )
+        self.assertIn(
+            "# End of starter YAML.",
+            response.text,
+        )
         self.assertIn("PowerPoint Slide Preview", response.text)
-        self.assertIn("matching upload panel on the", response.text)
+        self.assertIn("Click any image box to upload or replace a screenshot", response.text)
+        self.assertIn("Click to upload", response.text)
         self.assertIn("list-style: none;", response.text)
-        self.assertIn("font-size: 0.82rem;", response.text)
         self.assertIn("starter-pill", response.text)
         self.assertIn('data-family-filter="all"', response.text)
         self.assertIn('data-family-id="one-image"', response.text)
         self.assertNotIn("Image Order", response.text)
         self.assertNotIn("Screenshot Uploads", response.text)
         self.assertNotIn("Choose or paste screenshots for this slide", response.text)
+        self.assertNotIn("matching upload panel on the", response.text)
+        self.assertNotIn("Choose File", response.text)
+        self.assertNotIn("No screenshot selected yet.", response.text)
         self.assertNotIn("Website Intro Starter", response.text)
         self.assertNotIn("Starter Mode", response.text)
         self.assertNotIn("Remove Upload", response.text)
@@ -329,9 +400,79 @@ class WebAppTestCase(unittest.TestCase):
         self.assertIn("Review The Manual Starter", response.text)
         self.assertIn("Review The Starter Example", response.text)
         self.assertIn("Generate The PowerPoint", response.text)
-        self.assertIn("# Paste this brief into another AI", response.text)
-        self.assertIn("report_content draft below", response.text)
+        self.assertIn("# Complete the starter YAML below as the final answer.", response.text)
         self.assertIn("Goal: draft a screenshot-first procedure manual", response.text)
+        self.assertIn(
+            "Copy the starter YAML structure exactly. Edit slot values only when necessary.",
+            response.text,
+        )
+        self.assertIn(
+            "If the starter draft is already structurally valid, return it unchanged except for slot edits you intentionally make.",
+            response.text,
+        )
+        self.assertIn(
+            "# End of starter YAML.",
+            response.text,
+        )
+
+    def test_ai_draft_prompt_matches_full_manual_starter(self) -> None:
+        self.assertEqual(MANUAL_DRAFT_PROMPT_YAML, PROMPTED_MANUAL_PROCEDURE_EXAMPLE_YAML)
+        self.assertIn(
+            "# Complete the starter YAML below as the final answer.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Goal: draft a screenshot-first procedure manual for Autoreport using the manual template.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Start the response with report_content: on the first line of YAML output.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Return YAML only. Do not add prose, summaries, explanations, extra comment lines, or code fences.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Return the starter YAML itself as the answer body. Do not describe it, summarize it, or quote only one excerpt from it.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "The safest valid response is to copy the full starter YAML unchanged.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Copy the starter YAML structure exactly. Edit slot values only when necessary.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "If the starter draft is already structurally valid, return it unchanged except for slot edits you intentionally make.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Keep every existing key, slide, pattern_id, image_* ref, caption_*, and ordering from the starter YAML.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Do not answer with only one slide, only one field, or only one excerpt from detail_body.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Do not invent new slides, new pattern_id values, or new image refs.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "# End of starter YAML.",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Review The Starter Example",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
+        self.assertIn(
+            "Generate The PowerPoint",
+            MANUAL_DRAFT_PROMPT_YAML,
+        )
 
     def test_demo_page_includes_small_screen_layout_guards(self) -> None:
         response = self.client.get("/")
@@ -354,18 +495,44 @@ class WebAppTestCase(unittest.TestCase):
             payload["families"],
             [
                 {"family_id": "text", "label": "Text", "order": 10, "count": 1},
-                {"family_id": "one-image", "label": "1 Image", "order": 20, "count": 1},
+                {
+                    "family_id": "one-image",
+                    "label": "1 Image",
+                    "order": 20,
+                    "count": len(MANUAL_PROCEDURE_VARIANTS),
+                },
                 {"family_id": "two-images", "label": "2 Images", "order": 30, "count": 1},
                 {"family_id": "three-images", "label": "3 Images", "order": 40, "count": 1},
             ],
         )
-        self.assertEqual(len(payload["presets"]), 4)
+        self.assertEqual(len(payload["presets"]), len(MANUAL_ALLOWED_BODY_PATTERN_IDS))
         self.assertEqual(payload["presets"][0]["preset_id"], "manual.section-break")
         self.assertEqual(payload["presets"][0]["pattern_id"], "text.manual.section_break")
-        self.assertEqual(payload["presets"][1]["preset_id"], "manual.procedure.one")
+        self.assertEqual(
+            [preset["pattern_id"] for preset in payload["presets"]],
+            list(MANUAL_ALLOWED_BODY_PATTERN_IDS),
+        )
+        self.assertEqual(
+            [preset["preset_id"] for preset in payload["presets"]],
+            [
+                "manual.section-break",
+                *[variant["preset_id"] for variant in MANUAL_PROCEDURE_VARIANTS],
+                "manual.procedure.two",
+                "manual.procedure.three",
+            ],
+        )
+        self.assertEqual(
+            [preset["family_id"] for preset in payload["presets"]],
+            [
+                "text",
+                *(["one-image"] * len(MANUAL_PROCEDURE_VARIANTS)),
+                "two-images",
+                "three-images",
+            ],
+        )
         self.assertEqual(payload["presets"][1]["image_count"], 1)
-        self.assertEqual(payload["presets"][2]["family_id"], "two-images")
-        self.assertEqual(payload["presets"][3]["family_id"], "three-images")
+        self.assertEqual(payload["presets"][-2]["family_id"], "two-images")
+        self.assertEqual(payload["presets"][-1]["family_id"], "three-images")
         self.assertIn("thumbnail", payload["presets"][0])
         self.assertIn("default_slot_values", payload["presets"][0])
         self.assertIn("tags", payload["presets"][0])
@@ -426,6 +593,45 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(payload["summary"]["body_slide_count"], 2)
         self.assertEqual(payload["summary"]["procedure_slide_count"], 1)
 
+    def test_manual_draft_check_endpoint_wraps_rootless_manual_yaml_with_warnings(self) -> None:
+        response = self.client.post(
+            "/api/manual-draft-check",
+            data={
+                "payload_yaml": build_rootless_manual_procedure_example_yaml(),
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["errors"], [])
+        self.assertIn(MANUAL_AI_ROOT_WRAP_WARNING, payload["warnings"])
+        self.assertIn(MANUAL_AI_ROOT_WRAP_HINT, payload["hints"])
+        self.assertTrue(payload["payload_yaml"].startswith("report_content:\n  title_slide:"))
+        repaired = parse_yaml_text(payload["payload_yaml"])
+        self.assertEqual(
+            repaired["report_content"]["title_slide"]["slots"]["doc_title"],
+            "Autoreport PowerPoint User Guide",
+        )
+
+    def test_manual_draft_check_endpoint_extracts_fenced_manual_yaml_with_warnings(self) -> None:
+        response = self.client.post(
+            "/api/manual-draft-check",
+            data={
+                "payload_yaml": build_prose_wrapped_manual_yaml(MANUAL_PROCEDURE_EXAMPLE_YAML),
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["errors"], [])
+        self.assertIn(MANUAL_AI_EXTRACTION_WARNING, payload["warnings"])
+        self.assertIn(MANUAL_AI_EXTRACTION_HINT, payload["hints"])
+        self.assertTrue(payload["payload_yaml"].startswith("report_content:\n  title_slide:"))
+
     def test_manual_draft_check_endpoint_flags_invalid_manual_pattern_and_step_number(self) -> None:
         response = self.client.post(
             "/api/manual-draft-check",
@@ -455,7 +661,7 @@ class WebAppTestCase(unittest.TestCase):
             payload["warnings"],
         )
         self.assertIn(
-            "Allowed body pattern_id values: text.manual.section_break, text_image.manual.procedure.one, text_image.manual.procedure.two, text_image.manual.procedure.three.",
+            "Allowed body pattern_id values: " + ", ".join(MANUAL_ALLOWED_BODY_PATTERN_IDS) + ".",
             payload["hints"],
         )
 
@@ -555,6 +761,31 @@ class WebAppTestCase(unittest.TestCase):
                         payload,
                     )
 
+    def test_manual_draft_check_endpoint_flags_balanced_canary_pattern_image_mismatch(self) -> None:
+        sample = build_prepared_sample(load_case_catalog()["05_balanced_canary"])
+        payload = parse_yaml_text(sample.starter_yaml)
+        last_slide = payload["report_content"]["slides"][-1]
+        last_slide["slots"].pop("image_2", None)
+        last_slide["slots"].pop("caption_2", None)
+        last_slide["slots"].pop("image_3", None)
+        last_slide["slots"].pop("caption_3", None)
+
+        response = self.client.post(
+            "/api/manual-draft-check",
+            data={
+                "payload_yaml": serialize_document(payload, fmt="yaml").strip(),
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        checker_payload = response.json()
+        self.assertFalse(checker_payload["ok"])
+        self.assertIn(
+            "Field 'slides[4].pattern_id' is 'text_image.manual.procedure.three', but this slide defines 1 image_* slot(s), so it should use 'text_image.manual.procedure.one'.",
+            checker_payload["errors"],
+        )
+
     def test_manual_draft_check_endpoint_warns_for_section_number_without_period(self) -> None:
         def remove_section_number_period(report_content: dict[str, object]) -> None:
             slides = report_content["slides"]
@@ -596,7 +827,7 @@ class WebAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(
-            payload["payload_yaml"].startswith("# Paste this brief into another AI")
+            payload["payload_yaml"].startswith("# Complete the starter YAML below as the final answer.")
         )
         updated = parse_yaml_text(payload["payload_yaml"])
         slides = updated["report_content"]["slides"]
@@ -867,6 +1098,22 @@ class WebAppTestCase(unittest.TestCase):
                 "1.1 Review The Starter Example",
             ],
         )
+
+    def test_compile_endpoint_accepts_prose_wrapped_manual_yaml_with_hints(self) -> None:
+        response = self.client.post(
+            "/api/compile",
+            data={
+                "payload_yaml": build_prose_wrapped_manual_yaml(MANUAL_PROCEDURE_EXAMPLE_YAML),
+                "image_manifest": "[]",
+                "built_in": "autoreport_manual",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["payload_kind"], "content")
+        self.assertTrue(payload["payload_yaml"].startswith("report_content:\n  title_slide:"))
+        self.assertIn(MANUAL_AI_EXTRACTION_HINT, payload["hints"])
 
     def test_compile_endpoint_returns_manual_required_image_order(self) -> None:
         response = self.client.post(
